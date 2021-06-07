@@ -197,9 +197,22 @@ main () {
   )
 
   pac_batch_install "${essential_packages[@]}"
+}
 
+
+ctrl_c() {
+  error "${SCRIPT_PATH} aborted" 1
+}
+
+
+cleanup() {
   pac_report
 }
 
-main
+
+if [[ -z "${DEBUG+x}" ]]; then
+  trap ctrl_c INT TERM
+  trap cleanup EXIT
+  main
+fi
 
