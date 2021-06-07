@@ -36,9 +36,9 @@ pac_batch_install() {
 
   if [[ -n "${packages}" ]]; then
     for package in ${packages[@]}; do
-      pac_install "${package}"
       prog_bar "$(("${i}*100/${width}"))"
       echo "- ${package}"
+      pac_install "${package}"
       ((++i))
     done
   else
