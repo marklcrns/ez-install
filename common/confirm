@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+################################################################################
+#
+# Prompt confirmation for bash and zsh.
+# Will run with bash shell by default as specified by the script shebang
+#
+################################################################################
+# Author:   Mark Lucernas <https://github.com/marklcrns>
+# Date:     2020-08-15
+# Credits:
+#   Zsh prompt   = https://superuser.com/a/556006
+#   Bash prompt  = https://stackoverflow.com/a/1885534
+#   Detect shell = https://stackoverflow.com/a/9911082
+################################################################################
+
+MESSAGE="${1:-Do you wish to continue? (Y/y)}"
+
+reply() {
+  if [[ "${REPLY}" =~ ^[Yy]$ ]]; then
+    exit 0
+  else
+    exit 1
+  fi
+}
+
+if [ -n "$(${SHELL} -c 'echo ${ZSH_VERSION}')" ]; then # Zsh prompt
+  echo -ne "${MESSAGE}"
+  read REPLY
+  reply
+elif [ -n "$(${SHELL} -c 'echo ${BASH_VERSION}')" ]; then # Bash prompt
+  read -p "${MESSAGE}" -n 1 -r
+  reply
+else
+  echo -e "ERROR: Shell not suported" >&2
+  exit 2
+fi
+

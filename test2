@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+
+# Source install utility functions
+source "${BASH_SOURCE%/*}/install/install.sh"
+source "${BASH_SOURCE%/*}/install/pac-logger.sh"
+
+VERBOSE=true
+
+myfunc() {
+  # Pkg test
+  pkg_install 'yarn'
+
+  # Apt test
+  add_apt_repo 'bashtop-monitor/bashtop'
+  apt_install -u 'bashtop'
+
+  # Curl test
+  curl_install -o "${HOME}/tmp" "https://raw.githubusercontent.com/agarrharr/awesome-cli-apps/master/readme.md"
+
+  # Wget test
+  wget_install -O "${HOME}/tmp" "https://raw.githubusercontent.com/agarrharr/awesome-cli-apps/master/readme.md"
+
+  # Git test
+  git_clone -f "https://github.com/marklcrns/tmp-ez-install" "${HOME}/tmp/tmp-ez-install"
+
+  # Npm test
+  npm_install -g 'glances'
+
+  # Pip test
+  pip_install 'glances'
+
+  pac_report
+}
+
+myfunc

@@ -1,0 +1,195 @@
+#!/usr/bin/env bash
+
+set -o pipefail
+set -o nounset
+
+################################################## CONSTANT GLOBAL VARIABLES ###
+
+readonly VERSION="0.1"
+
+SCRIPT_PATH="${BASH_SOURCE[0]}"
+while [ -h "$SCRIPT_PATH" ]; do
+  SCRIPT_DIR="$(cd -P "$(dirname "$SCRIPT_PATH")" >/dev/null 2>&1 && pwd)"
+  SCRIPT_PATH="$(readlink "$SCRIPT_PATH")"
+  [[ $SCRIPT_PATH != /* ]] && SCRIPT_PATH="$SCRIPT_DIR/$SCRIPT_PATH"
+done
+SCRIPT_DIR="$(cd -P "$(dirname "$SCRIPT_PATH")" >/dev/null 2>&1 && pwd)"
+SCRIPT_NAME="$(basename -- "${SCRIPT_PATH}")"
+SCRIPT_ARGS="$@"
+
+readonly SCRIPT_PATH
+readonly SCRIPT_DIR
+readonly SCRIPT_NAME
+readonly SCRIPT_ARGS
+
+readonly LOG_SYSLOG=true
+readonly LOG_FILELOG=true
+readonly DOWNLOADS_DIR="${HOME}/Downloads"
+
+############################################################### FLAG OPTIONS ###
+
+
+usage() {
+  cat << EOF
+${SCRIPT_NAME}
+
+  Universal installer.
+
+USAGE:
+
+  ${SCRIPT_PATH} [ -hvVxy ]
+
+OPTIONS:
+
+  -V --verbose        verbose output
+  -v --version        version
+  -y --skip-confirm   skip confirmation
+  -x --debug          debug mode (print all log levels)
+  -h --help           help
+
+EOF
+}
+
+function handle_args() {
+  local arg=
+  for arg; do
+    local delim=""
+    case "${arg}" in
+      # translate --gnu-long-options to -g (short options)
+      --destination)    args="${args:-}-d ";;
+      --flags)          args="${args:-}-f ";;
+      --manager)        args="${args:-}-m ";;
+      --package)        args="${args:-}-p ";;
+      --skip-confirm)   args="${args:-}-y ";;
+      --verbose)        args="${args:-}-V ";;
+      --version)        args="${args:-}-v ";;
+      --debug)          args="${args:-}-x ";;
+      --help)           args="${args:-}-h ";;
+      #pass through anything else
+      *)
+        [[ "${arg:0:1}" == "-" ]] || delim="\""
+        args="${args:-}${delim}${arg}${delim} ";;
+    esac
+  done
+
+  eval set -- ${args:-}
+
+  SKIP_CONFIRM=false
+  VERBOSE=false
+  DEBUG=false
+  LOG_DEBUG_LEVEL=3
+
+  OPTIND=1
+  while getopts "d:f:m:p:hsvxy" opt; do
+    case ${opt} in
+      d)
+        readonly DESTINATION="${OPTARG}"
+        ;;
+      f)
+        readonly FLAGS="${OPTARG}"
+        ;;
+      m)
+        readonly PACKAGE_MANAGER=$(echo "${OPTARG}" | awk '{print tolower($0)}')
+        ;;
+      p)
+        readonly PACKAGE="${OPTARG}"
+        ;;
+      V)
+        VERBOSE=true
+        ;;
+      v)
+        printf "${SCRIPT_NAME} ${VERSION}\n"; exit 0
+        ;;
+      y)
+        SKIP_CONFIRM=true
+        ;;
+      x)
+        DEBUG=true
+        LOG_DEBUG_LEVEL=7
+        ;;
+      h)
+        usage; exit 0
+        ;;
+    esac
+  done
+  shift "$((OPTIND-1))"
+
+  readonly SKIP_CONFIRM
+  readonly VERBOSE
+  readonly DEBUG
+  readonly LOG_DEBUG_LEVEL
+
+  return 0
+}
+
+###################################################### EXTERNAL DEPENDENCIES ###
+
+if [[ -e "${SCRIPT_DIR}/common/log.sh" ]]; then
+  source "${SCRIPT_DIR}/common/log.sh"
+else
+  echo "${SCRIPT_PATH} ERROR: Failed to source 'common/log.sh' dependency"
+  exit 1
+fi
+
+if [[ -e "${SCRIPT_DIR}/install/pac-logger.sh" ]]; then
+  source "${SCRIPT_DIR}/install/pac-logger.sh"
+else
+  echo "${SCRIPT_PATH} ERROR: Failed to source 'install/pac-logger.sh' dependency"
+  exit 1
+fi
+
+if [[ -e "${SCRIPT_DIR}/install/pac-install.sh" ]]; then
+  source "${SCRIPT_DIR}/install/pac-install.sh"
+else
+  echo "${SCRIPT_PATH} ERROR: Failed to source 'install/pac-install.sh' dependency"
+  exit 1
+fi
+
+if [[ -e "${SCRIPT_DIR}/install/install.sh" ]]; then
+  source "${SCRIPT_DIR}/install/install.sh"
+else
+  echo "${SCRIPT_PATH} ERROR: Failed to source 'install/install.sh' dependency"
+  exit 1
+fi
+
+############################################################## PRE-EXECUTION ###
+
+############################################################# MAIN EXECUTION ###
+
+main () {
+  handle_args "${SCRIPT_ARGS}"
+
+  # Confirmation
+  if ! ${SKIP_CONFIRM}; then
+    ${SCRIPT_DIR}/common/confirm "Do you wish to continue? (Y/y): "
+    if [[ "${?}" -eq 1 ]]; then
+      abort "${SCRIPT_PATH}: Aborted."
+    elif [[ "${?}" -eq 2 ]]; then
+      error "${SCRIPT_PATH}: Unsupported shell"
+    fi
+  fi
+
+  cd ${DOWNLOADS_DIR}
+
+  local -a essential_packages=(
+    "build-essential"
+    "libssl-dev"
+    "libffi-dev"
+    "git"
+    "git-lfs"
+    "yarn"
+    "curl"
+    "wget"
+    "zip"
+    "unar"
+    "gnupg2"
+    "net-tools"
+  )
+
+  pac_batch_install "${essential_packages[@]}"
+
+  pac_report
+}
+
+main
+

@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+SCRIPT_DIR="${BASH_SOURCE%/*}"
+
+packages=(
+  "build-essential"
+  "libssl-dev"
+  "libffi-dev"
+  "git"
+  "git-lfs"
+  "yarn"
+  "curl"
+  "wget"
+  "zip"
+  "unar"
+  "gnupg2"
+  "net-tools"
+)
+
+for package in "${packages[@]}"; do
+  ${SCRIPT_DIR}/generate-template -y "${package}"
+done
