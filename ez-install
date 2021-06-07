@@ -131,6 +131,13 @@ else
   exit 1
 fi
 
+if [[ -e "${SCRIPT_DIR}/install/actions.sh" ]]; then
+  source "${SCRIPT_DIR}/install/actions.sh"
+else
+  echo "${SCRIPT_PATH} ERROR: Failed to source 'install/actions.sh' dependency"
+  exit 1
+fi
+
 if [[ -e "${SCRIPT_DIR}/install/pac-logger.sh" ]]; then
   source "${SCRIPT_DIR}/install/pac-logger.sh"
 else
@@ -169,6 +176,9 @@ main () {
     fi
   fi
 
+  if [[ ! -d "${DOWNLOADS_DIR}" ]]; then
+    mkdir -p "${DOWNLOADS_DIR}"
+  fi
   cd ${DOWNLOADS_DIR}
 
   local -a essential_packages=(
