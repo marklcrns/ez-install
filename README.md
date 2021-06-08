@@ -4,6 +4,8 @@ ez-install intends to alleviate the pain of installing UNIX binaries, packages,
 git repositories, personal configurations, environment setup, etc., which makes
 starting from scratch less painful.
 
+![Demo](./demo.gif)
+
 ## Usage
 
 ```sh
