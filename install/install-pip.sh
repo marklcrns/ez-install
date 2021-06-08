@@ -67,7 +67,7 @@ pip_install() {
 }
 
 
-pip_bulk_install() {
+pip_batch_install() {
   local pip_version=
   OPTIND=1
 

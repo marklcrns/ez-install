@@ -65,7 +65,7 @@ pkg_install() {
 
 # if apt package is appended with ';update', will `apt update` first before
 # installation
-pkg_bulk_install() {
+pkg_batch_install() {
   local packages=("$@")
 
   if ! _is_pkg_installed; then

@@ -77,7 +77,7 @@ apt_install() {
   fi
 
   # Check if package exists in apt repository
-  if ! eval "apt-cache search --names-only '${package}' | grep -F '${package}' &> /dev/null"; then
+  if ! eval "apt-cache search --names-only '^${package}.*' | grep -F '${package}' &> /dev/null"; then
     pac_log_failed 'Apt' "${package}"
     return 1
   fi
@@ -104,7 +104,7 @@ apt_install() {
 
 # if apt package is appended with ';update', will `apt update` first before
 # installation
-apt_bulk_install() {
+apt_batch_install() {
   local packages=("$@")
 
   if ! _is_apt_installed; then

@@ -82,7 +82,7 @@ npm_install() {
   fi
 }
 
-npm_bulk_install() {
+npm_batch_install() {
   local is_global=false
 
   while getopts "g" opt; do
