@@ -12,21 +12,21 @@ fi
   || return 0
 
 
-source "${BASH_SOURCE%/*}/pac-logger.sh"
-source "${BASH_SOURCE%/*}/progress-bar.sh"
+source "${BASH_SOURCE%/*}/utils/pac-logger.sh"
+source "${BASH_SOURCE%/*}/utils/progress-bar.sh"
 
 
 pac_install() {
   local package="${1:-}"
-  local package_dir="${BASH_SOURCE%/*}/../packages"
+  local package_dir="${PACKAGE_DIR:-${BASH_SOURCE%/*}/../generate/packages}"
 
-  if [[ -e "${package_dir}/${package}" ]]; then
-    source "${package_dir}/${package}" -y
-    return 0
+  if [[ ! -e "${package_dir}/${package}" ]]; then
+    pac_log_failed 'N/A' "${package}" "Package '${package}' not found in ${package_dir}"
+    return 1
   fi
 
-  pac_log_failed 'N/A' "${package}" "Package '${package}' not found in ${package_dir}"
-  return 1
+  source "${package_dir}/${package}" -y
+  return 0
 }
 
 pac_batch_install() {

@@ -9,13 +9,19 @@ starting from scratch less painful.
 ## Usage
 
 ```sh
-./ez-install -y
+./ez-install [ flags ] [ package(s) ]
+
+# from cmdline arguments
+./ez-install pac1 pac2 pac3
+
+# from a file
+./ez-install "$(cat packages.txt)"
 ```
 
 ## TODO
 
 - [ ] More practical package installer template generator
-  - [ ] Modularize script
+  - [X] Modularize script
   - [ ] Option to generate package dependency
   - [ ] Interactive package installer generator
   - [ ] Generate package installer from command history
@@ -25,8 +31,8 @@ starting from scratch less painful.
 - [ ] Easier configuration
   - [ ] Abstract away source code
   - [ ] Support JSON install configuration
-- [ ] More flexible installation
-  - [ ] Support individual installation via commandline
+- [X] More flexible installation
+  - [X] Support individual installation via commandline
 - [ ] Add more features
   - [ ] Cache all installed packages
   - [ ] Uninstall script

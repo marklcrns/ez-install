@@ -7,12 +7,12 @@ if [ "${0##*/}" == "${BASH_SOURCE[0]##*/}" ]; then
 fi
 
 # Header guard
-[[ -z "${INSTALL_INSTALL_CURL_SH_INCLUDED+x}" ]] \
-  && readonly INSTALL_INSTALL_CURL_SH_INCLUDED=1 \
+[[ -z "${INSTALL_UTILS_INSTALL_CURL_SH_INCLUDED+x}" ]] \
+  && readonly INSTALL_UTILS_INSTALL_CURL_SH_INCLUDED=1 \
   || return 0
 
 
-source "${BASH_SOURCE%/*}/pac-logger.sh"
+source "${BASH_SOURCE%/*}/../utils/pac-logger.sh"
 
 
 _is_curl_installed() {

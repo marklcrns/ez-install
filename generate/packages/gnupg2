@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+########################################################### PACKAGE METADATA ###
+# package: gnupg2
+# dependency: 
+# author: 
+################################################################################
+
+
+source "${BASH_SOURCE%/*}/../common.sh"
+
+# Set up if executed instead of sourcing
+if [ "${0##*/}" == "${BASH_SOURCE[0]##*/}" ]; then
+  source "${BASH_SOURCE%/*}/../../common/common.sh"
+  script_vars
+  handle_args "${@}"
+fi
+
+################################################################# START CODE ###
+
+# TODO: Finish gnupg2 installation template
+
+_main() {
+  # Package name defaults to filename
+  local package="$(basename -- "${BASH_SOURCE}")"
+
+  # Get system package manager
+  [[ -z "${PACKAGE_MANAGER:-}" ]] && get_sys_package_manager PACKAGE_MANAGER
+
+  # Install package
+  install "${PACKAGE_MANAGER}" "${package}"
+}
+
+################################################################### END CODE ###
+
+_main
+unset PACKAGE_MANAGER

@@ -7,13 +7,13 @@ if [ "${0##*/}" == "${BASH_SOURCE[0]##*/}" ]; then
 fi
 
 # Header guard
-[[ -z "${INSTALL_PACKAGE_MANAGER_SH_INCLUDED+x}" ]] \
-  && readonly INSTALL_PACKAGE_MANAGER_SH_INCLUDED=1 \
+[[ -z "${UTILS_PACKAGE_MANAGER_SH_INCLUDED+x}" ]] \
+  && readonly UTILS_PACKAGE_MANAGER_SH_INCLUDED=1 \
   || return 0
 
 
 source "${BASH_SOURCE%/*}/actions.sh"
-source "${BASH_SOURCE%/*}/../common/colors.sh"
+source "${BASH_SOURCE%/*}/../../common/colors.sh"
 
 
 SUCCESSFUL_PACKAGES=

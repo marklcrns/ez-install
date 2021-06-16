@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+
+set -o pipefail
+set -o nounset
+
+source "${BASH_SOURCE%/*}/common.sh"
+
+SCRIPT_DIR="${BASH_SOURCE%/*}"
+
+_main() {
+  local -a packages=(
+    "build-essential"
+    "libssl-dev"
+    "libffi-dev"
+    "git"
+    "git-lfs"
+    "yarn"
+    "curl"
+    "wget"
+    "zip"
+    "unar"
+    "gnupg2"
+    "net-tools"
+  )
+
+  for package in "${packages[@]}"; do
+    ${SCRIPT_DIR}/generate-template -y -D "${SCRIPT_DIR}/packages" "${package}"
+  done
+}
+
+_main

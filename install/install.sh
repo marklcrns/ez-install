@@ -12,13 +12,13 @@ fi
   || return 0
 
 
-source "${BASH_SOURCE%/*}/actions.sh"
-for install_script in ${BASH_SOURCE%/*}/install-*.sh; do
+source "${BASH_SOURCE%/*}/utils/actions.sh"
+for install_script in ${BASH_SOURCE%/*}/install-utils/install-*.sh; do
   source "${install_script}"
 done
 
 
-function install() {
+install() {
   local args= destination=
 
   OPTIND=1
@@ -42,8 +42,8 @@ function install() {
     error "No package provided"
   fi
 
-  local package_manager="${1}"
-  local package="${2}"
+  local package_manager="${1:-}"
+  local package="${2:-}"
 
   case ${package_manager} in
     apt)
@@ -71,7 +71,7 @@ function install() {
       wget_install ${args} "${package}" "${destination}" || return 1
       ;;
     *)
-      error "${package_manager} not supported"
+      error "'${package_manager}' package manager not supported"
       return 1
       ;;
   esac

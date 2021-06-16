@@ -3,28 +3,29 @@
 set -o pipefail
 set -o nounset
 
+###################################################### EXTERNAL DEPENDENCIES ###
+
+source "${BASH_SOURCE%/*}/common/include.sh"
+
+include "${BASH_SOURCE%/*}/common/common.sh"
+include "${BASH_SOURCE%/*}/common/array.sh"
+include "${BASH_SOURCE%/*}/install/utils/actions.sh"
+include "${BASH_SOURCE%/*}/install/utils/pac-logger.sh"
+include "${BASH_SOURCE%/*}/install/pac-install.sh"
+include "${BASH_SOURCE%/*}/install/install.sh"
+
 ################################################## CONSTANT GLOBAL VARIABLES ###
 
-readonly VERSION="0.1"
+readonly VERSION="0.2"
 
-SCRIPT_PATH="${BASH_SOURCE[0]}"
-while [ -h "$SCRIPT_PATH" ]; do
-  SCRIPT_DIR="$(cd -P "$(dirname "$SCRIPT_PATH")" >/dev/null 2>&1 && pwd)"
-  SCRIPT_PATH="$(readlink "$SCRIPT_PATH")"
-  [[ $SCRIPT_PATH != /* ]] && SCRIPT_PATH="$SCRIPT_DIR/$SCRIPT_PATH"
-done
-SCRIPT_DIR="$(cd -P "$(dirname "$SCRIPT_PATH")" >/dev/null 2>&1 && pwd)"
-SCRIPT_NAME="$(basename -- "${SCRIPT_PATH}")"
-SCRIPT_ARGS="$@"
-
-readonly SCRIPT_PATH
-readonly SCRIPT_DIR
-readonly SCRIPT_NAME
-readonly SCRIPT_ARGS
+readonly SCRIPT_ARGS="$@"
 
 readonly LOG_SYSLOG=true
 readonly LOG_FILELOG=true
 readonly DOWNLOADS_DIR="${HOME}/Downloads"
+
+PACKAGE_DIR="${BASH_SOURCE%/*}/generate/packages"
+PACKAGE_DIR="$(realpath -s "${PACKAGE_DIR}")"
 
 ############################################################### FLAG OPTIONS ###
 
@@ -41,10 +42,10 @@ USAGE:
 
 OPTIONS:
 
-  -V --verbose        verbose output
-  -v --version        version
-  -y --skip-confirm   skip confirmation
+  -V --version        version
+  -v --verbose        verbose output
   -x --debug          debug mode (print all log levels)
+  -y --skip-confirm   skip confirmation
   -h --help           help
 
 EOF
@@ -57,14 +58,12 @@ function handle_args() {
     case "${arg}" in
       # translate --gnu-long-options to -g (short options)
       --destination)    args="${args:-}-d ";;
-      --flags)          args="${args:-}-f ";;
-      --manager)        args="${args:-}-m ";;
-      --package)        args="${args:-}-p ";;
-      --skip-confirm)   args="${args:-}-y ";;
-      --verbose)        args="${args:-}-V ";;
-      --version)        args="${args:-}-v ";;
+      --package-dir)    args="${args:-}-D ";;
+      --verbose)        args="${args:-}-v ";;
       --debug)          args="${args:-}-x ";;
+      --skip-confirm)   args="${args:-}-y ";;
       --help)           args="${args:-}-h ";;
+      --version)        args="${args:-}-V ";;
       #pass through anything else
       *)
         [[ "${arg:0:1}" == "-" ]] || delim="\""
@@ -74,16 +73,19 @@ function handle_args() {
 
   eval set -- ${args:-}
 
-  SKIP_CONFIRM=false
-  VERBOSE=false
-  DEBUG=false
-  LOG_DEBUG_LEVEL=3
+  [[ -z "${SKIP_CONFIRM+x}" ]]    && SKIP_CONFIRM=false
+  [[ -z "${VERBOSE+x}" ]]         && VERBOSE=false
+  [[ -z "${DEBUG+x}" ]]           && DEBUG=false
+  [[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=3
 
   OPTIND=1
-  while getopts "d:f:m:p:hsvxy" opt; do
+  while getopts "d:D:f:m:p:P:vxyhV" opt; do
     case ${opt} in
       d)
         readonly DESTINATION="${OPTARG}"
+        ;;
+      d)
+        PACKAGE_DIR="${OPTARG}"
         ;;
       f)
         readonly FLAGS="${OPTARG}"
@@ -91,128 +93,82 @@ function handle_args() {
       m)
         readonly PACKAGE_MANAGER=$(echo "${OPTARG}" | awk '{print tolower($0)}')
         ;;
-      p)
-        readonly PACKAGE="${OPTARG}"
-        ;;
-      V)
-        VERBOSE=true
-        ;;
       v)
-        printf "${SCRIPT_NAME} ${VERSION}\n"; exit 0
-        ;;
-      y)
-        SKIP_CONFIRM=true
+        VERBOSE=true
         ;;
       x)
         DEBUG=true
         LOG_DEBUG_LEVEL=7
         ;;
+      y)
+        SKIP_CONFIRM=true
+        ;;
       h)
         usage; exit 0
+        ;;
+      V)
+        printf "${SCRIPT_NAME} ${VERSION}\n"; exit 0
         ;;
     esac
   done
   shift "$((OPTIND-1))"
 
+  if [[ -p /dev/stdin ]]; then
+    error "Piped arguments not supported" 1
+  fi
+
+  if [[ ! -t 0 && ! -p /dev/stdin ]]; then
+    error "Stdin redirection not supported" 1
+  fi
+
+  # Arguments from terminal
+  if [[ -t 0 ]]; then
+    if [[ -n "${@}" ]]; then
+      IFS=" " read -a PACKAGES <<< "${@}"
+    else
+      error "No package(s) provided" 1
+    fi
+  fi
+
   readonly SKIP_CONFIRM
   readonly VERBOSE
   readonly DEBUG
   readonly LOG_DEBUG_LEVEL
+  readonly PACKAGE_DIR
+  readonly PACKAGES
 
   return 0
 }
 
-###################################################### EXTERNAL DEPENDENCIES ###
-
-if [[ -e "${SCRIPT_DIR}/common/log.sh" ]]; then
-  source "${SCRIPT_DIR}/common/log.sh"
-else
-  echo "${SCRIPT_PATH} ERROR: Failed to source 'common/log.sh' dependency"
-  exit 1
-fi
-
-if [[ -e "${SCRIPT_DIR}/install/actions.sh" ]]; then
-  source "${SCRIPT_DIR}/install/actions.sh"
-else
-  echo "${SCRIPT_PATH} ERROR: Failed to source 'install/actions.sh' dependency"
-  exit 1
-fi
-
-if [[ -e "${SCRIPT_DIR}/install/pac-logger.sh" ]]; then
-  source "${SCRIPT_DIR}/install/pac-logger.sh"
-else
-  echo "${SCRIPT_PATH} ERROR: Failed to source 'install/pac-logger.sh' dependency"
-  exit 1
-fi
-
-if [[ -e "${SCRIPT_DIR}/install/pac-install.sh" ]]; then
-  source "${SCRIPT_DIR}/install/pac-install.sh"
-else
-  echo "${SCRIPT_PATH} ERROR: Failed to source 'install/pac-install.sh' dependency"
-  exit 1
-fi
-
-if [[ -e "${SCRIPT_DIR}/install/install.sh" ]]; then
-  source "${SCRIPT_DIR}/install/install.sh"
-else
-  echo "${SCRIPT_PATH} ERROR: Failed to source 'install/install.sh' dependency"
-  exit 1
-fi
-
-############################################################## PRE-EXECUTION ###
-
 ############################################################# MAIN EXECUTION ###
 
-main () {
+_ctrl_c() {
+  echo ""
+  error "${SCRIPT_PATH} Interrupted!" 1
+}
+
+_main () {
+  script_vars
   handle_args "${SCRIPT_ARGS}"
 
-  # Confirmation
-  if ! ${SKIP_CONFIRM}; then
-    ${SCRIPT_DIR}/common/confirm "Do you wish to continue? (Y/y): "
-    if [[ "${?}" -eq 1 ]]; then
-      abort "${SCRIPT_PATH}: Aborted."
-    elif [[ "${?}" -eq 2 ]]; then
-      error "${SCRIPT_PATH}: Unsupported shell"
-    fi
+  # Set up trap
+  if "${DEBUG}"; then
+    trap _ctrl_c INT TERM
   fi
+
+  print_array_column "${PACKAGES[@]}"
+  confirm "About to install the package(s) above. Continue? (Y/y): "
 
   if [[ ! -d "${DOWNLOADS_DIR}" ]]; then
     mkdir -p "${DOWNLOADS_DIR}"
   fi
   cd ${DOWNLOADS_DIR}
 
-  local -a essential_packages=(
-    "build-essential"
-    "libssl-dev"
-    "libffi-dev"
-    "git"
-    "git-lfs"
-    "yarn"
-    "curl"
-    "wget"
-    "zip"
-    "unar"
-    "gnupg2"
-    "net-tools"
-  )
+  pac_batch_install "${PACKAGES[@]}"
+  [[ -n "${PACKAGES+x}" ]] && pac_report
 
-  pac_batch_install "${essential_packages[@]}"
+  finish "Installation success!"
 }
 
-
-ctrl_c() {
-  error "${SCRIPT_PATH} aborted" 1
-}
-
-
-cleanup() {
-  pac_report
-}
-
-
-if [[ -z "${DEBUG+x}" ]]; then
-  trap ctrl_c INT TERM
-  trap cleanup EXIT
-  main
-fi
+_main
 
