@@ -8,6 +8,28 @@ source "${BASH_SOURCE%/*}/common.sh"
 
 SCRIPT_ARGS="${@}"
 
+usage() {
+  local scriptpath="$(realpath -- "${0}")"
+
+cat <<- EOF
+$(basename -- "${scriptpath}")
+
+USAGE:
+
+./$(basename -- "${scriptpath}") [ -hvxy ] package
+
+OPTIONS:
+
+  -d --dependency       package installation dependencies
+  -a --author           package author (optional)
+  -D --directory-path   package output directory
+  -v --verbose          verbose output
+  -x --debug            debug
+  -y --skip             skip confirmation
+  -h --help             show usage
+EOF
+}
+
 handle_args() {
   local arg=
   for arg; do
@@ -36,7 +58,7 @@ handle_args() {
   FILE=""
   DEPENDENCIES=""
   AUTHOR=""
-  DIRECTORY_PATH="."
+  DIRECTORY_PATH="${PACKAGE_DIR:-${BASH_SOURCE%/*}/packages}"
 
   OPTIND=1
   while getopts "a:d:D:vxyh" opt; do
@@ -85,7 +107,7 @@ _check_package() {
   fi
 
   if [[ -e "${package}" ]]; then
-    confirm "${prompt}" "'${package}' already exists. Do you wish to continue? (Y/y): "
+    confirm "'${package}' already exists. Do you wish to continue? (Y/y): "
   fi
 }
 
@@ -142,7 +164,7 @@ ___EOF___
 
 _main() {
   handle_args "${SCRIPT_ARGS}"
-  local file_path="${DIRECTORY_PATH:-${SCRIPT_DIR}}/${FILE}"
+  local file_path="${DIRECTORY_PATH}/${FILE}"
   generate_template "${file_path}"
 }
 
