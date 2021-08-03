@@ -10,6 +10,15 @@ source "${BASH_SOURCE%/*}/../../common/log.sh"
 
 META="${1}"
 
+if [[ ${2+x} ]]; then
+  FILE="${2}"
+  if [[ ! -f "${FILE}" ]]; then
+    log 'error' "Missing ${FILE} file" 1
+  fi
+else
+  log 'error' "No file provided" 1
+fi
+
 main() {
   local __start_parsing=0
 
@@ -26,7 +35,7 @@ main() {
     if [[ ${__start_parsing} -eq 1 ]] && [[ "${line}" =~ "${META}" ]]; then
       printf '%s\n' "${line}" | awk -F ':' '{print $2}' | xargs
     fi
-  done < sample.txt
+  done < "${FILE}"
 }
 
 main
