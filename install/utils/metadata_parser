@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+
+set -o pipefail
+set -o nounset
+
+source "${BASH_SOURCE%/*}/../../common/colors.sh"
+source "${BASH_SOURCE%/*}/../../common/log.sh"
+
+[[ -z "$@" ]] && log 'error' "No arguments passed" 1
+
+META="${1}"
+
+main() {
+  local __start_parsing=0
+
+  while IFS="" read -r line || [ -n "$p" ]; do
+    if [[ "${line}" == "# ---" ]]; then
+      if [[ $__start_parsing -eq 0 ]]; then
+        __start_parsing=1
+        continue
+      else
+        return 0
+      fi
+    fi
+
+    if [[ ${__start_parsing} -eq 1 ]] && [[ "${line}" =~ "${META}" ]]; then
+      printf '%s\n' "${line}" | awk -F ':' '{print $2}' | xargs
+    fi
+  done < sample.txt
+}
+
+main
+
+unset META
