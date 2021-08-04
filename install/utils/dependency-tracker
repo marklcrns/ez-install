@@ -1,0 +1,158 @@
+#!/usr/bin/env bash
+
+set -o pipefail
+set -o nounset
+
+source "${BASH_SOURCE%/*}/../../common/include.sh"
+
+include "${BASH_SOURCE%/*}/../../common/common.sh"
+include "${BASH_SOURCE%/*}/../../common/colors.sh"
+include "${BASH_SOURCE%/*}/../../common/log.sh"
+include "${BASH_SOURCE%/*}/../../common/stack.sh"
+include "${BASH_SOURCE%/*}/actions.sh"
+
+SCRIPT_ARGS="${@}"
+PACKAGE_DIR="${PACKAGE_DIR:-${BASH_SOURCE%/*}/}/../../generate/packages"
+
+usage() {
+  local scriptpath="$(realpath -- "${0}")"
+
+cat <<- EOF
+${SCRIPT_NAME}
+
+USAGE:
+
+./${SCRIPT_PATH} [ -hvxy ] [ -d <package-dir> ] [ -p <package> ]
+
+OPTIONS:
+
+  -d --package-dir      packages directory
+  -p --package          package
+  -v --verbose          verbose output
+  -x --debug            debug
+  -y --skip             skip confirmation
+  -h --help             show usage
+EOF
+}
+
+handle_args() {
+  local arg=
+  for arg; do
+    local delim=""
+    case "${arg}" in
+      --package-dir)      args="${args:-}-d ";;
+      --package)          args="${args:-}-p ";;
+      --verbose)          args="${args:-}-v ";;
+      --debug)            args="${args:-}-x ";;
+      --skip-confirm)     args="${args:-}-y ";;
+      --help)             args="${args:-}-h ";;
+      *)
+        [[ "${arg:0:1}" == "-" ]] || delim="\""
+        args="${args:-}${delim}${arg}${delim} ";;
+    esac
+  done
+
+  eval set -- ${args:-}
+
+  [[ -z "${SKIP_CONFIRM+x}" ]]    && SKIP_CONFIRM=false
+  [[ -z "${VERBOSE+x}" ]]         && VERBOSE=false
+  [[ -z "${DEBUG+x}" ]]           && DEBUG=false
+  [[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=3
+
+  OPTIND=1
+  while getopts "d:l:p:vxyh" opt; do
+    case ${opt} in
+      d)
+        PACKAGE_DIR="${OPTARG}"
+        ;;
+      p)
+        PACKAGE="${OPTARG}"
+        ;;
+      v)
+        VERBOSE=true
+        ;;
+      x)
+        DEBUG=true
+        LOG_DEBUG_LEVEL=7
+        ;;
+      y)
+        SKIP_CONFIRM=true
+        ;;
+      h)
+        usage; exit 0
+        ;;
+    esac
+  done
+  shift "$((OPTIND-1))"
+
+  if [[ -p /dev/stdin ]]; then
+    error "Piped arguments not supported" 1
+  fi; if [[ ! -t 0 && ! -p /dev/stdin ]]; then
+    error "Stdin redirection not supported" 1
+  fi
+
+  if [[ -z "${PACKAGE}" ]]; then
+    error "No package provided" 1
+  fi
+
+  PACKAGE_DIR=${PACKAGE_DIR:-./../../generate/packages}
+
+  readonly SKIP_CONFIRM
+  readonly VERBOSE
+  readonly DEBUG
+  readonly LOG_DEBUG_LEVEL
+  readonly PACKAGES
+  readonly PACKAGE_DIR
+
+  return 0
+}
+
+function track_dependencies_verbose() {
+  local -a _package_dependencies=("$(./metadata-parser dependency "${1}")")
+  local _dependency_level=${2}
+
+  for dependency in ${_package_dependencies}; do
+    stack_push _dependencies "${dependency}"
+    printf "%*s" $((${_dependency_level}*4))
+    printf "│-${dependency}"
+    if [[ -e "${PACKAGE_DIR}/${dependency}" ]]; then
+      printf "\n"
+      track_dependencies_verbose "${PACKAGE_DIR}/${dependency}" $(($_dependency_level+1))
+    else
+      printf " ${COLOR_RED}(MISSING)${COLOR_NC}\n"
+    fi
+  done
+}
+
+function track_dependencies() {
+  local -a _package_dependencies=("$(./metadata-parser dependency "${1}")")
+  local _dependency_level=${2}
+
+  for dependency in ${_package_dependencies}; do
+    stack_push _dependencies "${dependency}"
+    if [[ -e "${PACKAGE_DIR}/${dependency}" ]]; then
+      track_dependencies "${PACKAGE_DIR}/${dependency}" $(($_dependency_level+1))
+    fi
+  done
+}
+
+function _main() {
+  local _dependency_level=0
+
+  script_vars
+  handle_args "${SCRIPT_ARGS}"
+
+  stack_new _dependencies
+
+  if ${VERBOSE}; then
+    printf "${PACKAGE}\n"
+    track_dependencies_verbose "${PACKAGE_DIR}/${PACKAGE}" $(($_dependency_level+1))
+  else
+    track_dependencies "${PACKAGE_DIR}/${PACKAGE}" $(($_dependency_level+1))
+  fi
+
+  stack_print _dependencies
+}
+
+_main
+
