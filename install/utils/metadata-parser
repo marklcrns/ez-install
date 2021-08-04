@@ -20,19 +20,19 @@ else
 fi
 
 main() {
-  local __start_parsing=0
+  local _start_parsing=0
 
-  while IFS="" read -r line || [ -n "$p" ]; do
+  while IFS="" read -r line; do
     if [[ "${line}" == "# ---" ]]; then
-      if [[ $__start_parsing -eq 0 ]]; then
-        __start_parsing=1
+      if [[ $_start_parsing -eq 0 ]]; then
+        _start_parsing=1
         continue
       else
         return 0
       fi
     fi
 
-    if [[ ${__start_parsing} -eq 1 ]] && [[ "${line}" =~ "${META}" ]]; then
+    if [[ ${_start_parsing} -eq 1 ]] && [[ "${line}" =~ "${META}" ]]; then
       printf '%s\n' "${line}" | awk -F ':' '{print $2}' | xargs
     fi
   done < "${FILE}"
