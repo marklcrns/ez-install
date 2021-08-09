@@ -11,10 +11,11 @@ include "${BASH_SOURCE%/*}/../../common/log.sh"
 include "${BASH_SOURCE%/*}/../../common/stack.sh"
 include "${BASH_SOURCE%/*}/actions.sh"
 
-SCRIPT_ARGS="${@}"
+readonly SCRIPT_ARGS="${@}"
 PACKAGE_DIR="${PACKAGE_DIR:-${BASH_SOURCE%/*}/}/../../generate/packages"
 
-usage() {
+
+function usage() {
   local scriptpath="$(realpath -- "${0}")"
 
 cat <<- EOF
@@ -107,25 +108,9 @@ handle_args() {
   return 0
 }
 
-function track_dependencies_verbose() {
-  local -a _package_dependencies=("$(./metadata-parser dependency "${1}")")
-  local _dependency_level=${2}
-
-  for dependency in ${_package_dependencies}; do
-    stack_push _dependencies "${dependency}"
-    printf "%*s" $((${_dependency_level}*4))
-    printf "│-${dependency}"
-    if [[ -e "${PACKAGE_DIR}/${dependency}" ]]; then
-      printf "\n"
-      track_dependencies_verbose "${PACKAGE_DIR}/${dependency}" $(($_dependency_level+1))
-    else
-      printf " ${COLOR_RED}(MISSING)${COLOR_NC}\n"
-    fi
-  done
-}
 
 function track_dependencies() {
-  local -a _package_dependencies=("$(./metadata-parser dependency "${1}")")
+  local -a _package_dependencies=("$(${SCRIPT_DIR}/metadata-parser dependency "${1}")")
   local _dependency_level=${2}
 
   for dependency in ${_package_dependencies}; do
@@ -135,6 +120,25 @@ function track_dependencies() {
     fi
   done
 }
+
+
+function track_dependencies_verbose() {
+  local -a _package_dependencies=("$(${SCRIPT_DIR}/metadata-parser dependency "${1}")")
+  local _dependency_level=${2}
+
+  for dependency in ${_package_dependencies}; do
+    stack_push _dependencies "${dependency}"
+    printf "%*s" $((${_dependency_level}*4))
+    printf "│—${dependency}"
+    if [[ -e "${PACKAGE_DIR}/${dependency}" ]]; then
+      printf "\n"
+      track_dependencies_verbose "${PACKAGE_DIR}/${dependency}" $(($_dependency_level+1))
+    else
+      printf " ${COLOR_RED}(MISSING)${COLOR_NC}\n"
+    fi
+  done
+}
+
 
 function _main() {
   local _dependency_level=0
@@ -149,10 +153,10 @@ function _main() {
     track_dependencies_verbose "${PACKAGE_DIR}/${PACKAGE}" $(($_dependency_level+1))
   else
     track_dependencies "${PACKAGE_DIR}/${PACKAGE}" $(($_dependency_level+1))
+    stack_print _dependencies
   fi
-
-  stack_print _dependencies
 }
+
 
 _main
 

@@ -3,10 +3,18 @@
 set -o pipefail
 set -o nounset
 
+source "${BASH_SOURCE%/*}/../.ez-installrc"
 source "${BASH_SOURCE%/*}/../common/common.sh"
 source "${BASH_SOURCE%/*}/common.sh"
 
 SCRIPT_ARGS="${@}"
+
+# Source custom rc file if exist
+CUSTOM_EZ_INSTALL_RC="${HOME}/.ez-installrc"
+if [[ -e "${CUSTOM_EZ_INSTALL_RC}" ]]; then
+  source "${CUSTOM_EZ_INSTALL_RC}"
+fi
+
 
 usage() {
   local scriptpath="$(realpath -- "${0}")"
@@ -128,12 +136,11 @@ cat > "${file_path}" <<- ___EOF___
 # ---
 ################################################################################
 
-
-source "\${BASH_SOURCE%/*}/../common.sh"
+source "\${EZ_INSTALL_HOME}/generate/common.sh"
 
 # Set up if executed instead of sourcing
 if [ "\${0##*/}" == "\${BASH_SOURCE[0]##*/}" ]; then
-  source "\${BASH_SOURCE%/*}/../../common/common.sh"
+  source "\${EZ_INSTALL_HOME}/common/common.sh"
   script_vars
   handle_args "\${@}"
 fi
@@ -159,14 +166,17 @@ _main
 unset PACKAGE_MANAGER
 ___EOF___
 
-  chmod +x "${file_path}"
-  echo -e "${file_path} created!"
+  chmod +x "${file_path}" && echo -e "${file_path} created!"
 }
 
 
 _main() {
   handle_args "${SCRIPT_ARGS}"
   local file_path="${DIRECTORY_PATH}/${FILE}"
+
+  if [[ ! -d "${DIRECTORY_PATH}" ]]; then
+    mkdir -p "${DIRECTORY_PATH}"
+  fi
   generate_template "${file_path}"
 }
 

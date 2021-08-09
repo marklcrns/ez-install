@@ -99,10 +99,10 @@ pac_report() {
   done < <(echo -e "${FAILED_PACKAGES}")
 
   echo
-  echo -e "Successful | ${successful_count}"
-  echo -e "Skipped    | ${skipped_count}"
-  echo -e "Failed     | ${failed_count}"
-  echo -e "-----------|-----"
-  echo -e "TOTAL      | ${total_count}"
+  echo -e "Successful │ ${successful_count}"
+  echo -e "Skipped    │ ${skipped_count}"
+  echo -e "Failed     │ ${failed_count}"
+  echo -e "———————————│————"
+  echo -e "TOTAL      │ ${total_count}"
 }
 

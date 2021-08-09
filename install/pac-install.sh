@@ -25,8 +25,23 @@ pac_install() {
     return 1
   fi
 
+  pac_install_dependencies "${package}" "${package_dir}"
+
   source "${package_dir}/${package}" -y
   return 0
+}
+
+pac_install_dependencies() {
+  local package="${1:-}"
+  local package_dir="${PACKAGE_DIR:-${BASH_SOURCE%/*}/../generate/packages}"
+
+  local _dependency_tracker="$(realpath -- ${BASH_SOURCE%/*})/utils/dependency-tracker"
+  local _dependencies="$(${_dependency_tracker} -p "${package}" -d "${package_dir}")"
+
+  for dependency in ${_dependencies}; do
+    warning "Installing ${package} dependency -- ${dependency}"
+    pac_install "${dependency}"
+  done
 }
 
 pac_batch_install() {
@@ -36,9 +51,9 @@ pac_batch_install() {
 
   if [[ -n "${packages}" ]]; then
     for package in ${packages[@]}; do
+      pac_install "${package}"
       prog_bar "$(("${i}*100/${width}"))"
       echo "- ${package}"
-      pac_install "${package}"
       ((++i))
     done
   else

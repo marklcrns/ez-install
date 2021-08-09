@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+EZ_INSTALL_HOME="$(realpath -- ${BASH_SOURCE%/*})"
+PACKAGE_DIR="${BASH_SOURCE%/*}/generate/packages"
+

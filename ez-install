@@ -5,6 +5,7 @@ set -o nounset
 
 ###################################################### EXTERNAL DEPENDENCIES ###
 
+source "${BASH_SOURCE%/*}/.ez-installrc"
 source "${BASH_SOURCE%/*}/common/include.sh"
 
 include "${BASH_SOURCE%/*}/common/common.sh"
@@ -24,8 +25,11 @@ readonly LOG_SYSLOG=true
 readonly LOG_FILELOG=true
 readonly DOWNLOADS_DIR="${HOME}/Downloads"
 
-PACKAGE_DIR="${BASH_SOURCE%/*}/generate/packages"
-PACKAGE_DIR="$(realpath -s "${PACKAGE_DIR}")"
+# Source custom rc file if exist
+CUSTOM_EZ_INSTALL_RC="${HOME}/.ez-installrc"
+if [[ -e "${CUSTOM_EZ_INSTALL_RC}" ]]; then
+  source "${CUSTOM_EZ_INSTALL_RC}"
+fi
 
 ############################################################### FLAG OPTIONS ###
 
@@ -95,6 +99,7 @@ function handle_args() {
         ;;
       v)
         VERBOSE=true
+        LOG_DEBUG_LEVEL=4
         ;;
       x)
         DEBUG=true
@@ -130,6 +135,11 @@ function handle_args() {
     fi
   fi
 
+  if [[ -z ${PACKAGE_DIR+x} ]]; then
+    PACKAGE_DIR="${BASH_SOURCE%/*}/generate/packages"
+    PACKAGE_DIR="$(realpath -s "${PACKAGE_DIR}")"
+  fi
+
   readonly SKIP_CONFIRM
   readonly VERBOSE
   readonly DEBUG
@@ -156,13 +166,15 @@ _main () {
     trap _ctrl_c INT TERM
   fi
 
-  print_array_column "${PACKAGES[@]}"
+  for package in ${PACKAGES[@]}; do
+    ./install/utils/dependency-tracker -p "${package}" -d "${PACKAGE_DIR}" -v
+  done
   confirm "About to install the package(s) above. Continue? (Y/y): "
 
-  if [[ ! -d "${DOWNLOADS_DIR}" ]]; then
-    mkdir -p "${DOWNLOADS_DIR}"
-  fi
-  cd ${DOWNLOADS_DIR}
+  # if [[ ! -d "${DOWNLOADS_DIR}" ]]; then
+  #   mkdir -p "${DOWNLOADS_DIR}"
+  # fi
+  # cd ${DOWNLOADS_DIR}
 
   pac_batch_install "${PACKAGES[@]}"
   [[ -n "${PACKAGES+x}" ]] && pac_report
