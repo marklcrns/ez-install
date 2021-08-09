@@ -29,6 +29,7 @@ starting from scratch less painful.
 - [ ] Handle package dependencies
   - [X] Dependency system
   - [X] Print dependency tree before installation
+  - [ ] Prevent package installation with missing dependencies
   - [ ] Full support for custom package install script directory
     - [ ] Support for custom package directory without overwritting default.
       - [ ] PATH-like package directory e.g. PACKAGE_DIR=/path/to/custom-dir/:${PACKAGED_DIR}
