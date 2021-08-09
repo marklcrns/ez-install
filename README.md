@@ -20,16 +20,20 @@ starting from scratch less painful.
 
 ## TODO
 
+- [ ] Add default curl/wget destination directory
 - [ ] More practical package installer template generator
   - [X] Modularize script
-  - [ ] Option to generate package dependency
+  - [X] Option to generate package dependency
   - [ ] Interactive package installer generator
   - [ ] Generate package installer from command history
 - [ ] Handle package dependencies
-  - [ ] Dependency system
-  - [ ] Print dependency tree before installation
+  - [X] Dependency system
+  - [X] Print dependency tree before installation
+  - [ ] Full support for custom package install script directory
+    - [ ] Support for custom package directory without overwritting default.
+      - [ ] PATH-like package directory e.g. PACKAGE_DIR=/path/to/custom-dir/:${PACKAGED_DIR}
 - [ ] Easier configuration
-  - [ ] Abstract away source code
+  - [X] Abstract away source code
   - [ ] Support JSON install configuration
 - [X] More flexible installation
   - [X] Support individual installation via commandline
