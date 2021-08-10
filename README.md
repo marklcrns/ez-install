@@ -52,3 +52,9 @@ starting from scratch less painful.
     - [x] 18.04 Bionic Beaver
   - [ ] More OS support coming
 - [ ] Bourne Shell support
+
+### FIX
+
+- [ ] Fix ez-install install no output on VERBOSE
+- [ ] Make VERBOSE as default and replace -v flag with -s to turn off
+
