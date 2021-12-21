@@ -24,20 +24,18 @@ _check_package() {
   fi
 
   confirm "${prompt}"
-}
-
-
-_install() {
-  local package="${1:-}"
-  _check_package "${package}" "You are about to install '${package}'. Do you wish to continue? (Y/y): "
-  source ${PACKAGE_DIR}/${package}
+  return $?
 }
 
 
 _main() {
   script_vars
   handle_args "${SCRIPT_ARGS}"
-  _install "${PACKAGE:-}"
+
+  _check_package "${PACKAGE}" "You are about to install '${PACKAGE}'. Do you wish to continue? (Y/y): " || \
+    exit 1
+
+  source ${PACKAGE_DIR}/${PACKAGE}
 }
 
 

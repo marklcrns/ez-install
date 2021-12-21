@@ -46,6 +46,8 @@ handle_args() {
       --dependency)     args="${args:-}-d ";;
       --author)         args="${args:-}-a ";;
       --directory-path) args="${args:-}-D ";;
+      --pre)            args="${args:-}-p ";;
+      --post)           args="${args:-}-P ";;
       --skip-confirm)   args="${args:-}-y ";;
       --verbose)        args="${args:-}-v ";;
       --debug)          args="${args:-}-x ";;
@@ -67,9 +69,11 @@ handle_args() {
   DEPENDENCIES=""
   AUTHOR=""
   DIRECTORY_PATH="${PACKAGE_DIR:-${BASH_SOURCE%/*}/packages}"
+  PRE_PROCESS=""
+  POST_PROCESS=":"
 
   OPTIND=1
-  while getopts "a:d:D:vxyh" opt; do
+  while getopts "a:d:D:p:P:vxyh" opt; do
     case ${opt} in
       a)
         AUTHOR="${OPTARG}"
@@ -79,6 +83,12 @@ handle_args() {
         ;;
       D)
         DIRECTORY_PATH="${OPTARG}"
+        ;;
+      p)
+        PRE_PROCESS="${OPTARG}"
+        ;;
+      P)
+        POST_PROCESS="${OPTARG}"
         ;;
       v)
         VERBOSE=true
@@ -114,8 +124,9 @@ _check_package() {
     error "No package provided" 1
   fi
 
-  if [[ -e "${package}" ]]; then
-    confirm "'${package}' already exists. Do you wish to continue? (Y/y): "
+  if [[ -e "${package}" ]] && ! ${SKIP_CONFIRM}; then
+    confirm "'${package}' already exists. ${prompt}" ||
+      return 1
   fi
 }
 
@@ -123,7 +134,8 @@ _check_package() {
 generate_template() {
   local file_path="${1:-}"
 
-  _check_package "${file_path}"
+  _check_package "${file_path}" ||
+    exit 1
 
 cat > "${file_path}" <<- ___EOF___
 #!/usr/bin/env bash
@@ -156,8 +168,14 @@ _main() {
   # Get system package manager
   [[ -z "\${PACKAGE_MANAGER:-}" ]] && get_sys_package_manager PACKAGE_MANAGER
 
+  # Pre process
+  ${PRE_PROCESS}
+
   # Install package
-  install "\${PACKAGE_MANAGER}" "\${package}"
+  if install "\${PACKAGE_MANAGER}" "\${package}"; then
+    # Post process
+    ${POST_PROCESS}
+  fi
 }
 
 ################################################################### END CODE ###
@@ -187,3 +205,5 @@ unset FILE
 unset DEPENDENCIES
 unset AUTHOR
 unset DIRECTORY_PATH
+unset PRE_PROCESS
+unset POST_PROCESS

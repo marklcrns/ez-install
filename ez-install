@@ -169,7 +169,9 @@ _main () {
   for package in ${PACKAGES[@]}; do
     ./install/utils/dependency-tracker -p "${package}" -d "${PACKAGE_DIR}" -v
   done
-  confirm "About to install the package(s) above. Continue? (Y/y): "
+
+  confirm "About to install the package(s) above. Continue? (Y/y): " || \
+    exit $?
 
   # if [[ ! -d "${DOWNLOADS_DIR}" ]]; then
   #   mkdir -p "${DOWNLOADS_DIR}"
