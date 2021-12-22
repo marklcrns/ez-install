@@ -69,7 +69,7 @@ apt_install() {
   done
   shift "$((OPTIND-1))"
 
-  local package="${@}"
+  local package="${@%.*}"
 
   if ! _is_apt_installed; then
     pac_log_failed 'Apt' "${package}" "Apt '${package}' installation failed. apt not installed"

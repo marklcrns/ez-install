@@ -110,21 +110,39 @@ handle_args() {
 
 
 function track_dependencies() {
+  if ! [[ -e "${1}" ]]; then
+    error "Package '${1}' not found"
+    return 1
+  fi
+
   local -a _package_dependencies=("$(${SCRIPT_DIR}/metadata-parser dependency "${1}")")
   local _dependency_level=${2}
+  local _has_missing=false
 
   for dependency in ${_package_dependencies}; do
     stack_push _dependencies "${dependency}"
     if [[ -e "${PACKAGE_DIR}/${dependency}" ]]; then
       track_dependencies "${PACKAGE_DIR}/${dependency}" $(($_dependency_level+1))
+    else
+      _has_missing=true
     fi
   done
+
+  if ${_has_missing}; then
+    return 1
+  fi
 }
 
 
 function track_dependencies_verbose() {
+  if ! [[ -e "${1}" ]]; then
+    error "Package '${1}' not found"
+    return 1
+  fi
+
   local -a _package_dependencies=("$(${SCRIPT_DIR}/metadata-parser dependency "${1}")")
   local _dependency_level=${2}
+  local _has_missing=false
 
   for dependency in ${_package_dependencies}; do
     stack_push _dependencies "${dependency}"
@@ -135,8 +153,13 @@ function track_dependencies_verbose() {
       track_dependencies_verbose "${PACKAGE_DIR}/${dependency}" $(($_dependency_level+1))
     else
       printf " ${COLOR_RED}(MISSING)${COLOR_NC}\n"
+      _has_missing=true
     fi
   done
+
+  if ${_has_missing}; then
+    return 1
+  fi
 }
 
 
@@ -155,8 +178,8 @@ function _main() {
     track_dependencies "${PACKAGE_DIR}/${PACKAGE}" $(($_dependency_level+1))
     stack_print _dependencies
   fi
+  exit $?
 }
 
 
 _main
-

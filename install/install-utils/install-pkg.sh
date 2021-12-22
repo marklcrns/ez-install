@@ -36,7 +36,7 @@ pkg_install() {
   done
   shift "$((OPTIND-1))"
 
-  local package="${@}"
+  local package="${@%.*}"
 
   if ! _is_pkg_installed; then
     pac_log_failed 'Pkg' "${package}" "Pkg '${package}' installation failed. pkg not installed"
@@ -69,7 +69,7 @@ pkg_batch_install() {
   local packages=("$@")
 
   if ! _is_pkg_installed; then
-    pac_log_failed 'Pkg' "${package}" "Pkg '${package}' installation failed. pkg not installed"
+    pac_log_failed 'Pkg' "${packages}" "Pkg installation failed. pkg not installed"
     return 1
   fi
 

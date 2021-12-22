@@ -36,7 +36,7 @@ pip_install() {
   done
   shift "$((OPTIND-1))"
 
-  local package="${@}"
+  local package="${@%.*}"
 
   if ! _is_pip_installed ${pip_version}; then
     pac_log_failed "Pip${pip_version}" "${package}" "Pip${pip_version} '${package}' installation failed. pip${pip_version} not installed"
@@ -84,7 +84,7 @@ pip_batch_install() {
   local packages=("$@")
 
   if ! _is_pip_installed ${pip_version}; then
-    pac_log_failed "Pip${pip_version}" "${package}" "Pip${pip_version} '${package}' installation failed. pip${pip_version} not installed"
+    pac_log_failed "Pip${pip_version}" "${packages}" "Pip${pip_version} installation failed. pip${pip_version} not installed"
     return 1
   fi
 

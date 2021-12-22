@@ -23,20 +23,20 @@ _is_npm_installed() {
 }
 
 npm_install() {
-  local is_global=false
+  local is_local=false
   OPTIND=1
 
   # Handle flags
-  while getopts "g" opt; do
+  while getopts "l" opt; do
     case ${opt} in
-      g)
-        is_global=true
+      l)
+        is_local=true
         ;;
     esac
   done
   shift "$((OPTIND-1))"
 
-  local package="${@}"
+  local package="${@%.*}"
 
   if ! _is_npm_installed; then
     pac_log_failed 'Npm' "${package}" "Npm '${package}' installation failed. npm not installed"
@@ -50,28 +50,20 @@ npm_install() {
   fi
 
   # Check if package already installed
-  if ${is_global}; then
-    if eval "npm list -g | grep -F '${package}' &> /dev/null"; then
-      pac_log_skip 'Npm' "${package}" "Npm '${package}' global package already installed"
+  if ${is_local}; then
+    if eval "npm list | grep -F '${package}' &> /dev/null"; then
+      pac_log_skip 'Npm' "${package}" "Npm '${package}' local package already installed"
       return 0
     fi
   else
-    if eval "npm list | grep -F '${package}' &> /dev/null"; then
-      pac_log_skip 'Npm' "${package}" "Npm '${package}' local package already installed"
+    if eval "npm list -g | grep -F '${package}' &> /dev/null"; then
+      pac_log_skip 'Npm' "${package}" "Npm '${package}' global package already installed"
       return 0
     fi
   fi
 
   # Execute installation
-  if ${is_global}; then
-    if execlog "npm -g install '${package}'"; then
-      pac_log_success 'Npm' "${package}" "Npm '${package}' global package installation successful"
-      return 0
-    else
-      pac_log_failed 'Npm' "${package}" "Npm '${package}' global package installation failed"
-      return 1
-    fi
-  else
+  if ${is_local}; then
     if execlog "npm install '${package}'"; then
       pac_log_success 'Npm' "${package}" "Npm '${package}' local package installation successful"
       return 0
@@ -79,16 +71,24 @@ npm_install() {
       pac_log_failed 'Npm' "${package}" "Npm '${package}' local package installation failed"
       return 1
     fi
+  else
+    if execlog "npm -g install '${package}'"; then
+      pac_log_success 'Npm' "${package}" "Npm '${package}' global package installation successful"
+      return 0
+    else
+      pac_log_failed 'Npm' "${package}" "Npm '${package}' global package installation failed"
+      return 1
+    fi
   fi
 }
 
 npm_batch_install() {
-  local is_global=false
+  local is_local=false
 
-  while getopts "g" opt; do
+  while getopts "l" opt; do
     case ${opt} in
-      g)
-        is_global=true
+      l)
+        is_local=true
         ;;
     esac
   done
@@ -97,17 +97,17 @@ npm_batch_install() {
   packages=("$@")
 
   if ! _is_npm_installed; then
-    pac_log_failed 'Npm' "${package}" "Npm '${package}' installation failed. npm not installed"
+    pac_log_failed 'Npm' "${packages}" "Npm installation failed. npm not installed"
     return 1
   fi
 
   # Loop over packages array and npm_install
   if [[ -n "${packages}" ]]; then
     for package in ${packages[@]}; do
-      if ${is_global}; then
-        npm_install -g "${package}"
-      else
+      if ${is_local}; then
         npm_install "${package}"
+      else
+        npm_install -g "${package}"
       fi
     done
   else

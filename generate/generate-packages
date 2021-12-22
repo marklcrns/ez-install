@@ -8,7 +8,7 @@ source "${BASH_SOURCE%/*}/common.sh"
 SCRIPT_DIR="${BASH_SOURCE%/*}"
 
 _main() {
-  local -a packages=(
+  local -a essentials=(
     "build-essential"
     "libssl-dev"
     "libffi-dev"
@@ -22,6 +22,16 @@ _main() {
     "-d git -P 'git lfs install' -- git-lfs"
     "gnupg2"
     "net-tools"
+  )
+
+  local -a package_manager=(
+    "-m npm browser-sync"
+    "-m npm gulp-cli"
+  )
+
+  local -a packages=(
+    "${essentials[@]}"
+    "${package_manager[@]}"
   )
 
   for package in "${packages[@]}"; do

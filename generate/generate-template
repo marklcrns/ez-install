@@ -43,15 +43,16 @@ handle_args() {
   for arg; do
     local delim=""
     case "${arg}" in
-      --dependency)     args="${args:-}-d ";;
-      --author)         args="${args:-}-a ";;
-      --directory-path) args="${args:-}-D ";;
-      --pre)            args="${args:-}-p ";;
-      --post)           args="${args:-}-P ";;
-      --skip-confirm)   args="${args:-}-y ";;
-      --verbose)        args="${args:-}-v ";;
-      --debug)          args="${args:-}-x ";;
-      --help)           args="${args:-}-h ";;
+      --dependency)       args="${args:-}-d ";;
+      --author)           args="${args:-}-a ";;
+      --directory-path)   args="${args:-}-D ";;
+      --package-manager)  args="${args:-}-m ";;
+      --pre)              args="${args:-}-p ";;
+      --post)             args="${args:-}-P ";;
+      --skip-confirm)     args="${args:-}-y ";;
+      --verbose)          args="${args:-}-v ";;
+      --debug)            args="${args:-}-x ";;
+      --help)             args="${args:-}-h ";;
       *)
         [[ "${arg:0:1}" == "-" ]] || delim="\""
         args="${args:-}${delim}${arg}${delim} ";;
@@ -69,11 +70,12 @@ handle_args() {
   DEPENDENCIES=""
   AUTHOR=""
   DIRECTORY_PATH="${PACKAGE_DIR:-${BASH_SOURCE%/*}/packages}"
+  PACKAGE_MANAGER=""
   PRE_PROCESS=""
-  POST_PROCESS=":"
+  POST_PROCESS=""
 
   OPTIND=1
-  while getopts "a:d:D:p:P:vxyh" opt; do
+  while getopts "a:d:D:m:p:P:vxyh" opt; do
     case ${opt} in
       a)
         AUTHOR="${OPTARG}"
@@ -83,6 +85,9 @@ handle_args() {
         ;;
       D)
         DIRECTORY_PATH="${OPTARG}"
+        ;;
+      m)
+        PACKAGE_MANAGER="${OPTARG}"
         ;;
       p)
         PRE_PROCESS="${OPTARG}"
@@ -164,17 +169,20 @@ fi
 _main() {
   # Package name defaults to filename
   local package="\$(basename -- "\${BASH_SOURCE}")"
+  local package_manager="\${PACKAGE_MANAGER:-${PACKAGE_MANAGER}}"
 
   # Get system package manager
-  [[ -z "\${PACKAGE_MANAGER:-}" ]] && get_sys_package_manager PACKAGE_MANAGER
+  [[ -z "\${package_manager}" ]] && get_sys_package_manager package_manager
 
   # Pre process
   ${PRE_PROCESS}
 
   # Install package
-  if install "\${PACKAGE_MANAGER}" "\${package}"; then
+  if install "\${package_manager}" "\${package}"; then
     # Post process
     ${POST_PROCESS}
+    local res=\$?
+    return \${res}
   fi
 }
 
@@ -182,6 +190,7 @@ _main() {
 
 _main
 unset PACKAGE_MANAGER
+# SOURCED BY \`pac-install()\`, DO NOT USE \`exit\`. USE \`return\` INSTEAD
 ___EOF___
 
   chmod +x "${file_path}" && echo -e "${file_path} created!"
@@ -190,7 +199,11 @@ ___EOF___
 
 _main() {
   handle_args "${SCRIPT_ARGS}"
-  local file_path="${DIRECTORY_PATH}/${FILE}"
+  if [[ -z "${PACKAGE_MANAGER}" ]]; then
+    local file_path="${DIRECTORY_PATH}/${FILE}"
+  else
+    local file_path="${DIRECTORY_PATH}/${FILE}.${PACKAGE_MANAGER}"
+  fi
 
   if [[ ! -d "${DIRECTORY_PATH}" ]]; then
     mkdir -p "${DIRECTORY_PATH}"

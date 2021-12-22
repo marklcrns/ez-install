@@ -26,9 +26,18 @@ pac_install() {
   fi
 
   pac_install_dependencies "${package}" "${package_dir}"
+  local res=$?
+  if [[ ${res} -gt 0 ]]; then
+    pac_log_failed 'N/A' "${package_dir}/${package}" "Package '${package}' installation failed"
+    return ${res}
+  fi
 
   source "${package_dir}/${package}" -y
-  return 0
+  res=$?
+  if [[ ${res} -gt 0 ]]; then
+    pac_log_failed 'N/A' "${package_dir}/${package}" "Package '${package}' installation failed"
+    return $res
+  fi
 }
 
 pac_install_dependencies() {
@@ -41,6 +50,10 @@ pac_install_dependencies() {
   for dependency in ${_dependencies}; do
     warning "Installing ${package} dependency -- ${dependency}"
     pac_install "${dependency}"
+    local res=$?
+    if [[ ${res} -gt 0 ]]; then
+      return ${res}
+    fi
   done
 }
 
