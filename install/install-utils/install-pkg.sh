@@ -44,7 +44,7 @@ pkg_install() {
   fi
 
   # Check if already installed
-  if eval "pkg search '${package}' | grep 'installed' &> /dev/null"; then
+  if eval "pkg search '${package}' | grep 'installed' &> /dev/null" || eval "command -v '${package}' &> /dev/null"; then
     pac_log_skip 'Pkg' "${package}"
     return 0
   fi

@@ -67,34 +67,34 @@ install() {
 
   case ${package_manager} in
     apt)
-      apt_install ${args} "${package}" || return 1
+      apt_install ${args} -- "${package}" || return 1
       ;;
     add-apt)
       apt_add_repo ${package} || return 1
       ;;
     curl)
-      curl_install ${args} "${package}" "${destination}" || return 1
+      curl_install ${args} -n "${package_name}" -- "${package}" "${destination}" || return 1
       ;;
     git)
-      git_clone ${args} "${package}" "${destination}" || return 1
+      git_clone ${args} -- "${package}" "${destination}" || return 1
       ;;
     npm)
-      npm_install ${args} "${package}" || return 1
+      npm_install ${args} -- "${package}" || return 1
       ;;
     pip)
-      pip_install ${args} "${package}" || return 1
+      pip_install ${args} -- "${package}" || return 1
       ;;
     pip2)
-      pip_install -v 2 "${package}" || return 1
+      pip_install -v 2 -- "${package}" || return 1
       ;;
     pip3)
-      pip_install -v 3 "${package}" || return 1
+      pip_install -v 3 -- "${package}" || return 1
       ;;
     pkg)
-      pkg_install ${args} "${package}" || return 1
+      pkg_install ${args} -- "${package}" || return 1
       ;;
     wget)
-      wget_install ${args} "${package}" "${destination}" || return 1
+      wget_install ${args} -n "${package_name}" -- "${package}" "${destination}" || return 1
       ;;
     *)
       error "'${package_manager}' package manager not supported"

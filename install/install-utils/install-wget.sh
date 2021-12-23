@@ -27,18 +27,21 @@ _is_wget_installed() {
 wget_install() {
   local default_flags='-c'
   local args="${default_flags}"
-  local from= to=
+  local from= to= package_name=
   OPTIND=1
 
   # Handle flags
   local opt=
-  while getopts "a:O:" opt; do
+  while getopts "a:o:n:" opt; do
     case ${opt} in
       a)
         args="${OPTARG}"
         ;;
-      O)
+      o)
         to="${OPTARG}"
+        ;;
+      n)
+        package_name="${OPTARG}"
         ;;
     esac
   done
@@ -49,6 +52,12 @@ wget_install() {
   if ! _is_wget_installed; then
     pac_log_failed 'Wget' "${from}" "Wget '${from}' installation failed. wget not installed"
     return 1
+  fi
+
+  # Check if already installed
+  if eval "command -v '${package_name}' &> /dev/null"; then
+    pac_log_skip "Wget" "${package_name}"
+    return 0
   fi
 
   if [[ -n "${to}" ]]; then

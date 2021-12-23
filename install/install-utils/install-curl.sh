@@ -25,17 +25,20 @@ _is_curl_installed() {
 curl_install() {
   local default_args='-sSL'
   local args="${default_args}"
-  local from= to=
-  OPTIND=1
+  local from= to= package_name=
 
   # Handle flags
-  while getopts "a:o:" opt; do
+  OPTIND=1
+  while getopts "a:o:n:" opt; do
     case ${opt} in
       a)
         args="${OPTARG}"
         ;;
       o)
         to="${OPTARG}"
+        ;;
+      n)
+        package_name="${OPTARG}"
         ;;
     esac
   done
@@ -46,6 +49,12 @@ curl_install() {
   if ! _is_curl_installed; then
     pac_log_failed 'Curl' "${from}" "Curl '${from}' installation failed. curl not installed"
     return 1
+  fi
+
+  # Check if already installed
+  if eval "command -v '${package_name}' &> /dev/null"; then
+    pac_log_skip "Curl" "${package_name}"
+    return 0
   fi
 
   if [[ -n "${to}" ]]; then

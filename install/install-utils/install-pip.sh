@@ -52,7 +52,7 @@ pip_install() {
   fi
 
   # Check if already installed
-  if eval "pip${pip_version} list | grep -F '${package}' &> /dev/null"; then
+  if eval "pip${pip_version} list | grep -F '${package}' &> /dev/null" || eval "command -v '${package}' &> /dev/null"; then
     pac_log_skip "Pip${pip_version}" "${package}"
     return 0
   fi

@@ -83,7 +83,7 @@ apt_install() {
   fi
 
   # Check if already installed
-  if eval "dpkg -s '${package}' &> /dev/null"; then
+  if eval "dpkg -s '${package}' &> /dev/null" || eval "command -v '${package}' &> /dev/null"; then
     pac_log_skip "Apt" "${package}"
     return 0
   fi

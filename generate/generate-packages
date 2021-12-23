@@ -8,8 +8,11 @@ source "${BASH_SOURCE%/*}/../install/common.sh"
 SCRIPT_DIR="${BASH_SOURCE%/*}"
 
 _main() {
+
   local -a _essentials=(
     "build-essential"
+    "libffi-dev"
+    "libssl-dev"
     "cmake"
     "curl"
     "wget"
@@ -21,29 +24,32 @@ _main() {
     "gnupg2"
     "net-tools"
   )
+
   local -a _languages=(
     # Python
+    "python"
+    "python2"
+    "python2-dev"
+    "python3"
     "python3-dev"
-    "libffi-dev"
-    "libssl-dev"
     "python3-pip"
     "python3-venv"
     # Python packages
-    "-m pip wheel"
-    "-m pip pipenv"
-    "-m pip virtualenv"
-    "-m pip Send2Trash"
-    "-m pip trash-cli"
-    "-m pip2 wheel"
-    "-m pip2 pipenv"
-    "-m pip2 virtualenv"
-    "-m pip2 Send2Trash"
-    "-m pip2 trash-cli"
-    "-m pip3 wheel"
-    "-m pip3 pipenv"
-    "-m pip3 virtualenv"
-    "-m pip3 Send2Trash"
-    "-m pip3 trash-cli"
+    "-m pip -d python wheel"
+    "-m pip -d python pipenv"
+    "-m pip -d python virtualenv"
+    "-m pip -d python Send2Trash"
+    "-m pip -d python trash-cli"
+    "-m pip2 -d python2 wheel"
+    "-m pip2 -d python2 pipenv"
+    "-m pip2 -d python2 virtualenv"
+    "-m pip2 -d python2 Send2Trash"
+    "-m pip2 -d python2 trash-cli"
+    "-m pip3 -d python3 wheel"
+    "-m pip3 -d python3 pipenv"
+    "-m pip3 -d python3 virtualenv"
+    "-m pip3 -d python3 Send2Trash"
+    "-m pip3 -d python3 trash-cli"
     # Java
     "default-jre"
     "default-jdk"
@@ -57,11 +63,12 @@ _main() {
     # R
     "r-base"
   )
+
   local -a _package_manager=(
-    "-m npm browser-sync"
-    "-m npm gulp-cli"
-    "-m curl -n 'nodejs' 'https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash'"
+    "-m npm -d nodejs browser-sync"
+    "-m npm -d nodejs gulp-cli"
     "yarn"
+    "-m curl -n 'nodejs' 'https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash'"
     "-m curl -n 'cargo' 'https://sh.rustup.rs | sh'"
   )
 

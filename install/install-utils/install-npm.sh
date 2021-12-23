@@ -44,7 +44,7 @@ npm_install() {
   fi
 
   # Check if package exists in npm repository
-  if eval "npm search '${package}' | grep -q '^No matches found' &> /dev/null"; then
+  if eval "npm search '${package}' | grep -q '^No matches found' &> /dev/null" || eval "command -v '${package}' &> /dev/null"; then
     pac_log_failed 'Npm' "${package}" "Npm '${package}' package not found in npm repository"
     return 1
   fi
