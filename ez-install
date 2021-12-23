@@ -87,19 +87,13 @@ function handle_args() {
   [[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=3
 
   OPTIND=1
-  while getopts "d:D:f:m:p:P:vxyhV" opt; do
+  while getopts "d:D:vxyhV" opt; do
     case ${opt} in
       d)
         readonly DESTINATION="${OPTARG}"
         ;;
-      d)
+      D)
         PACKAGE_DIR="${OPTARG}"
-        ;;
-      f)
-        readonly FLAGS="${OPTARG}"
-        ;;
-      m)
-        readonly PACKAGE_MANAGER=$(echo "${OPTARG}" | awk '{print tolower($0)}')
         ;;
       v)
         VERBOSE=true
@@ -194,7 +188,7 @@ _main () {
   pac_batch_install "${PACKAGES[@]}"
   [[ -n "${PACKAGES+x}" ]] && pac_report
 
-  finish "Installation success!"
+  finish "Installation finished!"
 }
 
 _main

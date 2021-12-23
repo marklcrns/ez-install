@@ -19,16 +19,19 @@ done
 
 
 install() {
-  local args= destination=
+  local args= destination= package_name=
 
   OPTIND=1
-  while getopts "d:a:" opt; do
+  while getopts "a:d:n:" opt; do
     case ${opt} in
+      a)
+        args="${OPTARG}"
+        ;;
       d)
         destination="${OPTARG}"
         ;;
-      a)
-        args="${OPTARG}"
+      n)
+        package_name="${OPTARG}"
         ;;
     esac
   done
@@ -37,17 +40,29 @@ install() {
   if [[ -z "${1+x}" ]]; then
     error "No package manager provided"
   fi
+  local package_manager="$(echo "${1}" | awk '{print tolower($0)}')"
 
   if [[ -z "${2+x}" ]]; then
     error "No package provided"
   fi
+  local file="${2:-}"
+  local package="${file}"
 
-  local package_manager="${1:-}"
-  local package="${2:-}"
+  if [[ ${package_manager} == "curl" ]] || [[ ${package_manager} == "wget" ]]; then
+    if [[ -z "${package_name}" ]]; then
+      error "No package name provided for '${package_manager} ${package}'"
+      return 2
+    fi
+    file="${package_name}"
+  fi
 
-  # Pre process
-  if [[ -e "${PACKAGE_DIR}/${package}.pre" ]]; then
-    ./"${PACKAGE_DIR}/${package}.pre"
+  # Pre process global
+  if [[ -e "${PACKAGE_DIR}/${file}.pre" ]]; then
+    ./"${PACKAGE_DIR}/${file}.pre"
+  fi
+  # Pre process local
+  if [[ -e "${PACKAGE_DIR}/${file}.${package_manager}.pre" ]]; then
+    ./"${PACKAGE_DIR}/${file}.${package_manager}.pre"
   fi
 
   case ${package_manager} in
@@ -69,6 +84,12 @@ install() {
     pip)
       pip_install ${args} "${package}" || return 1
       ;;
+    pip2)
+      pip_install -v 2 "${package}" || return 1
+      ;;
+    pip3)
+      pip_install -v 3 "${package}" || return 1
+      ;;
     pkg)
       pkg_install ${args} "${package}" || return 1
       ;;
@@ -81,10 +102,13 @@ install() {
       ;;
   esac
 
-  # Post process
-  if [[ -e "${PACKAGE_DIR}/${package}.post" ]]; then
-    echo "package dir: ${PACKAGE_DIR}"
-    "${PACKAGE_DIR}/${package}.post"
+  # Post process global
+  if [[ -e "${PACKAGE_DIR}/${file}.post" ]]; then
+    "${PACKAGE_DIR}/${file}.post"
+  fi
+  # Post process local
+  if [[ -e "${PACKAGE_DIR}/${file}.${package_manager}.post" ]]; then
+    "${PACKAGE_DIR}/${file}.${package_manager}.post"
   fi
 
   local res=$?

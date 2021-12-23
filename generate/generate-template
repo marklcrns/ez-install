@@ -45,6 +45,7 @@ handle_args() {
       --author)           args="${args:-}-a ";;
       --directory-path)   args="${args:-}-D ";;
       --package-manager)  args="${args:-}-m ";;
+      --package-name)     args="${args:-}-n ";;
       --skip-confirm)     args="${args:-}-y ";;
       --verbose)          args="${args:-}-v ";;
       --debug)            args="${args:-}-x ";;
@@ -67,9 +68,10 @@ handle_args() {
   AUTHOR=""
   DIRECTORY_PATH="${PACKAGE_DIR:-${BASH_SOURCE%/*}/packages}"
   PACKAGE_MANAGER=""
+  PACKAGE_NAME=""
 
   OPTIND=1
-  while getopts "a:d:D:m:vxyh" opt; do
+  while getopts "a:d:D:m:n:vxyh" opt; do
     case ${opt} in
       a)
         AUTHOR="${OPTARG}"
@@ -81,7 +83,10 @@ handle_args() {
         DIRECTORY_PATH="${OPTARG}"
         ;;
       m)
-        PACKAGE_MANAGER="${OPTARG}"
+        PACKAGE_MANAGER="$(echo "${OPTARG}" | awk '{print tolower($0)}')"
+        ;;
+      n)
+        PACKAGE_NAME="${OPTARG}"
         ;;
       v)
         VERBOSE=true
@@ -100,10 +105,18 @@ handle_args() {
   done
   shift "$((OPTIND-1))"
 
-  if [[ -z "${1+x}" ]]; then
-    error "No filename argument provided" 1
+  if [[ -z "${@+x}" ]]; then
+    error "No package argument provided" 1
   fi
-  FILE="${1}"
+  FILE="${@}"
+  PACKAGE="${FILE}"
+
+  if [[ ${PACKAGE_MANAGER} == "curl" ]] || [[ ${PACKAGE_MANAGER} == "wget" ]]; then
+    if [[ -z "${PACKAGE_NAME}" ]]; then
+      error "No package name provided for '${PACKAGE_MANAGER} ${PACKAGE}'" 1
+    fi
+    FILE="${PACKAGE_NAME}"
+  fi
 
   return 0
 }
@@ -138,6 +151,7 @@ cat > "${file_path}" <<- ___EOF___
 # package: ${FILE}
 # dependency: ${DEPENDENCIES}
 # author: ${AUTHOR}
+# date: $(date "+%Y-%m-%d")
 # ---
 ################################################################################
 
@@ -149,14 +163,15 @@ source "\${EZ_INSTALL_HOME}/install/init.sh"
 
 _main() {
   # Package name defaults to filename
-  local package="\$(basename -- "\${BASH_SOURCE}")"
-  local package_manager="\${PACKAGE_MANAGER:-${PACKAGE_MANAGER}}"
+  local package="${PACKAGE}"
+  local package_name="${PACKAGE_NAME}"
+  local package_manager="${PACKAGE_MANAGER:-"\${PACKAGE_MANAGER:-}"}"
 
   # Get system package manager
   [[ -z "\${package_manager}" ]] && get_sys_package_manager package_manager
 
   # Install package
-  install "\${package_manager}" "\${package}"
+  install -n "\${package_name}" -- "\${package_manager}" "\${package}"
 
   local res=\$?
   return \${res}
@@ -189,9 +204,10 @@ _main() {
 
 _main
 
-unset FILE
 unset DEPENDENCIES
 unset AUTHOR
 unset DIRECTORY_PATH
-unset PRE_PROCESS
-unset POST_PROCESS
+unset FILE
+unset PACKAGE
+unset PACKAGE_MANAGER
+unset PACKAGE_NAME
