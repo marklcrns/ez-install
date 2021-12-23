@@ -3,7 +3,7 @@
 set -o pipefail
 set -o nounset
 
-source "${BASH_SOURCE%/*}/common.sh"
+source "${BASH_SOURCE%/*}/../install/common.sh"
 
 SCRIPT_DIR="${BASH_SOURCE%/*}"
 
@@ -19,7 +19,7 @@ _main() {
     "unzip"
     "unar"
     "git"
-    "-d git -P 'git lfs install' -- git-lfs"
+    "-d git git-lfs"
     "gnupg2"
     "net-tools"
   )
@@ -27,6 +27,27 @@ _main() {
   local -a package_manager=(
     "-m npm browser-sync"
     "-m npm gulp-cli"
+  )
+
+  local -a languages=(
+    # Python
+    "python3-dev"
+    "libffi-dev"
+    "libssl-dev"
+    "python3-pip"
+    "python3-venv"
+    # Java
+    "default-jre"
+    "default-jdk"
+    "openjdk-8-jdk"
+    "openjdk-8-jre"
+    "openjdk-11-jdk"
+    "openjdk-11-jre"
+    "openjdk-13-jdk"
+    "openjdk-13-jre"
+    "maven"
+    # R
+    "r-base"
   )
 
   local -a packages=(

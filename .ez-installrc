@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+# Header guard
+[[ -z "${GLOBAL_EZ_INSTALL_RC_INCLUDED+x}" ]] \
+  && readonly GLOBAL_EZ_INSTALL_RC_INCLUDED=1 \
+  || return 0
+
 EZ_INSTALL_HOME="$(realpath -- ${BASH_SOURCE%/*})"
 PACKAGE_DIR="${BASH_SOURCE%/*}/generate/packages"
 

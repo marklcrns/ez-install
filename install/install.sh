@@ -45,6 +45,11 @@ install() {
   local package_manager="${1:-}"
   local package="${2:-}"
 
+  # Pre process
+  if [[ -e "${PACKAGE_DIR}/${package}.pre" ]]; then
+    ./"${PACKAGE_DIR}/${package}.pre"
+  fi
+
   case ${package_manager} in
     apt)
       apt_install ${args} "${package}" || return 1
@@ -75,5 +80,14 @@ install() {
       return 1
       ;;
   esac
+
+  # Post process
+  if [[ -e "${PACKAGE_DIR}/${package}.post" ]]; then
+    echo "package dir: ${PACKAGE_DIR}"
+    "${PACKAGE_DIR}/${package}.post"
+  fi
+
+  local res=$?
+  return ${res}
 }
 

@@ -3,17 +3,14 @@
 set -o pipefail
 set -o nounset
 
-source "${BASH_SOURCE%/*}/../.ez-installrc"
-source "${BASH_SOURCE%/*}/../common/common.sh"
-source "${BASH_SOURCE%/*}/common.sh"
+source "${BASH_SOURCE%/*}/../common/include.sh"
+
+include "${BASH_SOURCE%/*}/../.ez-installrc"
+include "${HOME}/.ez-installrc"
+include "${BASH_SOURCE%/*}/../common/common.sh"
+include "${BASH_SOURCE%/*}/../install/common.sh"
 
 SCRIPT_ARGS="${@}"
-
-# Source custom rc file if exist
-CUSTOM_EZ_INSTALL_RC="${HOME}/.ez-installrc"
-if [[ -e "${CUSTOM_EZ_INSTALL_RC}" ]]; then
-  source "${CUSTOM_EZ_INSTALL_RC}"
-fi
 
 
 usage() {
@@ -31,6 +28,7 @@ OPTIONS:
   -d --dependency       package installation dependencies
   -a --author           package author (optional)
   -D --directory-path   package output directory
+  -p --package-manager  package manager installer
   -v --verbose          verbose output
   -x --debug            debug
   -y --skip             skip confirmation
@@ -47,8 +45,6 @@ handle_args() {
       --author)           args="${args:-}-a ";;
       --directory-path)   args="${args:-}-D ";;
       --package-manager)  args="${args:-}-m ";;
-      --pre)              args="${args:-}-p ";;
-      --post)             args="${args:-}-P ";;
       --skip-confirm)     args="${args:-}-y ";;
       --verbose)          args="${args:-}-v ";;
       --debug)            args="${args:-}-x ";;
@@ -71,11 +67,9 @@ handle_args() {
   AUTHOR=""
   DIRECTORY_PATH="${PACKAGE_DIR:-${BASH_SOURCE%/*}/packages}"
   PACKAGE_MANAGER=""
-  PRE_PROCESS=""
-  POST_PROCESS=""
 
   OPTIND=1
-  while getopts "a:d:D:m:p:P:vxyh" opt; do
+  while getopts "a:d:D:m:vxyh" opt; do
     case ${opt} in
       a)
         AUTHOR="${OPTARG}"
@@ -88,12 +82,6 @@ handle_args() {
         ;;
       m)
         PACKAGE_MANAGER="${OPTARG}"
-        ;;
-      p)
-        PRE_PROCESS="${OPTARG}"
-        ;;
-      P)
-        POST_PROCESS="${OPTARG}"
         ;;
       v)
         VERBOSE=true
@@ -153,16 +141,9 @@ cat > "${file_path}" <<- ___EOF___
 # ---
 ################################################################################
 
-source "\${EZ_INSTALL_HOME}/generate/common.sh"
+source "\${EZ_INSTALL_HOME}/install/init.sh"
 
-# Set up if executed instead of sourcing
-if [ "\${0##*/}" == "\${BASH_SOURCE[0]##*/}" ]; then
-  source "\${EZ_INSTALL_HOME}/common/common.sh"
-  script_vars
-  handle_args "\${@}"
-fi
-
-################################################################# START CODE ###
+############################################################## START INSTALL ###
 
 # TODO: Finish ${FILE} installation template
 
@@ -174,22 +155,16 @@ _main() {
   # Get system package manager
   [[ -z "\${package_manager}" ]] && get_sys_package_manager package_manager
 
-  # Pre process
-  ${PRE_PROCESS}
-
   # Install package
-  if install "\${package_manager}" "\${package}"; then
-    # Post process
-    ${POST_PROCESS}
-    local res=\$?
-    return \${res}
-  fi
+  install "\${package_manager}" "\${package}"
+
+  local res=\$?
+  return \${res}
 }
 
-################################################################### END CODE ###
+################################################################ END INSTALL ###
 
 _main
-unset PACKAGE_MANAGER
 # SOURCED BY \`pac-install()\`, DO NOT USE \`exit\`. USE \`return\` INSTEAD
 ___EOF___
 

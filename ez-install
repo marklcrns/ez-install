@@ -3,10 +3,14 @@
 set -o pipefail
 set -o nounset
 
-###################################################### EXTERNAL DEPENDENCIES ###
-
-source "${BASH_SOURCE%/*}/.ez-installrc"
 source "${BASH_SOURCE%/*}/common/include.sh"
+
+############################################################### LOAD RC FILE ###
+
+include "${BASH_SOURCE%/*}/.ez-installrc"
+include "${HOME}/.ez-installrc"
+
+###################################################### EXTERNAL DEPENDENCIES ###
 
 include "${BASH_SOURCE%/*}/common/common.sh"
 include "${BASH_SOURCE%/*}/common/array.sh"
