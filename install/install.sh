@@ -22,13 +22,10 @@ install() {
   local args= destination= package_name=
 
   OPTIND=1
-  while getopts "a:d:n:" opt; do
+  while getopts "a:n:" opt; do
     case ${opt} in
       a)
         args="${OPTARG}"
-        ;;
-      d)
-        destination="${OPTARG}"
         ;;
       n)
         package_name="${OPTARG}"
@@ -47,8 +44,9 @@ install() {
   fi
   local file="${2:-}"
   local package="${file}"
+  local destination="${3:-}"
 
-  if [[ ${package_manager} == "curl" ]] || [[ ${package_manager} == "wget" ]]; then
+  if [[ ${package_manager} == "curl" ]] || [[ ${package_manager} == "wget" ]] || [[ ${package_manager} == "git" ]]; then
     if [[ -z "${package_name}" ]]; then
       error "No package name provided for '${package_manager} ${package}'"
       return 2
@@ -96,11 +94,15 @@ install() {
     wget)
       wget_install ${args} -n "${package_name}" -- "${package}" "${destination}" || return 1
       ;;
+    null)
+      ;;
     *)
       error "'${package_manager}' package manager not supported"
       return 1
       ;;
   esac
+
+  local res=$?
 
   # Post process global
   if [[ -e "${PACKAGE_DIR}/${file}.post" ]]; then
@@ -111,7 +113,7 @@ install() {
     "${PACKAGE_DIR}/${file}.${package_manager}.post"
   fi
 
-  local res=$?
+  res=$?
   return ${res}
 }
 

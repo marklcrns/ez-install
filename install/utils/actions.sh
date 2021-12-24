@@ -29,8 +29,8 @@ if [ "${0##*/}" == "${BASH_SOURCE[0]##*/}" ]; then
 fi
 
 # Header guard
-[[ -z "${UTILS_LOGGER_SH_INCLUDED+x}" ]] \
-  && readonly UTILS_LOGGER_SH_INCLUDED=1 \
+[[ -z "${UTILS_ACTIONS_SH_INCLUDED+x}" ]] \
+  && readonly UTILS_ACTIONS_SH_INCLUDED=1 \
   || return 0
 
 

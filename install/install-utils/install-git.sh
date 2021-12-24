@@ -50,16 +50,12 @@ _is_git_remote_reachable() {
   return 1
 }
 
-_replace_old_repo() {
+
+_is_git_repo() {
   repo_dir="${1:-}"
-  # Remove old repository if existing
-  if [[ -d "${repo_dir}/.git" ]]; then
-    warning "Replacing '${repo_dir}' Git repository"
-    execlog "rm -rf '${repo_dir}'"
-    return 0
-  fi
-  return 1
+  [[ -d "${repo_dir}/.git" ]] && return 0 || return 1
 }
+
 
 # Recursive
 # returns 0 if ok,
@@ -133,9 +129,20 @@ git_clone() {
     return 1
   fi
 
-  # Remove destination dir if force and is a repo, else return 1
+  # Replace existing repo destination dir if force
   if [[ -d "${to}" ]]; then
-    if ! ${is_force} || ! _replace_old_repo "${to}"; then
+    if ${is_force}; then
+      if _is_git_repo "${to}"; then
+        warning "Replacing '${to}' Git repository"
+        execlog "rm -rf '${to}'"
+      fi
+      pac_log_failed 'Git' "${from}" "Git clone '${from}' failed! '${to}' already exist and is not a git repository"
+      return 1
+    else
+      if _is_git_repo "${to}"; then
+        pac_log_skip "Git" "${from}"
+        return 0
+      fi
       pac_log_failed 'Git' "${from}" "Git clone '${from}' failed! '${to}' already exist"
       return 1
     fi

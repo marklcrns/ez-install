@@ -68,16 +68,25 @@ _main() {
     "-m npm -d nodejs browser-sync"
     "-m npm -d nodejs gulp-cli"
     "yarn"
-    "-m curl -n 'nodejs' 'https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash'"
+    "-m curl -n 'nvm' 'https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash'"
+    "-m null -n 'nodejs'"
     "-m curl -n 'cargo' 'https://sh.rustup.rs | sh'"
   )
 
+  local -a _shell=(
+    "zsh"
+    "-m curl -d zsh -n 'oh-my-zsh' 'https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | sh'"
+    "-m git -d oh-my-zsh -n 'zsh-autosuggestions' -o '\${ZSH_CUSTOM:-\${HOME}/.oh-my-zsh/custom}/plugins/zsh-autosuggestions' 'https://github.com/zsh-users/zsh-autosuggestions'"
+    "-m git -d oh-my-zsh -n 'zsh-syntax-highlighting' -o '\${ZSH_CUSTOM:-\${HOME}/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting' 'https://github.com/zsh-users/zsh-syntax-highlighting.git'"
+    "-m git -d oh-my-zsh -n 'powerlevel10k' -o '\${HOME}/.oh-my-zsh/themes/powerlevel10k' 'https://github.com/romkatv/powerlevel10k.git'"
+  )
 
 
   local -a packages=(
     "${_essentials[@]}"
     "${_languages[@]}"
     "${_package_manager[@]}"
+    "${_shell[@]}"
   )
 
   for package in "${packages[@]}"; do

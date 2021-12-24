@@ -7,8 +7,8 @@ if [ "${0##*/}" == "${BASH_SOURCE[0]##*/}" ]; then
 fi
 
 # Header guard
-[[ -z "${UTILS_PACKAGE_MANAGER_SH_INCLUDED+x}" ]] \
-  && readonly UTILS_PACKAGE_MANAGER_SH_INCLUDED=1 \
+[[ -z "${UTILS_PAC_LOGGER_SH_INCLUDED+x}" ]] \
+  && readonly UTILS_PAC_LOGGER_SH_INCLUDED=1 \
   || return 0
 
 

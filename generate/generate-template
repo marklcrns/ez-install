@@ -41,11 +41,12 @@ handle_args() {
   for arg; do
     local delim=""
     case "${arg}" in
-      --dependency)       args="${args:-}-d ";;
       --author)           args="${args:-}-a ";;
-      --directory-path)   args="${args:-}-D ";;
+      --dependency)       args="${args:-}-d ";;
+      --package-dir)      args="${args:-}-D ";;
       --package-manager)  args="${args:-}-m ";;
       --package-name)     args="${args:-}-n ";;
+      --destination)      args="${args:-}-o ";;
       --skip-confirm)     args="${args:-}-y ";;
       --verbose)          args="${args:-}-v ";;
       --debug)            args="${args:-}-x ";;
@@ -63,15 +64,16 @@ handle_args() {
   [[ -z "${DEBUG+x}" ]]           && DEBUG=false
   [[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=3
 
-  FILE=""
-  DEPENDENCIES=""
   AUTHOR=""
-  DIRECTORY_PATH="${PACKAGE_DIR:-${BASH_SOURCE%/*}/packages}"
+  DEPENDENCIES=""
+  FILE=""
   PACKAGE_MANAGER=""
   PACKAGE_NAME=""
+  DESTINATION=""
+  DIRECTORY_PATH="${PACKAGE_DIR:-${BASH_SOURCE%/*}/packages}"
 
   OPTIND=1
-  while getopts "a:d:D:m:n:vxyh" opt; do
+  while getopts "a:d:D:m:n:o:vxyh" opt; do
     case ${opt} in
       a)
         AUTHOR="${OPTARG}"
@@ -87,6 +89,9 @@ handle_args() {
         ;;
       n)
         PACKAGE_NAME="${OPTARG}"
+        ;;
+      o)
+        DESTINATION="${OPTARG}"
         ;;
       v)
         VERBOSE=true
@@ -105,17 +110,17 @@ handle_args() {
   done
   shift "$((OPTIND-1))"
 
-  if [[ -z "${@+x}" ]]; then
-    error "No package argument provided" 1
+  if [[ -z "${@+x}" ]] && [[ "${PACKAGE_MANAGER}" != "null" ]]; then
+    error "No package argument provided for '${PACKAGE_NAME}'" 1
   fi
-  FILE="${@}"
-  PACKAGE="${FILE}"
 
-  if [[ ${PACKAGE_MANAGER} == "curl" ]] || [[ ${PACKAGE_MANAGER} == "wget" ]]; then
+  PACKAGE="${@:-${PACKAGE_NAME}}"
+  FILE="${PACKAGE_NAME:-${PACKAGE}}"
+
+  if [[ ${PACKAGE_MANAGER} == "curl" ]] || [[ ${PACKAGE_MANAGER} == "wget" ]] || [[ ${PACKAGE_MANAGER} == "git" ]]; then
     if [[ -z "${PACKAGE_NAME}" ]]; then
       error "No package name provided for '${PACKAGE_MANAGER} ${PACKAGE}'" 1
     fi
-    FILE="${PACKAGE_NAME}"
   fi
 
   return 0
@@ -166,12 +171,13 @@ _main() {
   local package="${PACKAGE}"
   local package_name="${PACKAGE_NAME}"
   local package_manager="${PACKAGE_MANAGER:-"\${PACKAGE_MANAGER:-}"}"
+  local destination="${DESTINATION:-}"
 
   # Get system package manager
   [[ -z "\${package_manager}" ]] && get_sys_package_manager package_manager
 
   # Install package
-  install -n "\${package_name}" -- "\${package_manager}" "\${package}"
+  install -n "\${package_name}" -- "\${package_manager}" "\${package}" "\${destination}"
 
   local res=\$?
   return \${res}
@@ -204,10 +210,11 @@ _main() {
 
 _main
 
-unset DEPENDENCIES
 unset AUTHOR
+unset DEPENDENCIES
 unset DIRECTORY_PATH
 unset FILE
 unset PACKAGE
 unset PACKAGE_MANAGER
 unset PACKAGE_NAME
+unset DESTINATION

@@ -62,6 +62,11 @@ curl_install() {
     local filename="$(basename -- "${from}")"
     to="${to}/${filename}"
 
+    if [[ -e "${to}" ]]; then
+      pac_log_skip "Curl" "${package_name}"
+      return 0
+    fi
+
     # Execute installation
     if execlog "curl '${args}' '${from}' --create-dirs -o '${to}'"; then
       pac_log_success 'Curl' "${from}" "Curl '${from}' -> '${to}' successful"

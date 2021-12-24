@@ -16,6 +16,7 @@ include "${BASH_SOURCE%/*}/common/common.sh"
 include "${BASH_SOURCE%/*}/common/array.sh"
 include "${BASH_SOURCE%/*}/install/utils/actions.sh"
 include "${BASH_SOURCE%/*}/install/utils/pac-logger.sh"
+include "${BASH_SOURCE%/*}/install/utils/pac-resolver.sh"
 include "${BASH_SOURCE%/*}/install/pac-install.sh"
 include "${BASH_SOURCE%/*}/install/install.sh"
 
@@ -164,9 +165,14 @@ _main () {
     trap _ctrl_c INT TERM
   fi
 
+  local -a packages=("${PACKAGES[@]}")
+  pac_array_resolve packages
+
+  # echo "${packages[@]}"
+
   local continue=false
-  for package in ${PACKAGES[@]}; do
-    ./install/utils/dependency-tracker -p "${package}" -d "${PACKAGE_DIR}" -v
+  for package in ${packages[@]}; do
+    validate_package "${package}"
     local res=$?
     if ! ${continue} && [[ ${res} -eq 0 ]]; then
       continue=true
@@ -185,8 +191,8 @@ _main () {
   # fi
   # cd ${DOWNLOADS_DIR}
 
-  pac_batch_install "${PACKAGES[@]}"
-  [[ -n "${PACKAGES+x}" ]] && pac_report
+  pac_batch_install "${packages[@]}"
+  [[ -n "${packages+x}" ]] && pac_report
 
   finish "Installation finished!"
 }
