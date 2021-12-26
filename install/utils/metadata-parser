@@ -10,7 +10,7 @@ source "${BASH_SOURCE%/*}/../../common/log.sh"
 
 META="${1:?}"
 
-if [[ ${2+x} ]]; then
+if [[ "${2+x}" ]]; then
   FILE="${2}"
   if [[ ! -f "${FILE}" ]]; then
     log 'error' "Missing ${FILE} file" 1

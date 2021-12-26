@@ -13,37 +13,36 @@ fi
 
 source "${BASH_SOURCE%/*}/../../common/include.sh"
 
-include "${BASH_SOURCE%/*}/../../common/stack.sh"
 include "${BASH_SOURCE%/*}/../../common/colors.sh"
 include "${BASH_SOURCE%/*}/../../common/log.sh"
 
 
-function pac_array_resolve() {
+function pac_array_jsonify() {
   local pac_array_name=${1:?}
   eval "pac_array=( \"\${${pac_array_name}[@]}\" )"
 
   local i=
   for i in "${!pac_array[@]}"; do
     local package="${pac_array[$i]}"
-    pac_resolve package
+    pac_jsonify package
     eval "${pac_array_name}[$i]='${package}'"
   done
 }
 
 
-function pac_resolve() {
+function pac_jsonify() {
   local _global_pac_var_name="${1:?}"
   local _local_pac_var_name="${2:-${1}}"
-  local depth=${3:-1}
-  local indent="$(printf "%*s" $((${depth}*4)))|-"
+  local _depth=${3:-1}
+  local _indent="$(printf "%*s" $((${_depth}*4)))|-"
   eval "local _package=\${$_local_pac_var_name}"
 
   log 'DEBUG' "Inspecting: ${_package}"
 
-  if ! [[ -e "${PACKAGE_DIR}/${_package}" ]]; then
+  if ! [[ -f "${PACKAGE_DIR}/${_package}" ]]; then
     local _selected=
     if _select_package "${_package%.*}" _selected; then
-      # WARNING: Dangerous substitution!!
+      # TODO: WARNING dangerous and inefficient substitution!
       eval "${_global_pac_var_name}=\${$_global_pac_var_name/${_package}/${_selected}}"
       _package=${_selected}
     else
@@ -52,30 +51,54 @@ function pac_resolve() {
     fi
   fi
 
+  if [[ ${_depth} -eq 1 ]]; then
+    # Quote root package
+    eval "${_global_pac_var_name}='\"${_package}\"'"
+    # Enclose root package
+    eval "${_global_pac_var_name}={\$${_global_pac_var_name}"
+  fi
+
   local -a _package_dependencies=( $(${BASH_SOURCE%/*}/metadata-parser "dependency" "${PACKAGE_DIR}/${_package}") )
 
+  # Handle dependencies recursively
   if [[ -n ${_package_dependencies+x} ]]; then
-    eval "${_global_pac_var_name}+=':{'"
-    log 'DEBUG' "${indent}Dependency detected for ${_package} (${#_package_dependencies[@]})"
+
+    if [[ ${#_package_dependencies[@]} -gt 1 ]]; then
+      eval "${_global_pac_var_name}+=':[{'"
+    else
+      eval "${_global_pac_var_name}+=':{'"
+    fi
+
+    log 'DEBUG' "${_indent}Dependency detected for ${_package} (${#_package_dependencies[@]})"
 
     local dependency= i=
     for i in "${!_package_dependencies[@]}"; do
       dependency="${_package_dependencies[$i]}"
       [[ ${i} -eq 0 ]] || eval "${_global_pac_var_name}+=,"
-      eval "${_global_pac_var_name}+='${dependency}'"
+      eval "${_global_pac_var_name}+='\"${dependency}\"'"
 
-      log 'DEBUG' "${indent}Dependency: ${dependency}"
-      pac_resolve ${_global_pac_var_name} dependency $((depth+1))
-      log 'DEBUG' "${indent}Dependency (resolved): ${dependency}"
+      log 'DEBUG' "${_indent}Dependency: ${dependency}"
+      pac_jsonify ${_global_pac_var_name} dependency $((_depth+1))
+      log 'DEBUG' "${_indent}Dependency (resolved): ${dependency}"
     done
 
-    eval "${_global_pac_var_name}+='}'"
+    if [[ ${#_package_dependencies[@]} -gt 1 ]]; then
+      eval "${_global_pac_var_name}+='}]'"
+    else
+      eval "${_global_pac_var_name}+='}'"
+    fi
+
   else
-    log 'DEBUG' "${indent}No dependency detected for ${_package}"
+    eval "${_global_pac_var_name}+=':null'"
+    log 'DEBUG' "${_indent}No dependency detected for ${_package}"
   fi
+
+  # Enclose root package
+  [[ ${_depth} -eq 1 ]] && eval "${_global_pac_var_name}+='}'"
 }
 
 
+# TODO: Handle system interrupt (Ctrl-c when selecting)
 function _select_package() {
   local _package="${1:?}"
   local _selected_var=${2:?}
@@ -113,42 +136,54 @@ function _select_package() {
 }
 
 
+_has_alternate_package() {
+  : ${1:?}
+  local matches=($(find "${PACKAGE_DIR}" -type f -name "${1%.*}.*"))
+  [[ -n "${matches+x}" ]] && return 0 || return 1
+}
+
+
 function validate_package() {
   local package=${1:?}
   local dependency_level=0
 
-  # stack_new _dependencies
-
-  ${VERBOSE} && printf "${package}\n"
+  ${VERBOSE} && printf "${package}"
   _validate_dependencies "${PACKAGE_DIR}/${package}" $(($dependency_level+1))
-
-  # stack_destroy _dependencies
 
   return $?
 }
 
 function _validate_dependencies() {
-  if ! [[ -e "${1}" ]]; then
+  if ! [[ -f "${1}" ]]; then
+    if _has_alternate_package "$(basename -- ${1})"; then
+      printf " (CHOOSE)\n"
+      return 0
+    fi
+    printf "\n"
     error "Package '${1}' not found"
     return 1
   fi
+  printf "\n"
 
   local -a _package_dependencies=( $(${BASH_SOURCE%/*}/metadata-parser "dependency" "${1}") )
   local _dependency_level=${2}
   local _has_missing=false
 
-  for dependency in ${_package_dependencies}; do
-    # stack_push _dependencies "${dependency}"
+  for dependency in "${_package_dependencies[@]}"; do
     if ${VERBOSE}; then
       printf "%*s" $((${_dependency_level}*4))
       printf "│—${dependency}"
     fi
-    if [[ -e "${PACKAGE_DIR}/${dependency}" ]]; then
+    if [[ -f "${PACKAGE_DIR}/${dependency}" ]]; then
       ${VERBOSE} && printf "\n"
       _validate_dependencies "${PACKAGE_DIR}/${dependency}" $(($_dependency_level+1))
     else
-      ${VERBOSE} && printf " ${COLOR_RED}(MISSING)${COLOR_NC}\n"
-      _has_missing=true
+      if _has_alternate_package ${dependency}; then
+        ${VERBOSE} && printf " ${COLOR_YELLOW}(CHOOSE)${COLOR_NC}\n"
+      else
+        ${VERBOSE} && printf " ${COLOR_RED}(MISSING)${COLOR_NC}\n"
+        _has_missing=true
+      fi
     fi
   done
 

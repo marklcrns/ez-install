@@ -16,7 +16,7 @@ include "${BASH_SOURCE%/*}/common/common.sh"
 include "${BASH_SOURCE%/*}/common/array.sh"
 include "${BASH_SOURCE%/*}/install/utils/actions.sh"
 include "${BASH_SOURCE%/*}/install/utils/pac-logger.sh"
-include "${BASH_SOURCE%/*}/install/utils/pac-resolver.sh"
+include "${BASH_SOURCE%/*}/install/utils/pac-transform.sh"
 include "${BASH_SOURCE%/*}/install/pac-install.sh"
 include "${BASH_SOURCE%/*}/install/install.sh"
 
@@ -166,22 +166,23 @@ _main () {
   fi
 
   local -a packages=("${PACKAGES[@]}")
-  pac_array_resolve packages
 
-  echo "${packages[@]}"
+  local continue=false
+  for package in ${packages[@]}; do
+    validate_package "${package}"
+    local res=$?
+    if ! ${continue} && [[ ${res} -eq 0 ]]; then
+      continue=true
+    fi
+  done
 
-  # local continue=false
-  # for package in ${packages[@]}; do
-  #   validate_package "${package}"
-  #   local res=$?
-  #   if ! ${continue} && [[ ${res} -eq 0 ]]; then
-  #     continue=true
-  #   fi
-  # done
-  # 
-  # if ! ${continue}; then
-  #   exit $?
-  # fi
+  if ! ${continue}; then
+    exit $?
+  fi
+
+  pac_array_jsonify packages
+
+  # echo "${packages[@]}"
 
   for package in ${packages[@]}; do
     echo "${package}" | ./lib/parser/jq
