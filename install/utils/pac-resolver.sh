@@ -14,11 +14,13 @@ fi
 source "${BASH_SOURCE%/*}/../../common/include.sh"
 
 include "${BASH_SOURCE%/*}/../../common/stack.sh"
+include "${BASH_SOURCE%/*}/../../common/colors.sh"
+include "${BASH_SOURCE%/*}/../../common/log.sh"
 
 
 function pac_array_resolve() {
   local pac_array_name=${1:?}
-  eval "pac_array=( \"\${${pac_array_name}[@]}\"  )"
+  eval "pac_array=( \"\${${pac_array_name}[@]}\" )"
 
   local i=
   for i in "${!pac_array[@]}"; do
@@ -30,20 +32,47 @@ function pac_array_resolve() {
 
 
 function pac_resolve() {
-  local pac_var_name=${1:?}
-  eval "local _package=\${$pac_var_name}"
+  local _global_pac_var_name="${1:?}"
+  local _local_pac_var_name="${2:-${1}}"
+  local depth=${3:-1}
+  local indent="$(printf "%*s" $((${depth}*4)))|-"
+  eval "local _package=\${$_local_pac_var_name}"
 
-  if [[ -e "${PACKAGE_DIR}/${_package}" ]]; then
-    return 0
-  else
+  log 'DEBUG' "Inspecting: ${_package}"
+
+  if ! [[ -e "${PACKAGE_DIR}/${_package}" ]]; then
     local _selected=
     if _select_package "${_package%.*}" _selected; then
-      eval "${pac_var_name}=${_selected}"
-      return 0
+      # WARNING: Dangerous substitution!!
+      eval "${_global_pac_var_name}=\${$_global_pac_var_name/${_package}/${_selected}}"
+      _package=${_selected}
+    else
+      error "'${PACKAGE_DIR}/${_package}' not found!"
+      return 1
     fi
   fi
-  error "'${PACKAGE_DIR}/${_package}' not found!"
-  return 1
+
+  local -a _package_dependencies=( $(${BASH_SOURCE%/*}/metadata-parser "dependency" "${PACKAGE_DIR}/${_package}") )
+
+  if [[ -n ${_package_dependencies+x} ]]; then
+    eval "${_global_pac_var_name}+=':{'"
+    log 'DEBUG' "${indent}Dependency detected for ${_package} (${#_package_dependencies[@]})"
+
+    local dependency= i=
+    for i in "${!_package_dependencies[@]}"; do
+      dependency="${_package_dependencies[$i]}"
+      [[ ${i} -eq 0 ]] || eval "${_global_pac_var_name}+=,"
+      eval "${_global_pac_var_name}+='${dependency}'"
+
+      log 'DEBUG' "${indent}Dependency: ${dependency}"
+      pac_resolve ${_global_pac_var_name} dependency $((depth+1))
+      log 'DEBUG' "${indent}Dependency (resolved): ${dependency}"
+    done
+
+    eval "${_global_pac_var_name}+='}'"
+  else
+    log 'DEBUG' "${indent}No dependency detected for ${_package}"
+  fi
 }
 
 
@@ -52,21 +81,21 @@ function _select_package() {
   local _selected_var=${2:?}
   local _select=
 
-  local matches=($(find "${PACKAGE_DIR}" -type f -name "${_package}*"))
+  local matches=($(find "${PACKAGE_DIR}" -type f -name "${_package}.*"))
   if [[ -n "${matches+x}" ]]; then
     if [[ "${#matches[@]}" -eq 1 ]]; then
       _select="$(basename -- ${matches[0]})"
     else
-      echo ""
+      printf "\nMultiple '${_package}' package detected\n\n"
       local i=
       while true; do
         for i in "${!matches[@]}"; do
-          echo "$(($i+1))) ${matches[$i]}"
+          printf "$(($i+1))) ${matches[$i]}\n"
         done
 
-        echo ""
+        printf "\n"
         read -p "Please select from the matches (1-${#matches[@]}): "
-        echo ""
+        printf "\n"
         if [[ "${REPLY}" =~ ^-?[0-9]+$  ]] && [[ "${REPLY}" -le "${#matches[@]}" ]]; then
           _select="$(basename -- ${matches[$(($REPLY-1))]})"
           break
@@ -88,12 +117,12 @@ function validate_package() {
   local package=${1:?}
   local dependency_level=0
 
-  stack_new _dependencies
+  # stack_new _dependencies
 
   ${VERBOSE} && printf "${package}\n"
   _validate_dependencies "${PACKAGE_DIR}/${package}" $(($dependency_level+1))
 
-  stack_destroy _dependencies
+  # stack_destroy _dependencies
 
   return $?
 }
@@ -104,12 +133,12 @@ function _validate_dependencies() {
     return 1
   fi
 
-  local -a _package_dependencies=("$(${BASH_SOURCE%/*}/metadata-parser dependency "${1}")")
+  local -a _package_dependencies=( $(${BASH_SOURCE%/*}/metadata-parser "dependency" "${1}") )
   local _dependency_level=${2}
   local _has_missing=false
 
   for dependency in ${_package_dependencies}; do
-    stack_push _dependencies "${dependency}"
+    # stack_push _dependencies "${dependency}"
     if ${VERBOSE}; then
       printf "%*s" $((${_dependency_level}*4))
       printf "│—${dependency}"

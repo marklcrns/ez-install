@@ -81,12 +81,53 @@ _main() {
     "-m git -d oh-my-zsh -n 'powerlevel10k' -o '\${HOME}/.oh-my-zsh/themes/powerlevel10k' 'https://github.com/romkatv/powerlevel10k.git'"
   )
 
+  local -a _test=(
+    "-m apt test1"
+    "-m npm test1"
+    "-m curl -n test1 test1"
+    "-m git -n test1 test1"
+
+    "-d test1 -m apt test1-1"
+    "-d test1 -m npm test1-1"
+    "-d test1 -m curl -n test1-1 test1-1"
+    "-d test1 -m git -n test1-1 test1-1"
+
+    "-d test1-1 -m apt test1-2"
+    "-d test1-1 -m npm test1-2"
+    "-d test1-1 -m curl -n test1-2 test1-2"
+    "-d test1-1 -m git -n test1-2 test1-2"
+
+    "-d test1-2 -m apt test1-3"
+    "-d test1-2 -m npm test1-3"
+    "-d test1-2 -m curl -n test1-3 test1-3"
+    "-d test1-2 -m git -n test1-3 test1-3"
+
+    "test2"
+    "-d test2 test2-a"
+    "-d test2-a test2-a-i"
+    "-d test2-a-i test2-a-i-1"
+    "-d test2-a-i-1 test2-a-i-1-a"
+
+    "test3"
+    "-d test3 test3-a"
+    "-d test3-a test3-a-1"
+    "-d test3-a test3-a-2"
+    "-d 'test3-a-1 test3-a-2' test3-a-2-i"
+    "-d test3-a-2-i test3-a-2-ii"
+    "-d test3-a-2-ii test3-b"
+    "-d test3-b test3-b-1"
+    "-d test3-b test3-b-2"
+    "-d test3-b test3-b-3"
+    "-d 'test3-b-1 test3-b-2 test3-b-3' test3-b-3-i"
+  )
+
 
   local -a packages=(
     "${_essentials[@]}"
     "${_languages[@]}"
     "${_package_manager[@]}"
     "${_shell[@]}"
+    "${_test[@]}"
   )
 
   for package in "${packages[@]}"; do

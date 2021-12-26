@@ -8,7 +8,7 @@ source "${BASH_SOURCE%/*}/../../common/log.sh"
 
 [[ -z "$@" ]] && log 'error' "No arguments passed" 1
 
-META="${1}"
+META="${1:?}"
 
 if [[ ${2+x} ]]; then
   FILE="${2}"

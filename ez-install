@@ -168,20 +168,24 @@ _main () {
   local -a packages=("${PACKAGES[@]}")
   pac_array_resolve packages
 
-  # echo "${packages[@]}"
+  echo "${packages[@]}"
 
-  local continue=false
+  # local continue=false
+  # for package in ${packages[@]}; do
+  #   validate_package "${package}"
+  #   local res=$?
+  #   if ! ${continue} && [[ ${res} -eq 0 ]]; then
+  #     continue=true
+  #   fi
+  # done
+  # 
+  # if ! ${continue}; then
+  #   exit $?
+  # fi
+
   for package in ${packages[@]}; do
-    validate_package "${package}"
-    local res=$?
-    if ! ${continue} && [[ ${res} -eq 0 ]]; then
-      continue=true
-    fi
+    echo "${package}" | ./lib/parser/jq
   done
-
-  if ! ${continue}; then
-    exit $?
-  fi
 
   confirm "About to install the package(s) above. Continue? (Y/y): " || \
     exit $?
