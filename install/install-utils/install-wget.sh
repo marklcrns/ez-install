@@ -25,17 +25,17 @@ _is_wget_installed() {
 
 # Specify destination directory
 wget_install() {
-  local default_flags='-c'
-  local args="${default_flags}"
-  local from= to= package_name=
-  OPTIND=1
+  local args='-c --'
+  local from= to= command_name= package_name=
 
-  # Handle flags
-  local opt=
-  while getopts "a:o:n:" opt; do
+  OPTIND=1
+  while getopts "a:c:o:n:" opt; do
     case ${opt} in
       a)
-        args="${OPTARG}"
+        args="${OPTARG} --"
+        ;;
+      c)
+        command_name="${OPTARG}"
         ;;
       o)
         to="${OPTARG}"
@@ -55,7 +55,7 @@ wget_install() {
   fi
 
   # Check if already installed
-  if eval "command -v '${package_name}' &> /dev/null"; then
+  if eval "command -v '${command_name}' &> /dev/null"; then
     pac_log_skip "Wget" "${package_name}"
     return 0
   fi
@@ -72,7 +72,8 @@ wget_install() {
     to="${to}/${filename}"
 
     # Execute installation
-    if execlog "wget ${args} '${from}' -O '${to}'"; then
+    # NOTE: DO NOT SURROUND $from to permit shell command piping
+    if execlog "wget -O '${to}' ${args} ${from}"; then
       pac_log_success 'Wget' "${from}" "Wget '${from}' -> '${to}' successful"
       return 0
     else
@@ -81,7 +82,8 @@ wget_install() {
     fi
   else
     # Execute installation
-    if execlog "wget '${args}' '${from}'"; then
+    # NOTE: DO NOT SURROUND $from to permit shell command piping
+    if execlog "wget '${args}' ${from}"; then
       pac_log_success 'Wget' "${from}" "Wget '${from}' successful"
       return 0
     else

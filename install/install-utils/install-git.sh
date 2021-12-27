@@ -77,7 +77,7 @@ _clone_repo() {
       _clone_repo "${repo}" "${to}"
       return ${?} # Propagate exit code
     else
-      warning "Git authentication timeout!"
+      error "Git authentication timeout!"
       return 2
     fi
   fi
@@ -87,20 +87,29 @@ _clone_repo() {
 
 git_clone() {
   local is_force=false
-  OPTIND=1
+  local args=
+  local from= to= command_name= package_name=
 
-  while getopts "f" opt; do
+  OPTIND=1
+  while getopts "fa:o:n:" opt; do
     case ${opt} in
       f)
         is_force=true
+        ;;
+      a)
+        args="${OPTARG}"
+        ;;
+      o)
+        to="${OPTARG}"
+        ;;
+      n)
+        package_name="${OPTARG}"
         ;;
     esac
   done
   shift "$((OPTIND-1))"
 
-  local from="${1}"
-  local to="${2:-}"
-  local exit_code
+  from="${@}"
 
   # Check if git is installed
   if ! _is_git_installed; then
@@ -110,7 +119,7 @@ git_clone() {
 
   # Validate git repo link
   _is_git_remote_reachable "${from}"
-  exit_code="${?}"
+  local exit_code="${?}"
   if [[ "${exit_code}" -eq 2 ]]; then
     pac_log_failed 'Git' "${from}" "Git clone '${from}' failed! Authentication timeout"
     return 1

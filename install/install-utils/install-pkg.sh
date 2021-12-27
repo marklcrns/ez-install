@@ -23,14 +23,20 @@ _is_pkg_installed() {
 }
 
 pkg_install() {
-  local is_update=false
-  OPTIND=1
+  local is_pkg_update=false
+  local args='--' command_name=
 
-  # Handle flags
-  while getopts "u" opt; do
+  OPTIND=1
+  while getopts "a:c:u" opt; do
     case ${opt} in
+      a)
+        args="${OPTARG} --"
+        ;;
+      c)
+        command_name="${OPTARG}"
+        ;;
       u)
-        is_update=true
+        is_pkg_update=true
         ;;
     esac
   done
@@ -44,47 +50,21 @@ pkg_install() {
   fi
 
   # Check if already installed
-  if eval "pkg search '${package}' | grep 'installed' &> /dev/null" || eval "command -v '${package}' &> /dev/null"; then
+  if eval "pkg search '${package}' | grep 'installed' &> /dev/null" || eval "command -v '${command_name}' &> /dev/null"; then
     pac_log_skip 'Pkg' "${package}"
     return 0
   fi
 
-  # pkg upgrade if is_update
-  ${is_update} && pkg_update
+  # pkg upgrade if is_pkg_update
+  ${is_pkg_update} && pkg_update
 
   # Execute installation
-  if execlog "pkg install '${package}' -y"; then
+  if execlog "pkg install -y ${args} '${package}'"; then
     pac_log_success 'Pkg' "${package}"
     return 0
   else
     pac_log_failed 'Pkg' "${package}"
     return 1
-  fi
-}
-
-
-# if apt package is appended with ';update', will `apt update` first before
-# installation
-pkg_batch_install() {
-  local packages=("$@")
-
-  if ! _is_pkg_installed; then
-    pac_log_failed 'Pkg' "${packages}" "Pkg installation failed. pkg not installed"
-    return 1
-  fi
-
-  # Loop over packages array and apt_install
-  if [[ -n "${packages}" ]]; then
-    for package in ${packages[@]}; do
-      if has_substr ";update" "${package}"; then
-        strip_substr ";update" package
-        pkg_install 1 "${package}"
-      else
-        pkg_install "${package}"
-      fi
-    done
-  else
-    error "${FUNCNAME[0]}: Array not found" 1
   fi
 }
 

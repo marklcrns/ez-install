@@ -7,6 +7,7 @@
 # a utility by sourcing this script for efficient bash script writing.
 #
 ################################# Functions ###################################
+# TODO: Update me
 #
 # ok()       = Echo message in COLOR_GREEN characters.
 # finish()   = Echo message in COLOR_GREEN characters and exit with 0 exit code.

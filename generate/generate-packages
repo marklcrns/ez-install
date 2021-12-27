@@ -68,18 +68,56 @@ _main() {
     "-m npm -d nodejs browser-sync"
     "-m npm -d nodejs gulp-cli"
     "yarn"
-    "-m curl -n 'nvm' 'https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash'"
-    "-m null -n 'nodejs'"
-    "-m curl -n 'cargo' 'https://sh.rustup.rs | sh'"
+    "-m curl -n nvm 'https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash'"
+    "-m local -c node nodejs"
+    "-m curl -n cargo 'https://sh.rustup.rs | sh'"
   )
 
   local -a _shell=(
     "zsh"
-    "-m curl -d zsh -n 'oh-my-zsh' 'https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | sh'"
-    "-m git -d oh-my-zsh -n 'zsh-autosuggestions' -o '\${ZSH_CUSTOM:-\${HOME}/.oh-my-zsh/custom}/plugins/zsh-autosuggestions' 'https://github.com/zsh-users/zsh-autosuggestions'"
-    "-m git -d oh-my-zsh -n 'zsh-syntax-highlighting' -o '\${ZSH_CUSTOM:-\${HOME}/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting' 'https://github.com/zsh-users/zsh-syntax-highlighting.git'"
-    "-m git -d oh-my-zsh -n 'powerlevel10k' -o '\${HOME}/.oh-my-zsh/themes/powerlevel10k' 'https://github.com/romkatv/powerlevel10k.git'"
+    "-m curl -d zsh -n oh-my-zsh 'https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | sh'"
+    "-m git -d oh-my-zsh -n zsh-autosuggestions -o '\${ZSH_CUSTOM:-\${HOME}/.oh-my-zsh/custom}/plugins/zsh-autosuggestions' 'https://github.com/zsh-users/zsh-autosuggestions'"
+    "-m git -d oh-my-zsh -n zsh-syntax-highlighting -o '\${ZSH_CUSTOM:-\${HOME}/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting' 'https://github.com/zsh-users/zsh-syntax-highlighting.git'"
+    "-m git -d oh-my-zsh -n powerlevel10k -o '\${HOME}/.oh-my-zsh/themes/powerlevel10k' 'https://github.com/romkatv/powerlevel10k.git'"
   )
+
+  local -a _session_manager=(
+    "tmux"
+    "tmuxinator"
+    "gawk"
+    "urlview"
+    "-m pip -d python spotify-cli-linux"
+    "-m pip2 -d python2 spotify-cli-linux"
+    "-m pip3 -d python3 spotify-cli-linux"
+    "-m git -d tmux -n tpm -o '\${HOME}/.tmux/plugins/tpm' 'https://github.com/tmux-plugins/tpm'"
+  )
+
+  local -a _file_manager=(
+    "ranger"
+    "-m git -n ranger_devicons -o '\${HOME}/.config/ranger/plugins/ranger_devicons' 'https://github.com/alexanderjeurissen/ranger_devicons'"
+    "caca-utils"
+    "highlight"
+    "atool"
+    "w3m"
+    "w3m-img"
+    "zathura"
+    "xdotool"
+    "poppler-utils"
+    "mediainfo"
+    "mupdf"
+    "mupdf-tools"
+  )
+
+  local -a _text_editor=(
+    "-m apt -c nvim -n neovim-unstable neovim"
+    "-m npm -d 'nodejs neovim' neovim"
+    "-m npm -d nodejs eslint"
+    "-m npm -d nodejs stylelint"
+    "-m npm -d nodejs prettier"
+  )
+
+
+
 
   local -a _test=(
     "-m apt test1"
@@ -128,6 +166,9 @@ _main() {
     "${_package_manager[@]}"
     "${_shell[@]}"
     "${_test[@]}"
+    "${_session_manager[@]}"
+    "${_file_manager[@]}"
+    "${_text_editor[@]}"
   )
 
   for package in "${packages[@]}"; do

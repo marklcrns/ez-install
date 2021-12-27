@@ -24,11 +24,17 @@ _is_npm_installed() {
 
 npm_install() {
   local is_local=false
-  OPTIND=1
+  local args='--' command_name=
 
-  # Handle flags
-  while getopts "l" opt; do
+  OPTIND=1
+  while getopts "a:c:l" opt; do
     case ${opt} in
+      a)
+        args="${OPTARG} --"
+        ;;
+      c)
+        command_name="${OPTARG}"
+        ;;
       l)
         is_local=true
         ;;
@@ -44,7 +50,8 @@ npm_install() {
   fi
 
   # Check if package exists in npm repository
-  if eval "npm search '${package}' | grep -q '^No matches found' &> /dev/null" || eval "command -v '${package}' &> /dev/null"; then
+  if eval "npm search '${package}' | grep -q '^No matches found' &> /dev/null"; then
+    error "'${package}' does not exists in the npm repository"
     pac_log_failed 'Npm' "${package}" "Npm '${package}' package not found in npm repository"
     return 1
   fi
@@ -64,7 +71,7 @@ npm_install() {
 
   # Execute installation
   if ${is_local}; then
-    if execlog "npm install '${package}'"; then
+    if execlog "npm install ${args} '${package}'"; then
       pac_log_success 'Npm' "${package}" "Npm '${package}' local package installation successful"
       return 0
     else
@@ -72,46 +79,13 @@ npm_install() {
       return 1
     fi
   else
-    if execlog "npm -g install '${package}'"; then
+    if execlog "npm install -g ${args} '${package}'"; then
       pac_log_success 'Npm' "${package}" "Npm '${package}' global package installation successful"
       return 0
     else
       pac_log_failed 'Npm' "${package}" "Npm '${package}' global package installation failed"
       return 1
     fi
-  fi
-}
-
-npm_batch_install() {
-  local is_local=false
-
-  while getopts "l" opt; do
-    case ${opt} in
-      l)
-        is_local=true
-        ;;
-    esac
-  done
-  shift "$((OPTIND-1))"
-
-  packages=("$@")
-
-  if ! _is_npm_installed; then
-    pac_log_failed 'Npm' "${packages}" "Npm installation failed. npm not installed"
-    return 1
-  fi
-
-  # Loop over packages array and npm_install
-  if [[ -n "${packages}" ]]; then
-    for package in ${packages[@]}; do
-      if ${is_local}; then
-        npm_install "${package}"
-      else
-        npm_install -g "${package}"
-      fi
-    done
-  else
-    error "${FUNCNAME[0]}: Array not found" 1
   fi
 }
 

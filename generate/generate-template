@@ -42,6 +42,7 @@ handle_args() {
     local delim=""
     case "${arg}" in
       --author)           args="${args:-}-a ";;
+      --command_name)     args="${args:-}-c ";;
       --dependency)       args="${args:-}-d ";;
       --package-dir)      args="${args:-}-D ";;
       --package-manager)  args="${args:-}-m ";;
@@ -64,19 +65,18 @@ handle_args() {
   [[ -z "${DEBUG+x}" ]]           && DEBUG=false
   [[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=3
 
-  AUTHOR=""
-  DEPENDENCIES=""
-  FILE=""
-  PACKAGE_MANAGER=""
-  PACKAGE_NAME=""
-  DESTINATION=""
+  AUTHOR= COMMAND_NAME= DEPENDENCIES= FILE=
+  PACKAGE_MANAGER= PACKAGE_NAME= DESTINATION=
   DIRECTORY_PATH="${PACKAGE_DIR:-${BASH_SOURCE%/*}/packages}"
 
   OPTIND=1
-  while getopts "a:d:D:m:n:o:vxyh" opt; do
+  while getopts "a:c:d:D:m:n:o:vxyh" opt; do
     case ${opt} in
       a)
         AUTHOR="${OPTARG}"
+        ;;
+      c)
+        COMMAND_NAME="${OPTARG}"
         ;;
       d)
         DEPENDENCIES="${OPTARG}"
@@ -110,11 +110,13 @@ handle_args() {
   done
   shift "$((OPTIND-1))"
 
-  if [[ -z "${@+x}" ]] && [[ "${PACKAGE_MANAGER}" != "null" ]]; then
+  if [[ -z "${@+x}" ]] && [[ "${PACKAGE_MANAGER}" != "local" ]]; then
     error "No package argument provided for '${PACKAGE_NAME}'" 1
   fi
 
   PACKAGE="${@:-${PACKAGE_NAME}}"
+  PACKAGE_NAME="${PACKAGE_NAME:-${PACKAGE}}"
+  COMMAND_NAME="${COMMAND_NAME:-${PACKAGE_NAME}}"
   FILE="${PACKAGE_NAME:-${PACKAGE}}"
 
   if [[ ${PACKAGE_MANAGER} == "curl" ]] || [[ ${PACKAGE_MANAGER} == "wget" ]] || [[ ${PACKAGE_MANAGER} == "git" ]]; then
@@ -154,6 +156,8 @@ cat > "${file_path}" <<- ___EOF___
 ########################################################### PACKAGE METADATA ###
 # ---
 # package: ${FILE}
+# executable: ${COMMAND_NAME}
+# package-manager: ${PACKAGE_MANAGER}
 # dependency: ${DEPENDENCIES}
 # author: ${AUTHOR}
 # date: $(date "+%Y-%m-%d")
@@ -170,6 +174,7 @@ _main() {
   # Package name defaults to filename
   local package="${PACKAGE}"
   local package_name="${PACKAGE_NAME}"
+  local executable_name="${COMMAND_NAME}"
   local package_manager="${PACKAGE_MANAGER:-"\${PACKAGE_MANAGER:-}"}"
   local destination="${DESTINATION:-}"
 
@@ -177,7 +182,7 @@ _main() {
   [[ -z "\${package_manager}" ]] && get_sys_package_manager package_manager
 
   # Install package
-  install -n "\${package_name}" -- "\${package_manager}" "\${package}" "\${destination}"
+  install -c "\${executable_name}" -n "\${package_name}" -- "\${package_manager}" "\${package}" "\${destination}"
 
   local res=\$?
   return \${res}
@@ -211,6 +216,7 @@ _main() {
 _main
 
 unset AUTHOR
+unset COMMAND_NAME
 unset DEPENDENCIES
 unset DIRECTORY_PATH
 unset FILE

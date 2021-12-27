@@ -27,8 +27,26 @@ _is_apt_installed() {
 
 
 add_apt_repo() {
+  local is_apt_update=false
+  local args='--' command_name=
+  OPTIND=1
+  while getopts "a:c:u" opt; do
+    case ${opt} in
+      a)
+        args="${OPTARG} --"
+        ;;
+      c)
+        command_name="${OPTARG}"
+        ;;
+      u)
+        is_apt_update=true
+        ;;
+    esac
+  done
+  shift "$((OPTIND-1))"
+
   local repo="${@}"
-  local apt_repo='/etc/apt/'
+  local apt_repo_dir='/etc/apt/'
 
   if ! _is_apt_installed; then
     pac_log_failed 'Add apt' "${repo}" "Add apt '${repo}' installation failed. apt not installed"
@@ -36,14 +54,18 @@ add_apt_repo() {
   fi
 
   strip_substr 'ppa:' repo
-  if eval "find $apt_repo -name \"*.list\" | xargs cat | grep -h \"^[[:space:]]*deb.*${repo}\" &> /dev/null"; then
+  if eval "find ${apt_repo_dir} -name \"*.list\" | xargs cat | grep -h \"^[[:space:]]*deb.*${repo}\" &> /dev/null"; then
     pac_log_skip 'Add apt' "${repo}"
     return 0
   fi
 
-  [[ is_wsl ]] && set_nameserver "8.8.8.8"
+  # sudo apt update if is_apt_update
+  ${is_apt_update} && apt_update
+
+  # Execute installation
+  is_wsl && set_nameserver "8.8.8.8"
   warning "Adding ppa:${repo}..."
-  if execlog "sudo add-apt-repository '${repo}' -y &> /dev/null"; then
+  if execlog "sudo add-apt-repository -y ${args} '${repo}' &> /dev/null"; then
     pac_log_success 'Add apt' "${repo}"
     return 0
   else
@@ -51,19 +73,25 @@ add_apt_repo() {
     execlog "sudo add-apt-repository -r '${repo}'"
     return 1
   fi
-  [[ is_wsl ]] && restore_nameserver
+  is_wsl && restore_nameserver
 }
 
 
 # Will `apt update` first before installation if $2 -eq 1
 apt_install() {
-  local is_update=false
+  local is_apt_update=false
+  local args='--' command_name=
   OPTIND=1
-
-  while getopts "u" opt; do
+  while getopts "a:c:u" opt; do
     case ${opt} in
+      a)
+        args="${OPTARG} --"
+        ;;
+      c)
+        command_name="${OPTARG}"
+        ;;
       u)
-        is_update=true
+        is_apt_update=true
         ;;
     esac
   done
@@ -78,21 +106,23 @@ apt_install() {
 
   # Check if package exists in apt repository
   if ! eval "apt-cache search --names-only '^${package}.*' | grep -F '${package}' &> /dev/null"; then
+    error "'${package}' does not exists in the apt repository"
     pac_log_failed 'Apt' "${package}"
     return 1
   fi
 
   # Check if already installed
-  if eval "dpkg -s '${package}' &> /dev/null" || eval "command -v '${package}' &> /dev/null"; then
+  if eval "command -v '${command_name}' &> /dev/null" || eval "dpkg -s '${package}' &> /dev/null"; then
     pac_log_skip "Apt" "${package}"
     return 0
   fi
 
-  # sudo apt update if is_update
-  ${is_update} && apt_update
+  # sudo apt update if is_apt_update
+  ${is_apt_update} && apt_update
 
   # Execute installation
-  if execlog "sudo apt install '${package}' -y"; then
+  warning "Adding ppa:${repo}..."
+  if execlog "sudo apt install -y ${args} '${package}'"; then
     pac_log_success 'Apt' "${package}"
     return 0
   else
@@ -102,50 +132,24 @@ apt_install() {
 }
 
 
-# if apt package is appended with ';update', will `apt update` first before
-# installation
-apt_batch_install() {
-  local packages=("$@")
-
-  if ! _is_apt_installed; then
-    pac_log_failed 'Apt' "${package}" "Apt '${package}' installation failed. apt not installed"
-    return 1
-  fi
-
-  # Loop over packages array and apt_install
-  if [[ -n "${packages}" ]]; then
-    for package in ${packages[@]}; do
-      if has_substr ";update" "${package}"; then
-        strip_substr ";update" package
-        apt_install -u "${package}"
-      else
-        apt_install "${package}"
-      fi
-    done
-  else
-    error "${FUNCNAME[0]}: Array not found"
-  fi
-}
-
-
 apt_update() {
-  [[ is_wsl ]] && set_nameserver '8.8.8.8'
+  is_wsl && set_nameserver '8.8.8.8'
   if execlog 'sudo apt update -y'; then
     ok 'Apt update successful!'
   else
     error 'Apt update failed'
   fi
-  [[ is_wsl ]] && restore_nameserver
+  is_wsl && restore_nameserver
 }
 
 
 apt_upgrade() {
-  [[ is_wsl ]] && set_nameserver '8.8.8.8'
+  is_wsl && set_nameserver '8.8.8.8'
   if execlog 'sudo apt update -y && sudo apt upgrade -y'; then
     ok 'Apt upgrade successful!'
   else
     error 'Apt upgrade failed'
   fi
-  [[ is_wsl ]] && restore_nameserver
+  is_wsl && restore_nameserver
 }
 

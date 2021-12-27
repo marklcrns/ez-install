@@ -34,16 +34,19 @@ function pac_jsonify() {
   local _global_pac_var_name="${1:?}"
   local _local_pac_var_name="${2:-${1}}"
   local _depth=${3:-1}
+
   local _indent="$(printf "%*s" $((${_depth}*4)))|-"
+  local _root_package=${_package:-}
   eval "local _package=\${$_local_pac_var_name}"
 
   log 'DEBUG' "Inspecting: ${_package}"
 
   if ! [[ -f "${PACKAGE_DIR}/${_package}" ]]; then
     local _selected=
-    if _select_package "${_package%.*}" _selected; then
-      # TODO: WARNING dangerous and inefficient substitution!
-      eval "${_global_pac_var_name}=\${$_global_pac_var_name/${_package}/${_selected}}"
+    if _select_package "${_package}" _selected "${_root_package}"; then
+      # WARNING dangerous substitution! Replaces last occurrence (most recent addition) of _package
+      local _replaced="$(eval "echo \"'\$${_global_pac_var_name}'\"" | sed "s/\(.*\)${_package}/\1${_selected}/")"
+      eval "${_global_pac_var_name}=${_replaced}"
       _package=${_selected}
     else
       error "'${PACKAGE_DIR}/${_package}' not found!"
@@ -89,7 +92,7 @@ function pac_jsonify() {
     fi
 
   else
-    eval "${_global_pac_var_name}+=':null'"
+    eval "${_global_pac_var_name}+=':{}'"
     log 'DEBUG' "${_indent}No dependency detected for ${_package}"
   fi
 
@@ -98,29 +101,40 @@ function pac_jsonify() {
 }
 
 
-# TODO: Handle system interrupt (Ctrl-c when selecting)
+# TODO: Search as executable name instead if package not found using grep
 function _select_package() {
-  local _package="${1:?}"
+  local _package="${1%.*:?}"
+  local _package_ext="$([[ "${1##*.}" != "${_package}" ]] && echo "${1##*.}")"
   local _selected_var=${2:?}
+  local _excluded=${3:-}
   local _select=
 
-  local matches=($(find "${PACKAGE_DIR}" -type f -name "${_package}.*"))
-  if [[ -n "${matches+x}" ]]; then
-    if [[ "${#matches[@]}" -eq 1 ]]; then
-      _select="$(basename -- ${matches[0]})"
+  local _matches=(
+    $(find "${PACKAGE_DIR}" -type f \
+      ! -name "${_excluded}" \
+      ! -name "${_package}*.pre" \
+      ! -name "${_package}*.post" \
+      ! -name "${_package}.${_package_ext}.*" \
+      -name "${_package}*.*"
+    )
+  )
+  if [[ -n "${_matches+x}" ]]; then
+    if [[ "${#_matches[@]}" -eq 1 ]]; then
+      _select="$(basename -- ${_matches[0]})"
+      log 'DEBUG' "Defaulting: ${_select}"
     else
       printf "\nMultiple '${_package}' package detected\n\n"
       local i=
       while true; do
-        for i in "${!matches[@]}"; do
-          printf "$(($i+1))) ${matches[$i]}\n"
+        for i in "${!_matches[@]}"; do
+          printf "$(($i+1))) ${_matches[$i]}\n"
         done
 
         printf "\n"
-        read -p "Please select from the matches (1-${#matches[@]}): "
+        read -p "Please select from the matches (1-${#_matches[@]}): "
         printf "\n"
-        if [[ "${REPLY}" =~ ^-?[0-9]+$  ]] && [[ "${REPLY}" -le "${#matches[@]}" ]]; then
-          _select="$(basename -- ${matches[$(($REPLY-1))]})"
+        if [[ "${REPLY}" =~ ^-?[0-9]+$  ]] && [[ "${REPLY}" -le "${#_matches[@]}" ]]; then
+          _select="$(basename -- ${_matches[$(($REPLY-1))]})"
           break
         fi
       done
@@ -137,9 +151,16 @@ function _select_package() {
 
 
 _has_alternate_package() {
-  : ${1:?}
-  local matches=($(find "${PACKAGE_DIR}" -type f -name "${1%.*}.*"))
-  [[ -n "${matches+x}" ]] && return 0 || return 1
+  local _package="${1%.*:?}"
+  local _package_ext="$([[ "${1##*.}" != "${_package}" ]] && echo "${1##*.}")"
+  local _matches=(
+    $(find "${PACKAGE_DIR}" -type f \
+      ! -name "${_package}*.pre" \
+      ! -name "${_package}*.post" \
+      ! -name "${_package}.${_package_ext}.*" \
+      -name "${_package}*.*")
+  )
+  [[ -n "${_matches+x}" ]] && return 0 || return 1
 }
 
 
@@ -147,7 +168,8 @@ function validate_package() {
   local package=${1:?}
   local dependency_level=0
 
-  ${VERBOSE} && printf "${package}"
+  ${VERBOSE} && printf "Packages\n"
+  ${VERBOSE} && printf "│—${package}"
   _validate_dependencies "${PACKAGE_DIR}/${package}" $(($dependency_level+1))
 
   return $?
@@ -156,7 +178,7 @@ function validate_package() {
 function _validate_dependencies() {
   if ! [[ -f "${1}" ]]; then
     if _has_alternate_package "$(basename -- ${1})"; then
-      printf " (CHOOSE)\n"
+      printf " ${COLOR_YELLOW}(CHOOSE)${COLOR_NC}\n"
       return 0
     fi
     printf "\n"

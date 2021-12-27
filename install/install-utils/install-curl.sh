@@ -23,16 +23,17 @@ _is_curl_installed() {
 }
 
 curl_install() {
-  local default_args='-sSL'
-  local args="${default_args}"
-  local from= to= package_name=
+  local args='-sSL --'
+  local from= to= command_name= package_name=
 
-  # Handle flags
   OPTIND=1
-  while getopts "a:o:n:" opt; do
+  while getopts "a:c:o:n:" opt; do
     case ${opt} in
       a)
-        args="${OPTARG}"
+        args="${OPTARG} --"
+        ;;
+      c)
+        command_name="${OPTARG}"
         ;;
       o)
         to="${OPTARG}"
@@ -52,23 +53,24 @@ curl_install() {
   fi
 
   # Check if already installed
-  if eval "command -v '${package_name}' &> /dev/null"; then
+  if eval "command -v '${command_name}' &> /dev/null"; then
     pac_log_skip "Curl" "${package_name}"
     return 0
   fi
 
+  # Resolve destination
   if [[ -n "${to}" ]]; then
-    # Resolve destination
     local filename="$(basename -- "${from}")"
     to="${to}/${filename}"
 
-    if [[ -e "${to}" ]]; then
-      pac_log_skip "Curl" "${package_name}"
+    if [[ -f "${to}" ]]; then
+      pac_log_skip "Curl" "${to}"
       return 0
     fi
 
     # Execute installation
-    if execlog "curl '${args}' '${from}' --create-dirs -o '${to}'"; then
+    # NOTE: DO NOT SURROUND $from to permit shell command piping
+    if execlog "curl --create-dirs -o '${to}' ${args} ${from}"; then
       pac_log_success 'Curl' "${from}" "Curl '${from}' -> '${to}' successful"
       return 0
     else
@@ -77,6 +79,7 @@ curl_install() {
     fi
   else
     # Execute installation
+    # NOTE: DO NOT SURROUND $from to permit shell command piping
     if execlog "curl ${args} ${from}"; then
       pac_log_success 'Curl' "${from}" "Curl '${from}' successful"
       return 0

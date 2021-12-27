@@ -182,11 +182,7 @@ _main () {
 
   pac_array_jsonify packages
 
-  # echo "${packages[@]}"
-
-  for package in ${packages[@]}; do
-    echo "${package}" | ./lib/parser/jq
-  done
+  echo "${packages[@]}"
 
   confirm "About to install the package(s) above. Continue? (Y/y): " || \
     exit $?
@@ -196,7 +192,7 @@ _main () {
   # fi
   # cd ${DOWNLOADS_DIR}
 
-  pac_batch_install "${packages[@]}"
+  pac_batch_json_install "${packages[@]}"
   [[ -n "${packages+x}" ]] && pac_report
 
   finish "Installation finished!"

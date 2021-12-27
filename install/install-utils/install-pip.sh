@@ -25,10 +25,21 @@ _is_pip_installed() {
 
 pip_install() {
   local pip_version=
+  local is_global=false
+  local args='--' command_name=
   OPTIND=1
 
-  while getopts "v:" opt; do
+  while getopts "a:c:gv:" opt; do
     case ${opt} in
+      a)
+        args="${OPTARG} --"
+        ;;
+      c)
+        command_name="${OPTARG}"
+        ;;
+      g)
+        is_global=true
+        ;;
       v)
         pip_version="${OPTARG}"
         ;;
@@ -52,53 +63,28 @@ pip_install() {
   fi
 
   # Check if already installed
-  if eval "pip${pip_version} list | grep -F '${package}' &> /dev/null" || eval "command -v '${package}' &> /dev/null"; then
+  if eval "pip${pip_version} list | grep -F '${package}' &> /dev/null" || eval "command -v '${command_name}' &> /dev/null"; then
     pac_log_skip "Pip${pip_version}" "${package}"
     return 0
   fi
+
   # Execute installation
-  if execlog "pip${pip_version} install ${package}"; then
-    pac_log_success "Pip${pip_version}" "${package}"
-    return 0
+  if ${is_global}; then
+    if execlog "pip${pip_version} install -g ${args} ${package}"; then
+      pac_log_success "Pip${pip_version}" "${package}"
+      return 0
+    else
+      pac_log_failed "Pip${pip_version}" "${package}"
+      return 1
+    fi
   else
-    pac_log_failed "Pip${pip_version}" "${package}"
-    return 1
+    if execlog "pip${pip_version} install ${args} ${package}"; then
+      pac_log_success "Pip${pip_version}" "${package}"
+      return 0
+    else
+      pac_log_failed "Pip${pip_version}" "${package}"
+      return 1
+    fi
   fi
 }
-
-
-pip_batch_install() {
-  local pip_version=
-  OPTIND=1
-
-  # Handle flags
-  while getopts "v:" opt; do
-    case ${opt} in
-      v)
-        pip_version="${OPTARG}"
-        ;;
-    esac
-  done
-  shift "$((OPTIND-1))"
-
-  local packages=("$@")
-
-  if ! _is_pip_installed ${pip_version}; then
-    pac_log_failed "Pip${pip_version}" "${packages}" "Pip${pip_version} installation failed. pip${pip_version} not installed"
-    return 1
-  fi
-
-  if [[ -n "${packages}" ]]; then
-    for package in ${packages[@]}; do
-      if [[ -n "${pip_version}" ]]; then
-        pip_install -v ${pip_version} "${package}"
-      else 
-        pip_install "${package}"
-      fi
-    done
-  else
-    error "${FUNCNAME[0]}: Array not found" 1
-  fi
-}
-
 

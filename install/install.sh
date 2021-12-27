@@ -18,14 +18,19 @@ for install_script in ${BASH_SOURCE%/*}/install-utils/install-*.sh; do
 done
 
 
+# TODO: Add an option to provide package command name for validation
+# TODO: Log more INFO
 install() {
   local args= destination= package_name=
 
   OPTIND=1
-  while getopts "a:n:" opt; do
+  while getopts "a:c:n:" opt; do
     case ${opt} in
       a)
         args="${OPTARG}"
+        ;;
+      c)
+        command_name="${OPTARG}"
         ;;
       n)
         package_name="${OPTARG}"
@@ -65,36 +70,52 @@ install() {
 
   case ${package_manager} in
     apt)
-      apt_install ${args} -- "${package}" || return 1
+      apt_install -a "${args}" -c "${command_name}" -- "${package}" || return 1
       ;;
     add-apt)
-      apt_add_repo ${package} || return 1
-      ;;
-    curl)
-      curl_install ${args} -n "${package_name}" -- "${package}" "${destination}" || return 1
-      ;;
-    git)
-      git_clone ${args} -- "${package}" "${destination}" || return 1
+      apt_add_repo -a "${args}" -c "${command_name}" -- ${package} || return 1
       ;;
     npm)
-      npm_install ${args} -- "${package}" || return 1
+      npm_install -a "${args}" -c "${command_name}" -- "${package}" || return 1
       ;;
     pip)
-      pip_install ${args} -- "${package}" || return 1
+      pip_install -a "${args}" -c "${command_name}" -- "${package}" || return 1
       ;;
     pip2)
-      pip_install -v 2 -- "${package}" || return 1
+      pip_install -v 2 -a "${args}" -c "${command_name}" -- "${package}" || return 1
       ;;
     pip3)
-      pip_install -v 3 -- "${package}" || return 1
+      pip_install -v 3 -a "${args}" -c "${command_name}" -- "${package}" || return 1
       ;;
     pkg)
-      pkg_install ${args} -- "${package}" || return 1
+      pkg_install -a "${args}" -c "${command_name}" -- "${package}" || return 1
+      ;;
+    curl)
+      curl_install -a "${args}" \
+                   -c "${command_name}" \
+                   -n "${package_name}" \
+                   -o "${destination}" \
+                   -- "${package}" \
+                   || return 1
       ;;
     wget)
-      wget_install ${args} -n "${package_name}" -- "${package}" "${destination}" || return 1
+      wget_install -a "${args}" \
+                   -c "${command_name}" \
+                   -n "${package_name}" \
+                   -o "${destination}" \
+                   -- "${package}" \
+                   || return 1
       ;;
-    null)
+    git)
+      git_clone -a "${args}" \
+                -n "${package_name}" \
+                -o "${destination}" \
+                -- "${package}" \
+                || return 1
+      ;;
+    local)
+      # Do nothing but check if executable exists and trigger pre and post processes
+      local_install -c "${command_name}" -- "${package}" || return 0
       ;;
     *)
       error "'${package_manager}' package manager not supported"
