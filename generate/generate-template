@@ -9,6 +9,7 @@ include "${BASH_SOURCE%/*}/../.ez-installrc"
 include "${HOME}/.ez-installrc"
 include "${BASH_SOURCE%/*}/../common/common.sh"
 include "${BASH_SOURCE%/*}/../install/common.sh"
+include "${BASH_SOURCE%/*}/../install/utils/actions.sh"
 
 SCRIPT_ARGS="${@}"
 
@@ -64,11 +65,11 @@ handle_args() {
   [[ -z "${VERBOSE+x}" ]]         && VERBOSE=false
   [[ -z "${DEBUG+x}" ]]           && DEBUG=false
   [[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=3
+  [[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=3
 
   ARGS= AUTHOR= COMMAND_NAME= DEPENDENCIES= FILE=
   PACKAGE_MANAGER= PACKAGE_NAME= DESTINATION=
   UPDATE=false
-  DIRECTORY_PATH="${PACKAGE_DIR:-${BASH_SOURCE%/*}/packages}"
 
   OPTIND=1
   while getopts "a:A:c:d:D:m:n:o:u:vxyh" opt; do
@@ -86,7 +87,7 @@ handle_args() {
         DEPENDENCIES="${OPTARG}"
         ;;
       D)
-        DIRECTORY_PATH="${OPTARG}"
+        PACKAGE_DIR="${OPTARG}"
         ;;
       m)
         PACKAGE_MANAGER="$(echo "${OPTARG}" | awk '{print tolower($0)}')"
@@ -130,6 +131,16 @@ handle_args() {
     if [[ -z "${PACKAGE_NAME}" ]]; then
       error "No package name provided for '${PACKAGE_MANAGER} ${PACKAGE}'" 1
     fi
+  fi
+
+  if [[ -z ${PACKAGE_ROOT_DIR+x} ]]; then
+    PACKAGE_ROOT_DIR="$(realpath -s "${BASH_SOURCE%/*}/generate/packages")"
+  fi
+  if [[ -z ${PACKAGE_DIR+x} ]]; then
+    os_release
+    local distrib_id="${OS_DISTRIB_ID}"; to_lower distrib_id
+    local distrib_release="${OS_DISTRIB_RELEASE}"
+    PACKAGE_DIR="${PACKAGE_ROOT_DIR}/${distrib_id}/${distrib_release}"
   fi
 
   return 0
@@ -202,21 +213,32 @@ _main
 # SOURCED BY \`pac-install()\`, DO NOT USE \`exit\`. USE \`return\` INSTEAD
 ___EOF___
 
-  chmod +x "${file_path}" && echo -e "${file_path} created!"
+  if execlog "chmod +x '${file_path}'"; then
+    ok "${file_path} package created!"
+  else
+    error "${file_path} package creation failed!"
+  fi
 }
 
 
 _main() {
   handle_args "${SCRIPT_ARGS}"
   if [[ -z "${PACKAGE_MANAGER}" ]]; then
-    local file_path="${DIRECTORY_PATH}/${FILE}"
+    local file_path="${PACKAGE_DIR}/${FILE}"
   else
-    local file_path="${DIRECTORY_PATH}/${FILE}.${PACKAGE_MANAGER}"
+    local file_path="${PACKAGE_DIR}/${FILE}.${PACKAGE_MANAGER}"
   fi
 
-  if [[ ! -d "${DIRECTORY_PATH}" ]]; then
-    mkdir -p "${DIRECTORY_PATH}"
+  if [[ ! -d "${PACKAGE_DIR}" ]]; then
+    if execlog "mkdir -p '${PACKAGE_DIR}'"; then
+      ok "'${PACKAGE_DIR}' directory created"
+    else
+      local res=$?
+      error "'${PACKAGE_DIR}' creation failed"
+      return ${res}
+    fi
   fi
+
   generate_template "${file_path}"
 }
 
@@ -227,7 +249,6 @@ unset ARGS
 unset AUTHOR
 unset COMMAND_NAME
 unset DEPENDENCIES
-unset DIRECTORY_PATH
 unset FILE
 unset PACKAGE
 unset PACKAGE_MANAGER

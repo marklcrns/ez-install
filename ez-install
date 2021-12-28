@@ -14,6 +14,7 @@ include "${HOME}/.ez-installrc"
 
 include "${BASH_SOURCE%/*}/common/common.sh"
 include "${BASH_SOURCE%/*}/common/array.sh"
+include "${BASH_SOURCE%/*}/common/sys.sh"
 include "${BASH_SOURCE%/*}/install/utils/actions.sh"
 include "${BASH_SOURCE%/*}/install/utils/pac-logger.sh"
 include "${BASH_SOURCE%/*}/install/utils/pac-transform.sh"
@@ -134,9 +135,14 @@ function handle_args() {
     fi
   fi
 
+  if [[ -z ${PACKAGE_ROOT_DIR+x} ]]; then
+    PACKAGE_ROOT_DIR="$(realpath -s "${BASH_SOURCE%/*}/generate/packages")"
+  fi
   if [[ -z ${PACKAGE_DIR+x} ]]; then
-    PACKAGE_DIR="${BASH_SOURCE%/*}/generate/packages"
-    PACKAGE_DIR="$(realpath -s "${PACKAGE_DIR}")"
+    os_release
+    local distrib_id="${OS_DISTRIB_ID}"; to_lower distrib_id
+    local distrib_release="${OS_DISTRIB_RELEASE}"
+    PACKAGE_DIR="${PACKAGE_ROOT_DIR}/${distrib_id}/${distrib_release}"
   fi
 
   readonly SKIP_CONFIRM

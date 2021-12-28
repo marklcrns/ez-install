@@ -42,26 +42,26 @@ source "${BASH_SOURCE%/*}/../../common/string.sh"
 # Logs NOTICE message on VERBOSE.
 ok() {
   local message="${1:-}"
-  log 'notice' "${message}"
+  log 'notice' "${FUNCNAME[1]}(): ${message}"
 }
 
 # Logs WARN message on VERBOSE.
 warning() {
   local message="${1:-}"
-  log 'warn' "${message}"
+  log 'warn' "${FUNCNAME[1]}(): ${message}"
 }
 
 # Logs WARN message on VERBOSE then exit 0.
 abort() {
   local message="${1:-}"
-  log 'warn' "${message}"
+  log 'warn' "${FUNCNAME[1]}(): ${message}"
   exit 0
 }
 
 # Logs NOTICE message on VERBOSE then exit 0.
 finish() {
   local message="${1:-}"
-  log 'notice' "${message}"
+  log 'notice' "${FUNCNAME[1]}(): ${message}"
   exit 0
 }
 
@@ -69,7 +69,7 @@ finish() {
 # Logs ERROR message on VERBOSE then exit $2.
 error() {
   local message="${1:-}"
-  log 'error' "${message}" ${2:-0}
+  log 'error' "${FUNCNAME[1]}(): ${message}" ${2:-0}
 }
 
 # Execute message then log DEBUG on VERBOSE.
@@ -77,7 +77,7 @@ execlog() {
   local command="${1:-}"
 
   strip_ansi_codes command
-  log 'debug' "${command}"
+  log 'debug' "${FUNCNAME[1]}: ${command}"
 
   if ${VERBOSE}; then
     eval "${command}"

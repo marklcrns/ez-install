@@ -50,7 +50,7 @@ pac_batch_json_install() {
       ((++_i))
     done
   else
-    error "${FUNCNAME[0]}: Required packages array not found"
+    error "Required packages array not found"
   fi
 }
 
@@ -140,12 +140,29 @@ pac_batch_install() {
       ((++i))
     done
   else
-    error "${FUNCNAME[0]}: Required packages array not found"
+    error "Required packages array not found"
   fi
 }
 
+# Symlink init.sh
+# 
 pac_deploy_init() {
-  local destination="${1:-}"
+  local target="${1:-}"
+  local from="$(realpath -- ${BASH_SOURCE%/*}/init.sh)"
 
-  execlog "ln -sf '$(realpath -- ${BASH_SOURCE%/*}/init.sh)' '${destination}'"
+  if [[ -f "${target}" ]]; then
+    warning "Replacing '${target}' with __init__.sh symlink"
+    execlog "rm ${target}"
+  elif [[ -d "${target}" ]]; then
+    error "Target '${target}' is a directory!"
+    return 1
+  elif [[ ! -d "$(basename -- "${target}")" ]]; then
+    execlog "mkdir -p ''$(basename -- "${target}")''"
+  fi
+
+  if execlog "ln -sT '${from}' '${target}'"; then
+    ok "${from} -> ${target}/__init__.sh symlink created"
+  else
+    error "${from} -> ${target}/__init__.sh symlink failed"
+  fi
 }

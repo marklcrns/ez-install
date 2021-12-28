@@ -12,9 +12,12 @@ INIT_DIR="$(cd -P "$(dirname "${INIT_PATH}")" >/dev/null 2>&1 && pwd)"
 
 source "${INIT_DIR}/../common/include.sh"
 
+include "${INIT_DIR}/../.ez-installrc"
+include "${HOME}/.ez-installrc"
 include "${INIT_DIR}/common.sh"
 include "${INIT_DIR}/install.sh"
 include "${INIT_DIR}/pac-install.sh"
+include "${INIT_DIR}/../common/sys.sh"
 
 [[ -z "${SKIP_CONFIRM+x}" ]]    && SKIP_CONFIRM=false
 [[ -z "${VERBOSE+x}" ]]         && VERBOSE=false
