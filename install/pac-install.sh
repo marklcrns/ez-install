@@ -15,7 +15,6 @@ fi
 source "${BASH_SOURCE%/*}/utils/pac-logger.sh"
 source "${BASH_SOURCE%/*}/utils/progress-bar.sh"
 
-
 pac_json_install() {
   local package="${1:-}"
 
@@ -143,4 +142,10 @@ pac_batch_install() {
   else
     error "${FUNCNAME[0]}: Required packages array not found"
   fi
+}
+
+pac_deploy_init() {
+  local destination="${1:-}"
+
+  execlog "ln -sf '$(realpath -- ${BASH_SOURCE%/*}/init.sh)' '${destination}'"
 }

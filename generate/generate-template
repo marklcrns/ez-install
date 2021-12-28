@@ -65,14 +65,18 @@ handle_args() {
   [[ -z "${DEBUG+x}" ]]           && DEBUG=false
   [[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=3
 
-  AUTHOR= COMMAND_NAME= DEPENDENCIES= FILE=
+  ARGS= AUTHOR= COMMAND_NAME= DEPENDENCIES= FILE=
   PACKAGE_MANAGER= PACKAGE_NAME= DESTINATION=
+  UPDATE=false
   DIRECTORY_PATH="${PACKAGE_DIR:-${BASH_SOURCE%/*}/packages}"
 
   OPTIND=1
-  while getopts "a:c:d:D:m:n:o:vxyh" opt; do
+  while getopts "a:A:c:d:D:m:n:o:u:vxyh" opt; do
     case ${opt} in
       a)
+        ARGS="${OPTARG}"
+        ;;
+      A)
         AUTHOR="${OPTARG}"
         ;;
       c)
@@ -92,6 +96,9 @@ handle_args() {
         ;;
       o)
         DESTINATION="${OPTARG}"
+        ;;
+      u)
+        UPDATE=${OPTARG}
         ;;
       v)
         VERBOSE=true
@@ -164,7 +171,7 @@ cat > "${file_path}" <<- ___EOF___
 # ---
 ################################################################################
 
-source "\${EZ_INSTALL_HOME}/install/init.sh"
+source "\${BASH_SOURCE%/*}/__init__.sh"
 
 ############################################################## START INSTALL ###
 
@@ -172,6 +179,7 @@ source "\${EZ_INSTALL_HOME}/install/init.sh"
 
 _main() {
   # Package name defaults to filename
+  local args="${ARGS}"
   local package="${PACKAGE}"
   local package_name="${PACKAGE_NAME}"
   local executable_name="${COMMAND_NAME}"
@@ -182,7 +190,7 @@ _main() {
   [[ -z "\${package_manager}" ]] && get_sys_package_manager package_manager
 
   # Install package
-  install -c "\${executable_name}" -n "\${package_name}" -- "\${package_manager}" "\${package}" "\${destination}"
+  install -a "\${args}" -c "\${executable_name}" -n "\${package_name}" -u ${UPDATE} -- "\${package_manager}" "\${package}" "\${destination}"
 
   local res=\$?
   return \${res}
@@ -215,6 +223,7 @@ _main() {
 
 _main
 
+unset ARGS
 unset AUTHOR
 unset COMMAND_NAME
 unset DEPENDENCIES
@@ -224,3 +233,4 @@ unset PACKAGE
 unset PACKAGE_MANAGER
 unset PACKAGE_NAME
 unset DESTINATION
+unset UPDATE

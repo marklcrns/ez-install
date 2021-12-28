@@ -32,19 +32,26 @@ _is_git_remote_reachable() {
 
   [[ -z "${repo}" ]] || [[ ! "${repo}" =~ ^git@|^https://|^git:// ]] && return 1
 
-  local stderr="$(git ls-remote -q "${repo}" 2>&1 > /dev/null)"
-  [[ "${?}" -eq 0 ]] || [[ -z "${stderr}" ]] && return 0
+  # NOTE: do not set stderr to `local` inline to prevent overwritting exit code from subshell
+  local stderr= res=
+  stderr="$(git ls-remote -q "${repo}" 2>&1 > /dev/null)"; res=$?
+
+  [[ ${res} -eq 0 ]] || [[ -z "${stderr}" ]] && return 0
 
   if [[ "${stderr}" =~ 'Authentication failed' ]]; then
-    if [[ "${retry}" -ne 0 ]]; then
+    if [[ ${retry} -ne 0 ]]; then
       warning "Git authentication failed. Try again (${retry} remaining)\n"
       ((--retry))
       _is_git_remote_reachable "${repo}"
-      return ${?} # Propagate exit code
+      res=$?
+      return ${res}
     else
       warning "Git authentication timeout!"
       return 2
     fi
+  else
+    pac_log_failed 'Git' "${from}" "${stderr}"
+    return ${res}
   fi
 
   return 1
@@ -62,33 +69,8 @@ _is_git_repo() {
 # returns 1 if not found,
 # returns 2 if authentication failed
 _clone_repo() {
-  local repo="${1}"
-  local to="${2:-}"
   local retry=${retry:-${GIT_AUTH_MAX_RETRY:-5}}
-
-  local stderr="$(git clone "${repo}" "${to}" 2>&1 > /dev/null)"
-  log 'debug' "Execute: git clone '${repo}' '${to}'"
-  [[ "${?}" -eq 0 ]] || [[ -z "${stderr}" ]] && return 0
-
-  if [[ "${stderr}" =~ 'Authentication failed' ]]; then
-    if [[ "${retry}" -ne 0 ]]; then
-      warning "Git authentication failed. Try again (${retry} remaining)\n"
-      ((--retry))
-      _clone_repo "${repo}" "${to}"
-      return ${?} # Propagate exit code
-    else
-      error "Git authentication timeout!"
-      return 2
-    fi
-  fi
-
-  return 1
-}
-
-git_clone() {
-  local is_force=false
-  local args=
-  local from= to= command_name= package_name=
+  local args= from= to=
 
   OPTIND=1
   while getopts "fa:o:n:" opt; do
@@ -98,6 +80,56 @@ git_clone() {
         ;;
       a)
         args="${OPTARG}"
+        ;;
+      o)
+        to="${OPTARG}"
+        ;;
+    esac
+  done
+  shift "$((OPTIND-1))"
+
+  from="${@}"
+
+  log 'DEBUG' "Cloning '${from}' -> '${to}'"
+  # NOTE: do not set stderr to `local` inline to prevent overwritting exit code from subshell
+  local stderr= res=
+  stderr=$(git clone ${args} "${from}" "${to}" 2>&1 > /dev/null; exit $?); res=$?
+
+  log 'debug' "Execute: git clone ${args} ${from} ${to}"
+  [[ ${res} -eq 0 ]] || [[ -z "${stderr}" ]] && return 0
+
+  if [[ "${stderr}" =~ 'Authentication failed' ]]; then
+    if [[ "${retry}" -ne 0 ]]; then
+      warning "Git authentication failed. Try again (${retry} remaining)\n"
+      ((--retry))
+      _clone_repo -a "${args}" -o "${to}" -- "${from}"
+      res=$?
+      return ${res}
+    else
+      error "Git authentication timeout!"
+      return 2
+    fi
+  else
+    pac_log_failed 'Git' "${from}" "${stderr}"
+    return ${res}
+  fi
+
+  return 1
+}
+
+git_clone() {
+  local is_force=false
+  local args='--'
+  local from= to= command_name= package_name=
+
+  OPTIND=1
+  while getopts "fa:o:n:" opt; do
+    case ${opt} in
+      f)
+        is_force=true
+        ;;
+      a)
+        args="${OPTARG} --"
         ;;
       o)
         to="${OPTARG}"
@@ -119,18 +151,18 @@ git_clone() {
 
   # Validate git repo link
   _is_git_remote_reachable "${from}"
-  local exit_code="${?}"
-  if [[ "${exit_code}" -eq 2 ]]; then
+  local res=$?
+  if [[ ${res} -eq 2 ]]; then
     pac_log_failed 'Git' "${from}" "Git clone '${from}' failed! Authentication timeout"
     return 1
-  elif [[ "${exit_code}" -eq 1 ]]; then
+  elif [[ ${res} -eq 1 ]]; then
     pac_log_failed 'Git' "${from}" "Git clone '${from}' failed! Invalid git remote url"
     return 1
   fi
 
   # Resolve destination
   local repo_name="$(basename -- "${from}" '.git')"
-  [[ -z "${to}" ]] && to="${to}/${repo_name}"
+  [[ -z "${to}" ]] && to="./${repo_name}"
 
   # Check destination directory validity
   if [[ ! -d "$(dirname "${to}")" ]]; then
@@ -158,14 +190,17 @@ git_clone() {
   fi
 
   # Execute cloning
-  _clone_repo "${from}" "${to}"
-  exit_code="${?}"
-  if [[ "${exit_code}" -eq 2 ]]; then
-    pac_log_failed 'Git' "${from}" "Git clone '${from}' failed! Authentication timeout"
-    return 1
-  elif [[ "${exit_code}" -eq 1 ]]; then
-    pac_log_failed 'Git' "${from}" "Git clone '${from}' -> '${to}' failed"
-    return 1
+  _clone_repo -a "${args}" -o "${to}" -- "${from}"
+  local res=$?
+  if [[ ${res} -gt 0 ]]; then
+    if [[ ${res} -eq 2 ]]; then
+      pac_log_failed 'Git' "${from}" "Git clone '${from}' failed! Authentication timeout"
+      return ${res}
+    elif [[ ${res} -eq 1 ]]; then
+      pac_log_failed 'Git' "${from}" "Git clone '${from}' -> '${to}' failed"
+      return ${res}
+    fi
+    return ${res}
   fi
 
   pac_log_success 'Git' "${from}" "Git clone '${from}' -> '${to}' successful"

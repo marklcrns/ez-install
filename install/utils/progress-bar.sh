@@ -11,6 +11,9 @@ fi
   && readonly UTILS_PROGRESS_BAR_SH_INCLUDED=1 \
   || return 0
 
+source "${BASH_SOURCE%/*}/../../common/include.sh"
+
+include "${BASH_SOURCE%/*}/../../common/colors.sh"
 
 prog_bar() {
   local w=50 p="${1}"; shift

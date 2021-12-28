@@ -26,11 +26,11 @@ _is_apt_installed() {
 }
 
 
-add_apt_repo() {
-  local is_apt_update=false
+apt_add_repo() {
+  local is_update=false
   local args='--' command_name=
   OPTIND=1
-  while getopts "a:c:u" opt; do
+  while getopts "a:c:u:" opt; do
     case ${opt} in
       a)
         args="${OPTARG} --"
@@ -39,7 +39,7 @@ add_apt_repo() {
         command_name="${OPTARG}"
         ;;
       u)
-        is_apt_update=true
+        is_update=${OPTARG}
         ;;
     esac
   done
@@ -59,12 +59,11 @@ add_apt_repo() {
     return 0
   fi
 
-  # sudo apt update if is_apt_update
-  ${is_apt_update} && apt_update
+  # sudo apt update if is_update
+  ${is_update} && apt_update
 
   # Execute installation
   is_wsl && set_nameserver "8.8.8.8"
-  warning "Adding ppa:${repo}..."
   if execlog "sudo add-apt-repository -y ${args} '${repo}' &> /dev/null"; then
     pac_log_success 'Add apt' "${repo}"
     return 0
@@ -79,10 +78,10 @@ add_apt_repo() {
 
 # Will `apt update` first before installation if $2 -eq 1
 apt_install() {
-  local is_apt_update=false
+  local is_update=false
   local args='--' command_name=
   OPTIND=1
-  while getopts "a:c:u" opt; do
+  while getopts "a:c:u:" opt; do
     case ${opt} in
       a)
         args="${OPTARG} --"
@@ -91,7 +90,7 @@ apt_install() {
         command_name="${OPTARG}"
         ;;
       u)
-        is_apt_update=true
+        is_update=${OPTARG}
         ;;
     esac
   done
@@ -117,11 +116,10 @@ apt_install() {
     return 0
   fi
 
-  # sudo apt update if is_apt_update
-  ${is_apt_update} && apt_update
+  # sudo apt update if is_update
+  ${is_update} && apt_update
 
   # Execute installation
-  warning "Adding ppa:${repo}..."
   if execlog "sudo apt install -y ${args} '${package}'"; then
     pac_log_success 'Apt' "${package}"
     return 0
@@ -153,3 +151,41 @@ apt_upgrade() {
   is_wsl && restore_nameserver
 }
 
+
+apt_purge() {
+  local args='--' command_name=
+  OPTIND=1
+  while getopts "a:c:u:" opt; do
+    case ${opt} in
+      a)
+        args="${OPTARG} --"
+        ;;
+      c)
+        command_name="${OPTARG}"
+        ;;
+    esac
+  done
+  shift "$((OPTIND-1))"
+
+  local package="${@%.*}"
+
+  if ! _is_apt_installed; then
+    pac_log_failed 'Apt' "${package}" "Apt '${package}' installation failed. apt not installed"
+    return 1
+  fi
+
+  # Check if already installed
+  if ! eval "dpkg -s '${package}' &> /dev/null" || ! eval "command -v '${command_name}' &> /dev/null"; then
+    pac_log_skip 'Apt-purge' "${package}" "Apt purge '${package}' skipped. Package not installed."
+    return 0
+  fi
+
+  # Execute installation
+  if execlog "sudo purge --auto-remove -y ${args} '${package}'"; then
+    pac_log_success 'Apt-purge' "${package}" "Apt purge '${package}' successful!"
+    return 0
+  else
+    pac_log_failed 'Apt-purge' "${package}" "Apt purge '${package}' failed!"
+    return 1
+  fi
+}

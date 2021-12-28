@@ -79,7 +79,7 @@ execlog() {
   strip_ansi_codes command
   log 'debug' "${command}"
 
-  if "${VERBOSE}"; then
+  if ${VERBOSE}; then
     eval "${command}"
   else
     eval "${command}" >/dev/null 2>&1

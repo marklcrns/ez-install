@@ -21,10 +21,10 @@ done
 # TODO: Add an option to provide package command name for validation
 # TODO: Log more INFO
 install() {
-  local args= destination= package_name=
+  local args= destination= package_name= update=false
 
   OPTIND=1
-  while getopts "a:c:n:" opt; do
+  while getopts "a:c:n:u:" opt; do
     case ${opt} in
       a)
         args="${OPTARG}"
@@ -34,6 +34,9 @@ install() {
         ;;
       n)
         package_name="${OPTARG}"
+        ;;
+      u)
+        update=${OPTARG}
         ;;
     esac
   done
@@ -47,7 +50,7 @@ install() {
   if [[ -z "${2+x}" ]]; then
     error "No package provided"
   fi
-  local file="${2:-}"
+  local file="${2:-${package_name}}"
   local package="${file}"
   local destination="${3:-}"
 
@@ -59,20 +62,24 @@ install() {
     file="${package_name}"
   fi
 
+  local res=
+
   # Pre process global
   if [[ -e "${PACKAGE_DIR}/${file}.pre" ]]; then
-    ./"${PACKAGE_DIR}/${file}.pre"
+    source "${PACKAGE_DIR}/${file}.pre"
+    res=$?; [[ ${res} -gt 0 ]] && return ${res}
   fi
   # Pre process local
   if [[ -e "${PACKAGE_DIR}/${file}.${package_manager}.pre" ]]; then
-    ./"${PACKAGE_DIR}/${file}.${package_manager}.pre"
+    source "${PACKAGE_DIR}/${file}.${package_manager}.pre"
+    res=$?; [[ ${res} -gt 0 ]] && return ${res}
   fi
 
   case ${package_manager} in
     apt)
-      apt_install -a "${args}" -c "${command_name}" -- "${package}" || return 1
+      apt_install -a "${args}" -c "${command_name}" -u ${update} -- "${package}" || return 1
       ;;
-    add-apt)
+    apt-add)
       apt_add_repo -a "${args}" -c "${command_name}" -- ${package} || return 1
       ;;
     npm)
@@ -123,18 +130,19 @@ install() {
       ;;
   esac
 
-  local res=$?
+  res=$?
 
   # Post process global
   if [[ -e "${PACKAGE_DIR}/${file}.post" ]]; then
-    "${PACKAGE_DIR}/${file}.post"
+    source "${PACKAGE_DIR}/${file}.post"
+    res=$?; [[ ${res} -gt 0 ]] && return ${res}
   fi
   # Post process local
   if [[ -e "${PACKAGE_DIR}/${file}.${package_manager}.post" ]]; then
-    "${PACKAGE_DIR}/${file}.${package_manager}.post"
+    source "${PACKAGE_DIR}/${file}.${package_manager}.post"
+    res=$?; [[ ${res} -gt 0 ]] && return ${res}
   fi
 
-  res=$?
   return ${res}
 }
 
