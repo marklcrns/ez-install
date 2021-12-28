@@ -7,7 +7,7 @@ set -o nounset
   || return 0
 
 # Symlink safe
-INIT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+INIT_PATH="$(realpath -- "${BASH_SOURCE[0]}")"
 INIT_DIR="$(cd -P "$(dirname "${INIT_PATH}")" >/dev/null 2>&1 && pwd)"
 
 source "${INIT_DIR}/../common/include.sh"
