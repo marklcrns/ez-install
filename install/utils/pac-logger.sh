@@ -26,9 +26,9 @@ pac_log_success() {
   local message="${3:-}"
 
   if [[ -n "${message}" ]]; then
-    ok "${message}"
+    ok -d 2 "${message}"
   else
-    ok "${manager} '${package}' package installation successful"
+    ok -d 2 "${manager} '${package}' package installation successful"
   fi
 
   SUCCESSFUL_PACKAGES="${SUCCESSFUL_PACKAGES:-}\n${manager} '${package}' SUCCESSFUL"
@@ -41,9 +41,9 @@ pac_log_skip() {
   local message="${3:-}"
 
   if [[ -n "${message}" ]]; then
-    ok "${message}"
+    ok -d 2 "${message}"
   else
-    ok "${manager} '${package}' package already exists"
+    ok -d 2 "${manager} '${package}' package already exists"
   fi
 
   SKIPPED_PACKAGES="${SKIPPED_PACKAGES:-}\n${manager} '${package}' SKIPPED"
@@ -56,9 +56,9 @@ pac_log_failed() {
   local message="${3:-}"
 
   if [[ -n "${message}" ]]; then
-    error "${message}"
+    error -d 2 "${message}"
   else
-    error "${manager} '${package}' package installation failed"
+    error -d 2 "${manager} '${package}' package installation failed"
   fi
 
   FAILED_PACKAGES="${FAILED_PACKAGES:-}\n${manager} '${package}' FAILED"

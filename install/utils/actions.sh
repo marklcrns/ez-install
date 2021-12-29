@@ -39,49 +39,162 @@ source "${BASH_SOURCE%/*}/../../common/log.sh"
 source "${BASH_SOURCE%/*}/../../common/string.sh"
 
 
+# Logs INFO message on VERBOSE.
+info() {
+  local depth=1
+  OPTIND=1
+  while getopts "d:" opt; do
+    case ${opt} in
+      d)
+        depth=${OPTARG}
+        ;;
+    esac
+  done
+  shift "$((OPTIND-1))"
+
+  local message="${1:-}"
+
+  if ${VERBOSE}; then
+    log 'info' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}(): ${message}"
+  else
+    log 'info' "${message}"
+  fi
+}
+
 # Logs NOTICE message on VERBOSE.
 ok() {
-  local message="${1:-}"
-  log 'notice' "${FUNCNAME[1]}(): ${message}"
-}
+  local depth=1
+  OPTIND=1
+  while getopts "d:" opt; do
+    case ${opt} in
+      d)
+        depth=${OPTARG}
+        ;;
+    esac
+  done
+  shift "$((OPTIND-1))"
 
-# Logs WARN message on VERBOSE.
-warning() {
   local message="${1:-}"
-  log 'warn' "${FUNCNAME[1]}(): ${message}"
-}
 
-# Logs WARN message on VERBOSE then exit 0.
-abort() {
-  local message="${1:-}"
-  log 'warn' "${FUNCNAME[1]}(): ${message}"
-  exit 0
+  if ${VERBOSE}; then
+    log 'notice' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}(): ${message}"
+  else
+    log 'notice' "${message}"
+  fi
 }
 
 # Logs NOTICE message on VERBOSE then exit 0.
 finish() {
+  local depth=1
+  OPTIND=1
+  while getopts "d:" opt; do
+    case ${opt} in
+      d)
+        depth=${OPTARG}
+        ;;
+    esac
+  done
+  shift "$((OPTIND-1))"
+
   local message="${1:-}"
-  log 'notice' "${FUNCNAME[1]}(): ${message}"
+
+  if ${VERBOSE}; then
+    log 'notice' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}(): ${message}"
+  else
+    log 'notice' "${message}"
+  fi
+  exit 0
+}
+
+# Logs WARN message on VERBOSE.
+warning() {
+  local depth=1
+  OPTIND=1
+  while getopts "d:" opt; do
+    case ${opt} in
+      d)
+        depth=${OPTARG}
+        ;;
+    esac
+  done
+  shift "$((OPTIND-1))"
+
+  local message="${1:-}"
+
+  if ${VERBOSE}; then
+    log 'warn' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}(): ${message}"
+  else
+    log 'warn' "${message}"
+  fi
+}
+
+# Logs WARN message on VERBOSE then exit 0.
+abort() {
+  local depth=1
+  OPTIND=1
+  while getopts "d:" opt; do
+    case ${opt} in
+      d)
+        depth=${OPTARG}
+        ;;
+    esac
+  done
+  shift "$((OPTIND-1))"
+
+  local message="${1:-}"
+
+  if ${VERBOSE}; then
+    log 'warn' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}(): ${message}"
+  else
+    log 'warn' "${message}"
+  fi
   exit 0
 }
 
 # $2 argument accepts integer to exit with exit code.
 # Logs ERROR message on VERBOSE then exit $2.
 error() {
+  local depth=1
+  OPTIND=1
+  while getopts "d:" opt; do
+    case ${opt} in
+      d)
+        depth=${OPTARG}
+        ;;
+    esac
+  done
+  shift "$((OPTIND-1))"
+
   local message="${1:-}"
-  log 'error' "${FUNCNAME[1]}(): ${message}" ${2:-0}
+
+  if ${VERBOSE}; then
+    log 'error' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}(): ${message}" ${2:-0}
+  else
+    log 'error' "${message}" ${2:-0}
+  fi
 }
 
 # Execute message then log DEBUG on VERBOSE.
 execlog() {
-  local command="${1:-}"
+  local depth=1
+  OPTIND=1
+  while getopts "d:" opt; do
+    case ${opt} in
+      d)
+        depth=${OPTARG}
+        ;;
+    esac
+  done
+  shift "$((OPTIND-1))"
 
-  strip_ansi_codes command
-  log 'debug' "${FUNCNAME[1]}: ${command}"
+  local command="${1:-}"
+  strip_ansi_code command
 
   if ${VERBOSE}; then
+    log 'debug' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}(): ${command}"
     eval "${command}"
   else
+    log 'debug' "${command}"
     eval "${command}" >/dev/null 2>&1
   fi
 

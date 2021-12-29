@@ -21,11 +21,16 @@ function pac_array_jsonify() {
   local pac_array_name=${1:?}
   eval "pac_array=( \"\${${pac_array_name}[@]}\" )"
 
-  local i=
+  local i= res=
   for i in "${!pac_array[@]}"; do
     local package="${pac_array[$i]}"
     pac_jsonify package
-    eval "${pac_array_name}[$i]='${package}'"
+    res=$?
+    if [[ ${res} -gt 0 ]]; then
+      eval "${pac_array_name}[$i]='{\"${pac_array[$i]}\":\"\"}'"
+    else
+      eval "${pac_array_name}[$i]='{${package}}'"
+    fi
   done
 }
 
@@ -39,7 +44,7 @@ function pac_jsonify() {
   local _root_package=${_package:-}
   eval "local _package=\${$_local_pac_var_name}"
 
-  log 'DEBUG' "Inspecting: ${_package}"
+  info "Inspecting: ${_package}"
 
   if ! [[ -f "${PACKAGE_DIR}/${_package}" ]]; then
     local _selected=
@@ -54,12 +59,8 @@ function pac_jsonify() {
     fi
   fi
 
-  if [[ ${_depth} -eq 1 ]]; then
-    # Quote root package
-    eval "${_global_pac_var_name}='\"${_package}\"'"
-    # Enclose root package
-    eval "${_global_pac_var_name}={\$${_global_pac_var_name}"
-  fi
+  # Quote root package
+  [[ ${_depth} -eq 1 ]] && eval "${_global_pac_var_name}='\"${_package}\"'"
 
   local -a _package_dependencies=( $(${BASH_SOURCE%/*}/metadata-parser "dependency" "${PACKAGE_DIR}/${_package}") )
 
@@ -72,17 +73,19 @@ function pac_jsonify() {
       eval "${_global_pac_var_name}+=':{'"
     fi
 
-    log 'DEBUG' "${_indent}Dependency detected for ${_package} (${#_package_dependencies[@]})"
+    info "${_indent}Dependency detected for ${_package} (${#_package_dependencies[@]})"
 
-    local dependency= i=
+    local dependency= i= res=
     for i in "${!_package_dependencies[@]}"; do
       dependency="${_package_dependencies[$i]}"
       [[ ${i} -eq 0 ]] || eval "${_global_pac_var_name}+=,"
       eval "${_global_pac_var_name}+='\"${dependency}\"'"
 
-      log 'DEBUG' "${_indent}Dependency: ${dependency}"
+      info "${_indent}Dependency: ${dependency}"
       pac_jsonify ${_global_pac_var_name} dependency $((_depth+1))
-      log 'DEBUG' "${_indent}Dependency (resolved): ${dependency}"
+      res=$?
+      [[ ${res} -gt 0 ]] && return ${res}
+      info "${_indent}Dependency (resolved): ${dependency}"
     done
 
     if [[ ${#_package_dependencies[@]} -gt 1 ]]; then
@@ -93,17 +96,15 @@ function pac_jsonify() {
 
   else
     eval "${_global_pac_var_name}+=':{}'"
-    log 'DEBUG' "${_indent}No dependency detected for ${_package}"
+    info "${_indent}No dependency detected for ${_package}"
   fi
-
-  # Enclose root package
-  [[ ${_depth} -eq 1 ]] && eval "${_global_pac_var_name}+='}'"
 }
 
 
 # TODO: Search as executable name instead if package not found using grep
 function _select_package() {
-  local _package="${1%.*:?}"
+  : ${1:?}
+  local _package="${1%.*}"
   local _package_ext="$([[ "${1##*.}" != "${_package}" ]] && echo "${1##*.}")"
   local _selected_var=${2:?}
   local _excluded=${3:-}
@@ -118,10 +119,11 @@ function _select_package() {
       -name "${_package}*.*"
     )
   )
+
   if [[ -n "${_matches+x}" ]]; then
     if [[ "${#_matches[@]}" -eq 1 ]]; then
       _select="$(basename -- ${_matches[0]})"
-      log 'DEBUG' "Defaulting: ${_select}"
+      info "Defaulting: ${_select}"
     else
       printf "\nMultiple '${_package}' package detected\n\n"
       local i=
@@ -129,7 +131,6 @@ function _select_package() {
         for i in "${!_matches[@]}"; do
           printf "$(($i+1))) ${_matches[$i]}\n"
         done
-
         printf "\n"
         read -p "Please select from the matches (1-${#_matches[@]}): "
         printf "\n"
@@ -168,7 +169,6 @@ function validate_package() {
   local package=${1:?}
   local dependency_level=0
 
-  ${VERBOSE} && printf "Packages\n"
   ${VERBOSE} && printf "│—${package}"
   _validate_dependencies "${PACKAGE_DIR}/${package}" $(($dependency_level+1))
 
@@ -178,11 +178,10 @@ function validate_package() {
 function _validate_dependencies() {
   if ! [[ -f "${1}" ]]; then
     if _has_alternate_package "$(basename -- ${1})"; then
-      printf " ${COLOR_YELLOW}(CHOOSE)${COLOR_NC}\n"
+      printf " ${COLOR_YELLOW}(PICK)${COLOR_NC}\n"
       return 0
     fi
-    printf "\n"
-    error "Package '${1}' not found"
+    printf " ${COLOR_RED}(MISSING)${COLOR_NC}\n"
     return 1
   fi
   printf "\n"
@@ -201,7 +200,7 @@ function _validate_dependencies() {
       _validate_dependencies "${PACKAGE_DIR}/${dependency}" $(($_dependency_level+1))
     else
       if _has_alternate_package ${dependency}; then
-        ${VERBOSE} && printf " ${COLOR_YELLOW}(CHOOSE)${COLOR_NC}\n"
+        ${VERBOSE} && printf " ${COLOR_YELLOW}(PICK)${COLOR_NC}\n"
       else
         ${VERBOSE} && printf " ${COLOR_RED}(MISSING)${COLOR_NC}\n"
         _has_missing=true

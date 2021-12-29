@@ -173,6 +173,7 @@ _main () {
 
   local -a packages=("${PACKAGES[@]}")
 
+  ${VERBOSE} && printf "Packages\n"
   local continue=false
   for package in ${packages[@]}; do
     validate_package "${package}"
