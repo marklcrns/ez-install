@@ -102,6 +102,120 @@ handle_args() {
 }
 
 
+resolve_package_dir() {
+  os_release
+  local distrib_id="${OS_DISTRIB_ID}"; to_lower distrib_id
+  local distrib_release="${OS_DISTRIB_RELEASE}"
+
+  if [[ -z ${PACKAGE_ROOT_DIR+x} ]]; then
+    PACKAGE_ROOT_DIR="$(realpath -s "${BASH_SOURCE%/*}/../generate/packages")"
+  fi
+  if [[ -z ${PACKAGE_DIR+x} ]]; then
+    PACKAGE_DIR="${PACKAGE_ROOT_DIR}/${distrib_id}/${distrib_release}"
+  fi
+  if [[ -n ${LOCAL_PACKAGE_ROOT_DIR+x} ]]; then
+    LOCAL_PACKAGE_DIR="${LOCAL_PACKAGE_ROOT_DIR}/${distrib_id}/${distrib_release}"
+  fi
+}
+
+
+fetch_package() {
+  : ${1?}
+  # NOTE: localizing $package doesn't seem to work when assigning it to external
+  # variables, but works on other occasion. pac_jsonify() in pac-transform.sh
+  eval "local package=\"\$${1}\""
+  
+  if [[ -e "${LOCAL_PACKAGE_DIR}/${package}" ]]; then
+    # info "Package '${package}' found in '${LOCAL_PACKAGE_DIR}'"
+    eval "${1}='${LOCAL_PACKAGE_DIR}/${package}'"
+    return 0
+  elif [[ -e "${PACKAGE_DIR}/${package}" ]]; then
+    # info "Package '${package}' found in '${PACKAGE_DIR}'"
+    eval "${1}='${PACKAGE_DIR}/${package}'"
+    return 0
+  else
+    warning "Package '${package}' not found"
+    return 1
+  fi
+}
+
+
+has_package() {
+  [[ ! -e "${LOCAL_PACKAGE_DIR}/${1:?}" ]] && [[ ! -e "${PACKAGE_DIR}/${1}" ]] && \
+    return 1 || return 0
+}
+
+
+# TODO: Search as executable name instead if package not found using grep
+function select_package() {
+  : ${1:?}
+  local _package="${1%.*}"
+  local _package_ext="$([[ "${1##*.}" != "${_package}" ]] && echo "${1##*.}")"
+  local _selected_var=${2:?}
+  local _excluded=${3:-}
+  local _select=
+
+  local _matches=(
+    $(find "${LOCAL_PACKAGE_DIR}" "${PACKAGE_DIR}" -type f \
+      ! -name "${_excluded}" \
+      ! -name "${_package}*.pre" \
+      ! -name "${_package}*.post" \
+      ! -name "${_package}.${_package_ext}.*" \
+      -name "${_package}*.*"
+    )
+  )
+
+  if [[ -n "${_matches+x}" ]]; then
+    if [[ "${#_matches[@]}" -eq 1 ]]; then
+      _select="${_matches[0]}"
+      info "Defaulting: ${_select}"
+    else
+      printf "\nMultiple '${_package}' package detected\n\n"
+      local i=
+      while true; do
+        for i in "${!_matches[@]}"; do
+          printf "$(($i+1))) ${_matches[$i]}\n"
+        done
+        printf "\n"
+        read -p "Please select from the matches (1-${#_matches[@]}): "
+        printf "\n"
+        if [[ "${REPLY}" =~ ^-?[0-9]+$  ]] && [[ "${REPLY}" -le "${#_matches[@]}" ]]; then
+          _select="${_matches[$(($REPLY-1))]}"
+          break
+        fi
+      done
+    fi
+  fi
+
+  if [[ -n "${_select}" ]]; then
+    eval "${_selected_var}=${_select}"
+    return 0
+  else
+    return 1
+  fi
+}
+
+
+has_alternate_package() {
+  local _package="${1%.*:?}"
+  local _package_ext="$([[ "${1##*.}" != "${_package}" ]] && echo "${1##*.}")"
+  local _matches=(
+    $(find "${LOCAL_PACKAGE_DIR}" "${PACKAGE_DIR}" -type f \
+      ! -name "${_package}*.pre" \
+      ! -name "${_package}*.post" \
+      ! -name "${_package}.${_package_ext}.*" \
+      -name "${_package}*.*")
+  )
+  if [[ -n "${_matches+x}" ]]; then
+    info "Alternate package found for '${_package}'"
+    return 0
+  fi
+
+  info "Alternate package NOT found for '${_package}'"
+  return 1
+}
+
+
 get_sys_package_manager() {
   local manager=
 

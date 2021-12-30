@@ -20,10 +20,11 @@ include "${BASH_SOURCE%/*}/install/utils/pac-logger.sh"
 include "${BASH_SOURCE%/*}/install/utils/pac-transform.sh"
 include "${BASH_SOURCE%/*}/install/pac-install.sh"
 include "${BASH_SOURCE%/*}/install/install.sh"
+include "${BASH_SOURCE%/*}/install/common.sh"
 
 ################################################## CONSTANT GLOBAL VARIABLES ###
 
-readonly VERSION="0.2"
+readonly EZ_VERSION="0.2"
 
 readonly SCRIPT_ARGS="$@"
 
@@ -99,7 +100,6 @@ function handle_args() {
         ;;
       v)
         VERBOSE=true
-        LOG_DEBUG_LEVEL=4
         ;;
       x)
         DEBUG=true
@@ -135,15 +135,7 @@ function handle_args() {
     fi
   fi
 
-  if [[ -z ${PACKAGE_ROOT_DIR+x} ]]; then
-    PACKAGE_ROOT_DIR="$(realpath -s "${BASH_SOURCE%/*}/generate/packages")"
-  fi
-  if [[ -z ${PACKAGE_DIR+x} ]]; then
-    os_release
-    local distrib_id="${OS_DISTRIB_ID}"; to_lower distrib_id
-    local distrib_release="${OS_DISTRIB_RELEASE}"
-    PACKAGE_DIR="${PACKAGE_ROOT_DIR}/${distrib_id}/${distrib_release}"
-  fi
+  resolve_package_dir
 
   readonly SKIP_CONFIRM
   readonly VERBOSE
@@ -173,7 +165,8 @@ _main () {
 
   local -a packages=("${PACKAGES[@]}")
 
-  ${VERBOSE} && printf "Packages\n"
+  ! ${DEBUG} && printf "About to install the following packages:\n\n"
+
   local continue=false
   for package in ${packages[@]}; do
     validate_package "${package}"
@@ -183,13 +176,14 @@ _main () {
     fi
   done
 
-  if ! ${continue}; then
-    exit $?
-  fi
+  ! ${continue} && exit $?
 
   pac_array_jsonify packages
 
-  echo "${packages[@]}"
+  # echo "${packages[@]}"
+  for package in "${packages[@]}"; do
+    echo "${package}" | ./lib/parser/jq -r ".package"
+  done
 
   confirm "About to install the package(s) above. Continue? (Y/y): " || \
     exit $?

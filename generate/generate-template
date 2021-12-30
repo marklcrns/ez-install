@@ -133,15 +133,7 @@ handle_args() {
     fi
   fi
 
-  if [[ -z ${PACKAGE_ROOT_DIR+x} ]]; then
-    PACKAGE_ROOT_DIR="$(realpath -s "${BASH_SOURCE%/*}/generate/packages")"
-  fi
-  if [[ -z ${PACKAGE_DIR+x} ]]; then
-    os_release
-    local distrib_id="${OS_DISTRIB_ID}"; to_lower distrib_id
-    local distrib_release="${OS_DISTRIB_RELEASE}"
-    PACKAGE_DIR="${PACKAGE_ROOT_DIR}/${distrib_id}/${distrib_release}"
-  fi
+  resolve_package_dir
 
   return 0
 }
@@ -213,7 +205,7 @@ _main
 # SOURCED BY \`pac-install()\`, DO NOT USE \`exit\`. USE \`return\` INSTEAD
 ___EOF___
 
-  if execlog "chmod +x '${file_path}'"; then
+  if eval "chmod +x '${file_path}'"; then
     ok "${file_path} package created!"
   else
     error "${file_path} package creation failed!"

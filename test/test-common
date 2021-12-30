@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+source "${BASH_SOURCE%/*}/../common/include.sh"
+
+include "${BASH_SOURCE%/*}/../install/common.sh"
+include "${BASH_SOURCE%/*}/../.ez-installrc"
+include "${HOME}/.ez-installrc"
+
+VERBOSE=true
+DEBUG=true
+LOG_DEBUG_LEVEL=7
+
+_main() {
+  local package="git"
+  local res=
+  resolve_package_dir
+
+  fetch_package package
+  res=$?
+  local package_new="${PACKAGE_DIR}/git"
+  [[ "${package_new}" == "${package}" ]] || error "fetch_package() failed. exit code: ${res}"
+}
+
+_main

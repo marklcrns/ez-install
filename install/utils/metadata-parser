@@ -5,18 +5,22 @@ set -o nounset
 
 source "${BASH_SOURCE%/*}/../../common/colors.sh"
 source "${BASH_SOURCE%/*}/../../common/log.sh"
+source "${BASH_SOURCE%/*}/actions.sh"
 
-[[ -z "$@" ]] && log 'error' "No arguments passed" 1
+
+[[ -z "$@" ]] && error "No arguments passed" 1
+
+VERBOSE=true
 
 META="${1:?}"
 
 if [[ "${2+x}" ]]; then
   FILE="${2}"
   if [[ ! -f "${FILE}" ]]; then
-    log 'error' "Missing ${FILE} file" 1
+    error "Missing ${FILE} file" 1
   fi
 else
-  log 'error' "No file provided" 1
+  error "No file provided" 1
 fi
 
 main() {
@@ -40,4 +44,5 @@ main() {
 
 main
 
+unset VERBOSE
 unset META

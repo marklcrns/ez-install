@@ -39,6 +39,8 @@ source "${BASH_SOURCE%/*}/../../common/log.sh"
 source "${BASH_SOURCE%/*}/../../common/string.sh"
 
 
+[[ -z "${VERBOSE+x}" ]] && VERBOSE=false
+
 # Logs INFO message on VERBOSE.
 info() {
   local depth=1

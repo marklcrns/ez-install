@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+source "${BASH_SOURCE%/*}/../install/utils/progress-bar.sh"
+
+for i in {1..100} ; do
+  prog_bar $i
+  sleep .01
+  printf "%-110s" "yes"
+done

@@ -201,6 +201,11 @@ _main() {
     "-d test3-b test3-b-2"
     "-d test3-b test3-b-3"
     "-d 'test3-b-1 test3-b-2 test3-b-3' test3-b-3-i"
+    
+    "test4"
+    "-d test4 test4-a"
+    "-d test4 test4-b"
+    "-d 'test4-a test4-b' test4-b-1"
   )
 
 

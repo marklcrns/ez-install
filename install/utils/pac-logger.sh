@@ -43,7 +43,7 @@ pac_log_skip() {
   if [[ -n "${message}" ]]; then
     ok -d 2 "${message}"
   else
-    ok -d 2 "${manager} '${package}' package already exists"
+    ok -d 2 "${manager} '${package}' package already installed"
   fi
 
   SKIPPED_PACKAGES="${SKIPPED_PACKAGES:-}\n${manager} '${package}' SKIPPED"
