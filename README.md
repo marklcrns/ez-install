@@ -20,7 +20,6 @@ starting from scratch less painful.
 
 ## TODO
 
-- [ ] Add default curl/wget destination directory
 - [ ] More practical package installer template generator
   - [X] Modularize script
   - [X] Option to generate package dependency
@@ -29,15 +28,11 @@ starting from scratch less painful.
 - [ ] Handle package dependencies
   - [X] Dependency system
   - [X] Print dependency tree before installation
-  - [ ] Prevent package installation with missing dependencies
-  - [ ] Full support for custom package install script directory
-    - [ ] Support for custom package directory without overwritting default.
-      - [ ] PATH-like package directory e.g. PACKAGE_DIR=/path/to/custom-dir/:${PACKAGED_DIR}
-- [ ] Easier configuration
-  - [X] Abstract away source code
-  - [ ] Support JSON install configuration
+  - [X] Prevent package installation with missing dependencies
+  - [X] Full support for custom package install script directory
 - [X] More flexible installation
   - [X] Support individual installation via commandline
+  - [ ] Support JSON install configuration
 - [ ] Add more features
   - [ ] Cache all installed packages
   - [ ] Uninstall script
@@ -52,9 +47,4 @@ starting from scratch less painful.
     - [x] 18.04 Bionic Beaver
   - [ ] More OS support coming
 - [ ] Bourne Shell support
-
-### FIX
-
-- [ ] Fix ez-install install no output on VERBOSE
-- [ ] Make VERBOSE as default and replace -v flag with -s to turn off
 
