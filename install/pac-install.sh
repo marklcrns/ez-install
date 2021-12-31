@@ -16,18 +16,38 @@ source "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 source "${EZ_INSTALL_HOME}/install/utils/progress-bar.sh"
 
 
+# TODO: Append package install status onto progress bar
 pac_batch_json_install() {
   local packages=("${@}")
   local width="${#packages[@]}"
   local jq='./lib/parser/jq'
 
+  local res=0
+
   if [[ -n "${packages}" ]]; then
-    local i=1 root_package=
+    local i=1
+    local root_package=""
+    local root_package_name=""
+    local root_package_manager=""
     for package in ${packages[@]}; do
       root_package="$(echo "${package}" | ${jq} -crM ".package")"
+      root_package_name="$(echo "${root_package}" | ${jq} -crM ".name")"
       pac_json_install "${root_package}"
+      res=$?
+
+      # Report root package failure
+      if [[ ${res} -gt 0 ]]; then
+        if [[ "${root_package_name##*.}" != "${root_package_name}" ]]; then
+          root_package_manager="${root_package_name##*.}"
+          capitalize root_package_manager
+        else
+          root_package_manager="N/A"
+        fi
+        pac_log_failed "${root_package_manager}" "${root_package_name}" "'${root_package_name}' installation failed"
+      fi
+
       prog_bar "$(("${i}*100/${width}"))"
-      echo "- $(echo "${root_package}" | ${jq} -crM ".name")"
+      echo "- ${root_package_name}"
       ((++i))
     done
   else
@@ -169,7 +189,6 @@ pac_batch_install() {
 }
 
 
-# Symlink init.sh
 pac_deploy_init() {
   local target="${1:-}"
   local from="${EZ_INSTALL_HOME}/install/init.sh"

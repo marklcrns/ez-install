@@ -109,7 +109,7 @@ function handle_args() {
         usage; exit 0
         ;;
       V)
-        printf "${SCRIPT_NAME} ${VERSION}\n"; exit 0
+        echo "${SCRIPT_NAME} ${VERSION}"; exit 0
         ;;
     esac
   done
@@ -162,9 +162,10 @@ _main () {
     trap _ctrl_c INT TERM
   fi
 
-  local -a packages=("${PACKAGES[@]}")
+  local -a packages=( ${PACKAGES[@]} )
+  array_unique packages
 
-  ! ${DEBUG} && printf "About to install the following packages:\n\n"
+  ! ${DEBUG} && echo -e "About to install the following packages:\n"
 
   local continue=false
   for package in ${packages[@]}; do
@@ -174,18 +175,20 @@ _main () {
       continue=true
     fi
   done
+  ! ${continue} && exit ${res}
 
-  ! ${continue} && exit $?
-
+  info "Jsonifying..."
   pac_array_jsonify -S ${RUN_AS_SU} packages
 
-  # echo "${packages[@]}"
-  # for package in "${packages[@]}"; do
-  #   echo "${package}" | ./lib/parser/jq -r ".package"
-  # done
+  if ${DEBUG} && ${VERBOSE}; then
+    echo "${packages[@]}"
+    for package in "${packages[@]}"; do
+      echo "${package}" | ./lib/parser/jq -r ".package"
+    done
+  fi
 
-  confirm "You are about to install the package(s) above. Continue? (Y/y): " || \
-    exit $?
+  confirm "You are about to install the package(s) above. Continue? (Y/y): " \
+    || exit $?
 
   # if [[ ! -d "${DOWNLOADS_DIR}" ]]; then
   #   mkdir -p "${DOWNLOADS_DIR}"

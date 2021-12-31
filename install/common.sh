@@ -45,11 +45,11 @@ fetch_package() {
   [[ -z "${package}" ]] && error "No package provided"
  
   if [[ -e "${LOCAL_PACKAGE_DIR}/${package}" ]]; then
-    # info "Package '${package}' found in '${LOCAL_PACKAGE_DIR}'"
+    info "Package '${package}' found in '${LOCAL_PACKAGE_DIR}'"
     eval "${package_var_name}='${LOCAL_PACKAGE_DIR}/${package}'"
     return 0
   elif [[ -e "${PACKAGE_DIR}/${package}" ]]; then
-    # info "Package '${package}' found in '${PACKAGE_DIR}'"
+    info "Package '${package}' found in '${PACKAGE_DIR}'"
     eval "${package_var_name}='${PACKAGE_DIR}/${package}'"
     return 0
   else
@@ -92,8 +92,9 @@ function select_package() {
     )
   )
 
+  local select=""
+
   if [[ -n "${matches+x}" ]]; then
-    local select=""
     if [[ "${#matches[@]}" -eq 1 ]]; then
       select="${matches[0]}"
       info "Defaulting: ${select}"
@@ -130,7 +131,7 @@ has_alternate_package() {
     return 1
   fi
 
-  local package="${1%.*:?}"
+  local package="${1%.*}"
   local package_ext="$([[ "${1##*.}" != "${package}" ]] && echo "${1##*.}")"
   local matches=(
     $(find "${LOCAL_PACKAGE_DIR}" "${PACKAGE_DIR}" -type f \
@@ -138,7 +139,8 @@ has_alternate_package() {
       ! -name "${package}*.post" \
       ! -name "${package}.${package_ext}.*" \
       -name "${package}*.*")
-  )
+    )
+
   if [[ -n "${matches+x}" ]]; then
     info "Alternate package found for '${package}'"
     return 0

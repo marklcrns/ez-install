@@ -3,15 +3,14 @@
 set -o pipefail
 set -o nounset
 
-source "${BASH_SOURCE%/*}/../../common/colors.sh"
-source "${BASH_SOURCE%/*}/../../common/log.sh"
-source "${BASH_SOURCE%/*}/actions.sh"
+source "${EZ_INSTALL_HOME}/common/colors.sh"
+source "${EZ_INSTALL_HOME}/common/log.sh"
+source "${EZ_INSTALL_HOME}/install/utils/actions.sh"
 
 
 [[ -z "$@" ]] && error "No arguments passed" 1
 
-VERBOSE=true
-
+[[ -z "${VERBOSE+x}" ]] && VERBOSE=true
 META="${1:?}"
 
 if [[ "${2+x}" ]]; then
@@ -24,19 +23,19 @@ else
 fi
 
 main() {
-  local _start_parsing=0
+  local start_parsing=true
 
   while IFS="" read -r line; do
     if [[ "${line}" == "# ---" ]]; then
-      if [[ $_start_parsing -eq 0 ]]; then
-        _start_parsing=1
+      if ${start_parsing}; then
+        start_parsing=false
         continue
       else
         return 0
       fi
     fi
 
-    if [[ ${_start_parsing} -eq 1 ]] && [[ "${line}" =~ "${META}" ]]; then
+    if ! ${start_parsing} && [[ "${line}" =~ "${META}" ]]; then
       printf '%s\n' "${line}" | awk -F ':' '{print $2}' | xargs
     fi
   done < "${FILE}"

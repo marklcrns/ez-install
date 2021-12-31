@@ -97,7 +97,7 @@ install() {
                    -c "${command_name}" \
                    -n "${package_name}" \
                    -o "${destination}" \
-                   -s ${as_root} \
+                   -S ${as_root} \
                    -- "${package}" \
                    || return 1
       ;;
@@ -106,7 +106,7 @@ install() {
                    -c "${command_name}" \
                    -n "${package_name}" \
                    -o "${destination}" \
-                   -s ${as_root} \
+                   -S ${as_root} \
                    -- "${package}" \
                    || return 1
       ;;
@@ -114,7 +114,7 @@ install() {
       git_clone -a "${args}" \
                 -n "${package_name}" \
                 -o "${destination}" \
-                -s ${as_root} \
+                -S ${as_root} \
                 -- "${package}" \
                 || return 1
       ;;

@@ -3,13 +3,14 @@
 set -o pipefail
 set -o nounset
 
-source "${BASH_SOURCE%/*}/../common/include.sh"
+source "${EZ_INSTALL_HOME}/common/include.sh"
 
-include "${BASH_SOURCE%/*}/../.ez-installrc"
+include "${EZ_INSTALL_HOME}/.ez-installrc"
 include "${HOME}/.ez-installrc"
-include "${BASH_SOURCE%/*}/../common/common.sh"
-include "${BASH_SOURCE%/*}/../install/common.sh"
-include "${BASH_SOURCE%/*}/../install/utils/actions.sh"
+
+include "${EZ_INSTALL_HOME}/common/common.sh"
+include "${EZ_INSTALL_HOME}/install/common.sh"
+include "${EZ_INSTALL_HOME}/install/utils/actions.sh"
 
 SCRIPT_ARGS="${@}"
 

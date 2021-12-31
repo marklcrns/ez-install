@@ -12,7 +12,7 @@ fi
   || return 0
 
 
-source "${EZ_INSTALL_HOE}/install/utils/pac-logger.sh"
+source "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 
 
 git_clone() {

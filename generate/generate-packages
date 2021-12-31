@@ -3,9 +3,9 @@
 set -o pipefail
 set -o nounset
 
-source "${BASH_SOURCE%/*}/../common/include.sh"
+source "${EZ_INSTALL_HOME}/common/include.sh"
 
-include "${BASH_SOURCE%/*}/../install/init.sh"
+include "${EZ_INSTALL_HOME}/install/init.sh"
 
 os_release
 
@@ -237,3 +237,4 @@ _main() {
 }
 
 _main
+

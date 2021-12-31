@@ -11,11 +11,11 @@ fi
   && readonly UTILS_PAC_RESOLVER_SH_INCLUDED=1 \
   || return 0
 
-source "${BASH_SOURCE%/*}/../../common/include.sh"
+source "${EZ_INSTALL_HOME}/common/include.sh"
 
-include "${BASH_SOURCE%/*}/../../common/colors.sh"
-include "${BASH_SOURCE%/*}/../../common/log.sh"
-include "${BASH_SOURCE%/*}/../common.sh"
+include "${EZ_INSTALL_HOME}/common/colors.sh"
+include "${EZ_INSTALL_HOME}/common/log.sh"
+include "${EZ_INSTALL_HOME}/install/common.sh"
 
 
 function pac_array_jsonify() {
@@ -43,7 +43,7 @@ function pac_array_jsonify() {
     res=$?
 
     if [[ ${res} -gt 0 ]]; then
-      eval "${pac_array_name}[$i]='\"${pac_array[$i]}\":\"\"'"
+      eval "${pac_array_name}[$i]='{\"package\":{\"name\":\"${pac_array[$i]}\",\"path\":null}}'"
     else
       eval "${pac_array_name}[$i]='${package}'"
     fi
@@ -68,10 +68,10 @@ function pac_jsonify() {
 
   local global_pac_var_name="${1:?}"
   local local_pac_var_name="${2:-${1}}"
-  local depth=${3:-1}
+  local root_package=${3:-}
+  local depth=${4:-1}
   local indent="${indent:-}|  "
 
-  local root_package=${_package:-}
   eval "local _package=\${$local_pac_var_name}"
 
   info "Fetching: ${_package}"
@@ -90,7 +90,7 @@ function pac_jsonify() {
       _package="$(basename -- ${selected})"
       package_path="${selected}"
     else
-      error "'${_package}' not found!"
+      error "No such '${_package}' package found!"
       return 1
     fi
   fi
@@ -101,7 +101,7 @@ function pac_jsonify() {
   eval "${global_pac_var_name}+='\"path\":\"${package_path}\",'"
   eval "${global_pac_var_name}+='\"as_root\":${as_root}'"
 
-  local -a package_dependencies=( $(${BASH_SOURCE%/*}/metadata-parser "dependency" "${package_path}") )
+  local -a package_dependencies=( $(${EZ_INSTALL_HOME}/install/utils/metadata-parser "dependency" "${package_path}") )
 
   # Handle dependencies recursively
   if [[ -n ${package_dependencies+x} ]]; then
@@ -124,7 +124,7 @@ function pac_jsonify() {
       info "${indent}Dependency: ${dependency}"
       eval "${global_pac_var_name}+='{'"
 
-      pac_jsonify -S ${as_root} -- "${global_pac_var_name}" dependency $((depth+1))
+      pac_jsonify -S ${as_root} -- "${global_pac_var_name}" dependency ${_package} $((depth+1))
       res=$?; [[ ${res} -gt 0 ]] && return ${res}
 
       eval "${global_pac_var_name}+='}'"
@@ -143,6 +143,7 @@ function pac_jsonify() {
 function validate_package() {
   local package="${1:?}"
 
+  info "Validating packages..."
   ! ${DEBUG} && printf "${package}"
   _validate_dependencies "${package}"
 
@@ -169,7 +170,7 @@ function _validate_dependencies() {
     ! ${DEBUG} && printf "\n"
   fi
 
-  local -a _package_dependencies=( $(${BASH_SOURCE%/*}/metadata-parser "dependency" "${_package_path}") )
+  local -a _package_dependencies=( $(${EZ_INSTALL_HOME}/install/utils/metadata-parser "dependency" "${_package_path}") )
   local _has_missing=false
 
   for dependency in "${_package_dependencies[@]}"; do

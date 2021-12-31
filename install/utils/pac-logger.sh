@@ -12,13 +12,15 @@ fi
   || return 0
 
 
-source "${BASH_SOURCE%/*}/actions.sh"
-source "${BASH_SOURCE%/*}/../../common/colors.sh"
+source "${EZ_INSTALL_HOME}/install/utils/actions.sh"
+source "${EZ_INSTALL_HOME}/common/colors.sh"
+source "${EZ_INSTALL_HOME}/common/stack.sh"
 
 
-SUCCESSFUL_PACKAGES=
-SKIPPED_PACKAGES=
-FAILED_PACKAGES=
+[[ -z "${SUCCESSFUL_PACKAGES+x}" ]] && declare -a SUCCESSFUL_PACKAGES=()
+[[ -z "${SKIPPED_PACKAGES+x}" ]]    && declare -a SKIPPED_PACKAGES=()
+[[ -z "${FAILED_PACKAGES+x}" ]]     && declare -a FAILED_PACKAGES=()
+
 
 pac_log_success() {
   local manager="${1}"
@@ -31,7 +33,10 @@ pac_log_success() {
     ok -d 2 "${manager} '${package}' package installation successful"
   fi
 
-  SUCCESSFUL_PACKAGES="${SUCCESSFUL_PACKAGES:-}\n${manager} '${package}' SUCCESSFUL"
+  local log="${package}-SUCCESSFUL"
+  if ! has_pac_log_duplicate "${log}" "${SUCCESSFUL_PACKAGES[@]}"; then
+    SUCCESSFUL_PACKAGES=( ${SUCCESSFUL_PACKAGES[@]} "${manager}-${log}" )
+  fi
 }
 
 
@@ -46,7 +51,10 @@ pac_log_skip() {
     ok -d 2 "${manager} '${package}' package already installed"
   fi
 
-  SKIPPED_PACKAGES="${SKIPPED_PACKAGES:-}\n${manager} '${package}' SKIPPED"
+  local log="${package}-SKIPPED"
+  if ! has_pac_log_duplicate "${log}" "${SKIPPED_PACKAGES[@]}"; then
+    SKIPPED_PACKAGES=( ${SKIPPED_PACKAGES[@]} "${manager}-${log}" )
+  fi
 }
 
 
@@ -61,10 +69,28 @@ pac_log_failed() {
     error -d 2 "${manager} '${package}' package installation failed"
   fi
 
-  FAILED_PACKAGES="${FAILED_PACKAGES:-}\n${manager} '${package}' FAILED"
+  local log="${package}-FAILED"
+  if ! has_pac_log_duplicate "${log}" "${FAILED_PACKAGES[@]}"; then
+    FAILED_PACKAGES=( ${FAILED_PACKAGES[@]} "${manager}-${log}" )
+  fi
 }
 
 
+has_pac_log_duplicate() {
+  local new_log=${1:-}
+  shift 1
+  local log=( "${@}" )
+
+  for package in ${log[@]}; do
+    if [[ "${package}" =~ .*${new_log}.* ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+
+# TODO: Excluded duplicates
 pac_report() {
   local total_count=0
   local successful_count=0
@@ -72,37 +98,34 @@ pac_report() {
   local failed_count=0
 
   echo -e "\n${COLOR_UL_NC}Successful Installations${COLOR_NC}\n"
-  while IFS= read -r package; do
-    if [[ -n "${package}" ]]; then
-      echo -e "${COLOR_GREEN}${package}${COLOR_NC}"
-      total_count=$(expr ${total_count} + 1)
-      successful_count=$(expr ${successful_count} + 1)
-    fi
-  done < <(echo -e "${SUCCESSFUL_PACKAGES}")
+  for package in ${SUCCESSFUL_PACKAGES[@]}; do
+    echo -e "${COLOR_GREEN}${package}${COLOR_NC}"
+    total_count=$(expr ${total_count} + 1)
+    successful_count=$(expr ${successful_count} + 1)
+  done
 
   echo -e "\n${COLOR_UL_NC}Skipped Installations${COLOR_NC}\n"
-  while IFS= read -r package; do
-    if [[ -n "${package}" ]]; then
-      echo -e "${COLOR_YELLOW}${package}${COLOR_NC}"
-      total_count=$(expr ${total_count} + 1)
-      skipped_count=$(expr ${skipped_count} + 1)
-    fi
-  done < <(echo -e "${SKIPPED_PACKAGES}")
+  for package in ${SKIPPED_PACKAGES[@]}; do
+    echo -e "${COLOR_YELLOW}${package}${COLOR_NC}"
+    total_count=$(expr ${total_count} + 1)
+    successful_count=$(expr ${successful_count} + 1)
+  done
 
   echo -e "\n${COLOR_UL_NC}Failed Installations${COLOR_NC}\n"
-  while IFS= read -r package; do
-    if [[ -n "${package}" ]]; then
-      echo -e "${COLOR_RED}${package}${COLOR_NC}"
-      total_count=$(expr ${total_count} + 1)
-      failed_count=$(expr ${failed_count} + 1)
-    fi
-  done < <(echo -e "${FAILED_PACKAGES}")
+  for package in ${FAILED_PACKAGES[@]}; do
+    echo -e "${COLOR_RED}${package}${COLOR_NC}"
+    total_count=$(expr ${total_count} + 1)
+    successful_count=$(expr ${successful_count} + 1)
+  done
 
-  echo
-  echo -e "Successful │ ${successful_count}"
-  echo -e "Skipped    │ ${skipped_count}"
-  echo -e "Failed     │ ${failed_count}"
-  echo -e "———————————│————"
-  echo -e "TOTAL      │ ${total_count}"
+  cat << EOF
+
+Successful │ ${successful_count}
+Skipped    │ ${skipped_count}
+Failed     │ ${failed_count}
+———————————│—————
+TOTAL      │ ${total_count}
+
+EOF
 }
 

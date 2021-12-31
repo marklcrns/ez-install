@@ -35,8 +35,8 @@ fi
   || return 0
 
 
-source "${BASH_SOURCE%/*}/../../common/log.sh"
-source "${BASH_SOURCE%/*}/../../common/string.sh"
+source "${EZ_INSTALL_HOME}/common/log.sh"
+source "${EZ_INSTALL_HOME}/common/string.sh"
 
 
 [[ -z "${VERBOSE+x}" ]] && VERBOSE=false
