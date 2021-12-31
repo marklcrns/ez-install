@@ -19,101 +19,124 @@ include "${BASH_SOURCE%/*}/../common.sh"
 
 
 function pac_array_jsonify() {
+  local as_root=false
+
+  OPTIND=1
+  while getopts "S:" opt; do
+    case ${opt} in
+      S)
+        as_root=${OPTARG}
+        ;;
+    esac
+  done
+  shift "$((OPTIND-1))"
+
   local pac_array_name=${1:?}
   eval "pac_array=( \"\${${pac_array_name}[@]}\" )"
 
-  local i= res=
+  local res=0
+
+  local i=
   for i in "${!pac_array[@]}"; do
     local package="${pac_array[$i]}"
-    pac_jsonify package
+    pac_jsonify -S ${as_root} -- package
     res=$?
+
     if [[ ${res} -gt 0 ]]; then
       eval "${pac_array_name}[$i]='\"${pac_array[$i]}\":\"\"'"
     else
       eval "${pac_array_name}[$i]='${package}'"
     fi
   done
+
+  return ${res}
 }
 
 
 function pac_jsonify() {
-  local _global_pac_var_name="${1:?}"
-  local _local_pac_var_name="${2:-${1}}"
-  local _depth=${3:-1}
-  local _indent="${_indent:-}|  "
+  local as_root=false
 
-  local _root_package=${_package:-}
-  eval "local _package=\${$_local_pac_var_name}"
+  OPTIND=1
+  while getopts "S:" opt; do
+    case ${opt} in
+      S)
+        as_root=${OPTARG}
+        ;;
+    esac
+  done
+  shift "$((OPTIND-1))"
+
+  local global_pac_var_name="${1:?}"
+  local local_pac_var_name="${2:-${1}}"
+  local depth=${3:-1}
+  local indent="${indent:-}|  "
+
+  local root_package=${_package:-}
+  eval "local _package=\${$local_pac_var_name}"
 
   info "Fetching: ${_package}"
 
-  local _package_path="${_package}"
-  fetch_package _package_path
-  local res=$?
+  local package_path="${_package}"
+  local res=0
+  fetch_package package_path
+  res=$?
 
   if [[ ${res} -gt 0 ]]; then
-    local _selected=
-    if select_package "${_package}" _selected "${_root_package}"; then
+    local selected=""
+    if select_package "${_package}" selected "${root_package}"; then
       # WARNING dangerous substitution! Replaces last occurrence (most recent addition only) of $_package
-      local _replaced="$(eval "echo \"'\$${_global_pac_var_name}'\"" | sed "s/\(.*\)${_package}/\1$(basename -- ${_selected})/")"
-      eval "${_global_pac_var_name}=${_replaced}"
-      _package="$(basename -- ${_selected})"
-      _package_path="${_selected}"
+      local _replaced="$(eval "echo \"'\$${global_pac_var_name}'\"" | sed "s/\(.*\)${_package}/\1$(basename -- ${selected})/")"
+      eval "${global_pac_var_name}=${_replaced}"
+      _package="$(basename -- ${selected})"
+      package_path="${selected}"
     else
       error "'${_package}' not found!"
       return 1
     fi
   fi
 
-  if [[ ${_depth} -eq 1 ]]; then
-    eval "${_global_pac_var_name}='{'"
-  fi
+  [[ ${depth} -eq 1 ]] && eval "${global_pac_var_name}='{'"
+  eval "${global_pac_var_name}+='\"package\":{'"
+  eval "${global_pac_var_name}+='\"name\":\"${_package}\",'"
+  eval "${global_pac_var_name}+='\"path\":\"${package_path}\",'"
+  eval "${global_pac_var_name}+='\"as_root\":${as_root}'"
 
-  eval "${_global_pac_var_name}+='\"package\":{'"
-  eval "${_global_pac_var_name}+='\"name\":\"${_package}\",'"
-  eval "${_global_pac_var_name}+='\"path\":\"${_package_path}\"'"
-
-  local -a _package_dependencies=( $(${BASH_SOURCE%/*}/metadata-parser "dependency" "${_package_path}") )
+  local -a package_dependencies=( $(${BASH_SOURCE%/*}/metadata-parser "dependency" "${package_path}") )
 
   # Handle dependencies recursively
-  if [[ -n ${_package_dependencies+x} ]]; then
+  if [[ -n ${package_dependencies+x} ]]; then
+    info "${indent}Dependency detected for ${_package} (${#package_dependencies[@]})"
 
-    if [[ ${#_package_dependencies[@]} -gt 1 ]]; then
-      eval "${_global_pac_var_name}+=',\"dependencies\":['"
+    if [[ ${#package_dependencies[@]} -gt 1 ]]; then
+      eval "${global_pac_var_name}+=',\"dependencies\":['"
     else
-      eval "${_global_pac_var_name}+=',\"dependencies\":'"
+      eval "${global_pac_var_name}+=',\"dependencies\":'"
     fi
 
-    info "${_indent}Dependency detected for ${_package} (${#_package_dependencies[@]})"
+    local dependency=""
+    local res=0
 
-    local dependency= i= res=
-    for i in "${!_package_dependencies[@]}"; do
-      dependency="${_package_dependencies[$i]}"
-      [[ ${i} -eq 0 ]] || eval "${_global_pac_var_name}+=,"
+    local i=
+    for i in "${!package_dependencies[@]}"; do
+      dependency="${package_dependencies[$i]}"
+      [[ ${i} -gt 0 ]] && eval "${global_pac_var_name}+=,"
 
-      info "${_indent}Dependency: ${dependency}"
-      eval "${_global_pac_var_name}+='{'"
-      pac_jsonify "${_global_pac_var_name}" dependency $((_depth+1))
-      eval "${_global_pac_var_name}+='}'"
+      info "${indent}Dependency: ${dependency}"
+      eval "${global_pac_var_name}+='{'"
 
-      res=$?
-      [[ ${res} -gt 0 ]] && return ${res}
-      info "${_indent}Dependency (resolved): ${dependency}"
+      pac_jsonify -S ${as_root} -- "${global_pac_var_name}" dependency $((depth+1))
+      res=$?; [[ ${res} -gt 0 ]] && return ${res}
+
+      eval "${global_pac_var_name}+='}'"
+      info "${indent}Dependency (resolved): ${dependency}"
     done
-
-    if [[ ${#_package_dependencies[@]} -gt 1 ]]; then
-      eval "${_global_pac_var_name}+=']'"
-    fi
-
+    [[ ${#package_dependencies[@]} -gt 1 ]] && eval "${global_pac_var_name}+=']'"
   else
-    info "${_indent}No dependency detected for ${_package}"
+    info "${indent}No dependency detected for ${_package}"
   fi
 
-  eval "${_global_pac_var_name}+='}'"
-
-  if [[ ${_depth} -eq 1 ]]; then
-    eval "${_global_pac_var_name}+='}'"
-  fi
+  [[ ${depth} -eq 1 ]] && eval "${global_pac_var_name}+='}'"
+  eval "${global_pac_var_name}+='}'"
 }
 
 
@@ -130,8 +153,8 @@ function _validate_dependencies() {
   local _package="${1:?}"
   local _package_path="${_package}"
   local _indent="${_indent:-}│  "
-  local res=
 
+  local res=
   fetch_package _package_path
   res=$?
 

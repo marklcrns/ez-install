@@ -12,24 +12,19 @@ fi
   || return 0
 
 
-source "${BASH_SOURCE%/*}/../utils/pac-logger.sh"
-
-
-_is_wget_installed() {
-  if eval "command -v wget &> /dev/null"; then
-    return 0
-  fi
-  return 1
-}
+source "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 
 
 # Specify destination directory
 wget_install() {
+  local as_root=false
   local args='-c --'
-  local from= to= command_name= package_name=
+  local to=""
+  local command_name=""
+  local package_name=""
 
   OPTIND=1
-  while getopts "a:c:o:n:" opt; do
+  while getopts "a:c:o:n:S:" opt; do
     case ${opt} in
       a)
         args="${OPTARG} --"
@@ -43,22 +38,43 @@ wget_install() {
       n)
         package_name="${OPTARG}"
         ;;
+      S)
+        as_root=${OPTARG}
+        ;;
     esac
   done
   shift "$((OPTIND-1))"
 
-  from="${@}"
+  local from="${@}"
+  local sudo=""
 
-  if ! _is_wget_installed; then
+  if ${as_root}; then
+    if command -v sudo &> /dev/null; then
+      sudo="sudo "
+    else
+      pac_log_failed 'Wget' "${package}" "Wget '${package}' installation failed. 'sudo' not installed"
+      return 3
+    fi
+  fi
+
+
+  if ! is_wget_installed; then
     pac_log_failed 'Wget' "${from}" "Wget '${from}' installation failed. wget not installed"
     return 1
   fi
 
   # Check if already installed
-  if eval "command -v '${command_name}' &> /dev/null"; then
-    pac_log_skip "Wget" "${package_name}"
-    return 0
+  if [[ -n ${command_name} ]]; then
+    if command -v ${command_name} &> /dev/null; then
+      pac_log_skip "Wget" "${package_name}"
+      return 0
+    fi
   fi
+
+  local res=0
+
+  pac_pre_install "${package_name}" 'wget'
+  res=$?; [[ ${res} -gt 0 ]] && return ${res}
 
   if [[ -n "${to}" ]]; then
     # Create destination directory
@@ -71,25 +87,42 @@ wget_install() {
     local filename="$(basename -- "${from}")"
     to="${to}/${filename}"
 
+    if [[ -f "${to}" ]]; then
+      pac_log_skip "Wget" "${to}"
+      return 0
+    fi
+
     # Execute installation
     # NOTE: DO NOT SURROUND $from to permit shell command piping
-    if execlog "wget -O '${to}' ${args} ${from}"; then
+    if execlog "${sudo}wget -O '${to}' ${args} ${from}"; then
       pac_log_success 'Wget' "${from}" "Wget '${from}' -> '${to}' successful"
-      return 0
     else
+      res=$?
       pac_log_failed 'Wget' "${from}" "Wget '${from}' -> '${to}' failed!"
-      return 1
+      return ${res}
     fi
   else
     # Execute installation
     # NOTE: DO NOT SURROUND $from to permit shell command piping
-    if execlog "wget '${args}' ${from}"; then
+    if execlog "${sudo}wget ${args} ${from}"; then
       pac_log_success 'Wget' "${from}" "Wget '${from}' successful"
-      return 0
     else
+      res=$?
       pac_log_failed 'Wget' "${from}" "Wget '${from}' failed!"
-      return 1
+      return ${res}
     fi
   fi
+
+  pac_post_install "${package_name}" 'wget'
+  res=$?
+  return ${res}
+}
+
+
+is_wget_installed() {
+  if command -v wget &> /dev/null; then
+    return 0
+  fi
+  return 1
 }
 

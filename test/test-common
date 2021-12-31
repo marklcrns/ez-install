@@ -11,14 +11,16 @@ DEBUG=true
 LOG_DEBUG_LEVEL=7
 
 _main() {
+  resolve_package_dir
   local package="git"
   local res=
-  resolve_package_dir
 
-  fetch_package package
+  local package_path="${package}"
+  fetch_package package_path
   res=$?
-  local package_new="${PACKAGE_DIR}/git"
-  [[ "${package_new}" == "${package}" ]] || error "fetch_package() failed. exit code: ${res}"
+
+  local package_new="${LOCAL_PACKAGE_DIR}/${package}"
+  [[ "${package_new}" == "${package_path}" ]] || error "fetch_package() failed. exit code: ${res}"
 }
 
 _main

@@ -12,22 +12,18 @@ fi
   || return 0
 
 
-source "${BASH_SOURCE%/*}/../utils/pac-logger.sh"
+source "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 
-
-_is_curl_installed() {
-  if eval "command -v curl &> /dev/null"; then
-    return 0
-  fi
-  return 1
-}
 
 curl_install() {
+  local as_root=false
   local args='-sSL --'
-  local from= to= command_name= package_name=
+  local to=""
+  local command_name=""
+  local package_name=""
 
   OPTIND=1
-  while getopts "a:c:o:n:" opt; do
+  while getopts "a:c:o:n:S:" opt; do
     case ${opt} in
       a)
         args="${OPTARG} --"
@@ -41,22 +37,42 @@ curl_install() {
       n)
         package_name="${OPTARG}"
         ;;
+      S)
+        as_root=${OPTARG}
+        ;;
     esac
   done
   shift "$((OPTIND-1))"
 
-  from="${@}"
+  local from="${@}"
+  local sudo=""
 
-  if ! _is_curl_installed; then
+  if ${as_root}; then
+    if command -v sudo &> /dev/null; then
+      sudo="sudo "
+    else
+      pac_log_failed 'Curl' "${package}" "Curl '${package}' installation failed. 'sudo' not installed"
+      return 3
+    fi
+  fi
+
+  if ! is_curl_installed; then
     pac_log_failed 'Curl' "${from}" "Curl '${from}' installation failed. curl not installed"
     return 1
   fi
 
   # Check if already installed
-  if eval "command -v '${command_name}' &> /dev/null"; then
-    pac_log_skip "Curl" "${package_name}"
-    return 0
+  if [[ -n ${command_name} ]]; then
+    if command -v ${command_name} &> /dev/null; then
+      pac_log_skip "Curl" "${package_name}"
+      return 0
+    fi
   fi
+
+  local res=0
+
+  pac_pre_install "${package_name}" 'curl'
+  res=$?; [[ ${res} -gt 0 ]] && return ${res}
 
   # Resolve destination
   if [[ -n "${to}" ]]; then
@@ -70,23 +86,35 @@ curl_install() {
 
     # Execute installation
     # NOTE: DO NOT SURROUND $from to permit shell command piping
-    if execlog "curl --create-dirs -o '${to}' ${args} ${from}"; then
+    if execlog "${sudo}curl --create-dirs -o '${to}' ${args} ${from}"; then
       pac_log_success 'Curl' "${from}" "Curl '${from}' -> '${to}' successful"
-      return 0
     else
+      res=$?
       pac_log_failed 'Curl' "${from}" "Curl '${from}' -> '${to}' failed!"
-      return 1
+      return ${res}
     fi
   else
     # Execute installation
     # NOTE: DO NOT SURROUND $from to permit shell command piping
-    if execlog "curl ${args} ${from}"; then
+    if execlog "${sudo}curl ${args} ${from}"; then
       pac_log_success 'Curl' "${from}" "Curl '${from}' successful"
-      return 0
     else
+      res=$?
       pac_log_failed 'Curl' "${from}" "Curl '${from}' failed!"
-      return 1
+      return ${res}
     fi
   fi
+
+  pac_post_install "${package_name}" 'curl'
+  res=$?
+  return ${res}
+}
+
+
+is_curl_installed() {
+  if command -v curl &> /dev/null; then
+    return 0
+  fi
+  return 1
 }
 

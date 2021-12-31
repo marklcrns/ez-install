@@ -12,19 +12,21 @@ fi
   || return 0
 
 
-source "${BASH_SOURCE%/*}/utils/actions.sh"
-for install_script in ${BASH_SOURCE%/*}/install-utils/install-*.sh; do
+source "${EZ_INSTALL_HOME}/install/utils/actions.sh"
+for install_script in ${EZ_INSTALL_HOME}/install/install-utils/install-*.sh; do
   source "${install_script}"
 done
 
 
-# TODO: Add an option to provide package command name for validation
-# TODO: Log more INFO
 install() {
-  local args= destination= package_name= update=false
+  local args=""
+  local command_name=""
+  local package_name=""
+  local as_root=false
+  local update=false
 
   OPTIND=1
-  while getopts "a:c:n:u:" opt; do
+  while getopts "a:c:n:S:u:" opt; do
     case ${opt} in
       a)
         args="${OPTARG}"
@@ -35,6 +37,9 @@ install() {
       n)
         package_name="${OPTARG}"
         ;;
+      S)
+        as_root=${OPTARG}
+        ;;
       u)
         update=${OPTARG}
         ;;
@@ -42,17 +47,18 @@ install() {
   done
   shift "$((OPTIND-1))"
 
-  if [[ -z "${1+x}" ]]; then
-    error "No package manager provided"
-  fi
-  local package_manager="$(echo "${1}" | awk '{print tolower($0)}')"
+  local package_manager=""
+  local file=""
+  local package=""
+  local destination=""
 
-  if [[ -z "${2+x}" ]]; then
-    error "No package provided"
-  fi
-  local file="${2:-${package_name}}"
-  local package="${file}"
-  local destination="${3:-}"
+  [[ -z "${1+x}" ]] && error "No package manager provided"
+  [[ -z "${2+x}" ]] && error "No package provided"
+
+  package_manager="$(echo "${1}" | awk '{print tolower($0)}')"
+  file="${2:-${package_name}}"
+  package="${file}"
+  destination="${3:-}"
 
   if [[ ${package_manager} == "curl" ]] || [[ ${package_manager} == "wget" ]] || [[ ${package_manager} == "git" ]]; then
     if [[ -z "${package_name}" ]]; then
@@ -62,46 +68,36 @@ install() {
     file="${package_name}"
   fi
 
-  local res=
-
-  # Pre process global
-  if [[ -e "${PACKAGE_DIR}/${file}.pre" ]]; then
-    source "${PACKAGE_DIR}/${file}.pre"
-    res=$?; [[ ${res} -gt 0 ]] && return ${res}
-  fi
-  # Pre process local
-  if [[ -e "${PACKAGE_DIR}/${file}.${package_manager}.pre" ]]; then
-    source "${PACKAGE_DIR}/${file}.${package_manager}.pre"
-    res=$?; [[ ${res} -gt 0 ]] && return ${res}
-  fi
+  local res=0
 
   case ${package_manager} in
     apt)
-      apt_install -a "${args}" -c "${command_name}" -u ${update} -- "${package}" || return 1
+      apt_install -a "${args}" -c "${command_name}" -S ${as_root} -u ${update} -- "${package}" || return 1
       ;;
     apt-add)
-      apt_add_repo -a "${args}" -c "${command_name}" -- ${package} || return 1
+      apt_add_repo -a "${args}" -c "${command_name}" -S ${as_root} -- ${package} || return 1
       ;;
     npm)
-      npm_install -a "${args}" -c "${command_name}" -- "${package}" || return 1
+      npm_install -a "${args}" -c "${command_name}" -S ${as_root} -- "${package}" || return 1
       ;;
     pip)
-      pip_install -a "${args}" -c "${command_name}" -- "${package}" || return 1
+      pip_install -a "${args}" -c "${command_name}" -S ${as_root} -- "${package}" || return 1
       ;;
     pip2)
-      pip_install -v 2 -a "${args}" -c "${command_name}" -- "${package}" || return 1
+      pip_install -v 2 -a "${args}" -c "${command_name}" -S ${as_root} -- "${package}" || return 1
       ;;
     pip3)
-      pip_install -v 3 -a "${args}" -c "${command_name}" -- "${package}" || return 1
+      pip_install -v 3 -a "${args}" -c "${command_name}" -S ${as_root} -- "${package}" || return 1
       ;;
     pkg)
-      pkg_install -a "${args}" -c "${command_name}" -- "${package}" || return 1
+      pkg_install -a "${args}" -c "${command_name}" -S ${as_root} -- "${package}" || return 1
       ;;
     curl)
       curl_install -a "${args}" \
                    -c "${command_name}" \
                    -n "${package_name}" \
                    -o "${destination}" \
+                   -s ${as_root} \
                    -- "${package}" \
                    || return 1
       ;;
@@ -110,6 +106,7 @@ install() {
                    -c "${command_name}" \
                    -n "${package_name}" \
                    -o "${destination}" \
+                   -s ${as_root} \
                    -- "${package}" \
                    || return 1
       ;;
@@ -117,6 +114,7 @@ install() {
       git_clone -a "${args}" \
                 -n "${package_name}" \
                 -o "${destination}" \
+                -s ${as_root} \
                 -- "${package}" \
                 || return 1
       ;;
@@ -131,18 +129,5 @@ install() {
   esac
 
   res=$?
-
-  # Post process global
-  if [[ -e "${PACKAGE_DIR}/${file}.post" ]]; then
-    source "${PACKAGE_DIR}/${file}.post"
-    res=$?; [[ ${res} -gt 0 ]] && return ${res}
-  fi
-  # Post process local
-  if [[ -e "${PACKAGE_DIR}/${file}.${package_manager}.post" ]]; then
-    source "${PACKAGE_DIR}/${file}.${package_manager}.post"
-    res=$?; [[ ${res} -gt 0 ]] && return ${res}
-  fi
-
   return ${res}
 }
-

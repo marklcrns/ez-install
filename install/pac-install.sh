@@ -12,8 +12,8 @@ fi
   || return 0
 
 
-source "${BASH_SOURCE%/*}/utils/pac-logger.sh"
-source "${BASH_SOURCE%/*}/utils/progress-bar.sh"
+source "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
+source "${EZ_INSTALL_HOME}/install/utils/progress-bar.sh"
 
 
 pac_batch_json_install() {
@@ -25,7 +25,7 @@ pac_batch_json_install() {
     local i=1 root_package=
     for package in ${packages[@]}; do
       root_package="$(echo "${package}" | ${jq} -crM ".package")"
-      pac_json_install_new "${root_package}"
+      pac_json_install "${root_package}"
       prog_bar "$(("${i}*100/${width}"))"
       echo "- $(echo "${root_package}" | ${jq} -crM ".name")"
       ((++i))
@@ -36,7 +36,7 @@ pac_batch_json_install() {
 }
 
 
-pac_json_install_new() {
+pac_json_install() {
   local package="${1}"
   local jq='./lib/parser/jq'
 
@@ -44,6 +44,7 @@ pac_json_install_new() {
 
     local package_name="$(echo ${package} | ${jq} -crM ".name")"
     local package_dir="$(dirname -- "$(echo ${package} | ${jq} -crM ".path")")"
+    local as_root=$(echo ${package} | ${jq} -crM ".as_root")
 
     local res=
     local sub_package=
@@ -56,7 +57,7 @@ pac_json_install_new() {
         dependencies="$(echo ${package} | ${jq} -crM ".dependencies[${i}]")"
         if [[ -n "${dependencies}" ]]; then
           sub_package="$(echo "${dependencies}" | ${jq} -crM ".package")"
-          pac_json_install_new ${sub_package}
+          pac_json_install ${sub_package}
           res=$?
           [[ ${res} -gt 0 ]] && return ${res} # Abort immediately
         fi
@@ -65,47 +66,29 @@ pac_json_install_new() {
       dependencies="$(echo ${package} | ${jq} -crM ".dependencies")"
       if [[ -n "${dependencies}" ]]; then
         sub_package="$(echo "${dependencies}" | ${jq} -crM ".package")"
-        pac_json_install_new ${sub_package}
+        pac_json_install ${sub_package}
         res=$?
         [[ ${res} -gt 0 ]] && return ${res} # Abort immediately
       fi
     fi
-    pac_install "${package_name}" "${package_dir}"
+    pac_install -S ${as_root} -- "${package_name}" "${package_dir}"
     res=$?
   fi
   return ${res}
 }
 
-pac_json_install() {
-  local package="${1:-}"
-
-  local -a row=( $(echo "${package}" | ./lib/parser/jq) )
-
-  local indices=( ${!row[@]} )
-  for ((i=${#indices[@]} - 1; i >= 0; i--)) ; do
-    if [[ ${row[indices[i]]} =~ \".* ]]; then
-      local object=${row[indices[i]]}
-      pac_install "${object//[\":]/}"
-      local res=$?
-      if [[ ${res} -gt 0 ]]; then
-        local root="${row[indices[1]]//[\":]/}"
-        local ext="$([[ "${root##*.}" != "${root}" ]] && echo "${root##*.}")"
-        capitalize ext
-        pac_log_failed "${ext}" "${root}" "Package '${root}' dependencies installation failed"
-        return ${res}
-      fi
-    fi
-  done
-}
-
 
 pac_install() {
+  local as_root=false
   local recursive=false
   OPTIND=1
-  while getopts "r" opt; do
+  while getopts "rS:" opt; do
     case ${opt} in
       r)
         recursive=true
+        ;;
+      S)
+        as_root=${OPTARG}
         ;;
     esac
   done
@@ -139,19 +122,19 @@ pac_install() {
 
   # Install dependencies
   if [[ ${recursive} -eq 1 ]]; then
-    local _dependency_tracker="$(realpath -- ${BASH_SOURCE%/*})/utils/dependency-tracker"
-    local _dependencies="$(${_dependency_tracker} -p "${package}" -d "${package_dir}")"
+    local dependency_tracker="${EZ_INSTALL_HOME}/install/utils/dependency-tracker"
+    local dependencies="$(${dependency_tracker} -p "${package}" -d "${package_dir}")"
 
-    for dependency in ${_dependencies}; do
-      warning "Installing ${package} dependency -- ${dependency}"
+    for dependency in ${dependencies}; do
+      info "Installing ${package} dependency -- ${dependency}"
       pac_install -r ${recursive} "${dependency}"
       local res=$?
       [[ ${res} -gt 0 ]] && return ${res}
     done
   fi
 
-  warning "Installing '${package}' from '${package_dir}'"
-  source "${package_dir}/${package}" -y
+  info "Installing '${package}' from '${package_dir}'"
+  source "${package_dir}/${package}" -S ${as_root}
   res=$?
   return ${res}
 }
@@ -189,7 +172,7 @@ pac_batch_install() {
 # Symlink init.sh
 pac_deploy_init() {
   local target="${1:-}"
-  local from="$(realpath -- ${BASH_SOURCE%/*}/init.sh)"
+  local from="${EZ_INSTALL_HOME}/install/init.sh"
 
   if [[ -f "${target}" ]]; then
     warning "Replacing '${target}' with '${from}' symlink"
@@ -206,4 +189,77 @@ pac_deploy_init() {
   else
     error "${from} -> ${target} symlink failed"
   fi
+}
+
+
+pac_pre_install() {
+  [[ -z "${1:-}" ]] && error "No package provided"
+
+  local package="${1}"
+  local package_manager="${2:-}"
+
+  local res=0
+  local package_pre_path=""
+
+  # Pre process global
+  package_pre_path="${package}.pre"
+  fetch_package package_pre_path
+  if [[ ${$?} -eq 0 ]]; then
+    source "${package_pre_path}"
+    res=$?
+  fi
+
+  if [[ ${res} -eq 0 ]] && [[ -n "${package_manager}" ]]; then
+    to_lower package_manager
+    # Pre process global
+    package_pre_path="${package}.${package_manager}.pre"
+    fetch_package package_pre_path
+    if [[ ${$?} -eq 0 ]]; then
+      source "${package_pre_path}"
+      res=$?
+    fi
+  fi
+
+  if [[ ${res} -gt 0 ]]; then
+    capitalize package_manager
+    pac_log_failed "${package_manager}" "${package}" "${package_manager} '${package}' pre installation failed"
+  fi
+  return ${res}
+}
+
+
+pac_post_install() {
+  [[ -z "${1:-}" ]] && error "No package provided"
+
+  local package="${1}"
+  local package_manager="${2:-}"
+
+  local res=0
+  local package_post_path=""
+
+  # Post process global
+  package_post_path="${package}.post"
+  fetch_package package_post_path
+  if [[ ${$?} -eq 0 ]]; then
+    source "${package_post_path}"
+    res=$?
+  fi
+
+  if [[ ${res} -eq 0 ]] && [[ -n "${package_manager}" ]]; then
+    to_lower package_manager
+    # Post process global
+    package_post_path="${package}.${package_manager}.post"
+    fetch_package package_post_path
+    if [[ ${$?} -eq 0 ]]; then
+      source "${package_post_path}"
+      res=$?
+    fi
+  fi
+
+  if [[ ${res} -gt 0 ]]; then
+    capitalize package_manager
+    pac_log_failed "${package_manager}" "${package}" "${package_manager} '${package}' post installation failed"
+  fi
+
+  return ${res}
 }

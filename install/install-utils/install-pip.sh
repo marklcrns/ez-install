@@ -12,24 +12,18 @@ fi
   || return 0
 
 
-source "${BASH_SOURCE%/*}/../utils/pac-logger.sh"
+source "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 
-
-_is_pip_installed() {
-  local pip_version=${1:-}
-  if eval "command -v pip${pip_version} &> /dev/null"; then
-    return 0
-  fi
-  return 1
-}
 
 pip_install() {
-  local pip_version=
+  local as_root=false
   local is_global=false
-  local args='--' command_name=
-  OPTIND=1
+  local args='--'
+  local command_name=""
+  local pip_version=""
 
-  while getopts "a:c:gv:" opt; do
+  OPTIND=1
+  while getopts "a:c:gS:v:" opt; do
     case ${opt} in
       a)
         args="${OPTARG} --"
@@ -40,6 +34,9 @@ pip_install() {
       g)
         is_global=true
         ;;
+      S)
+        as_root=${OPTARG}
+        ;;
       v)
         pip_version="${OPTARG}"
         ;;
@@ -48,8 +45,18 @@ pip_install() {
   shift "$((OPTIND-1))"
 
   local package="${@%.*}"
+  local sudo=""
 
-  if ! _is_pip_installed ${pip_version}; then
+  if ${as_root}; then
+    if command -v sudo &> /dev/null; then
+      sudo="sudo "
+    else
+      pac_log_failed "Pip${pip_version}" "${package}" "Pip${pip_version} '${package}' installation failed. 'sudo' not installed"
+      return 3
+    fi
+  fi
+
+  if ! is_pip_installed ${pip_version}; then
     pac_log_failed "Pip${pip_version}" "${package}" "Pip${pip_version} '${package}' installation failed. pip${pip_version} not installed"
     return 1
   fi
@@ -63,28 +70,47 @@ pip_install() {
   fi
 
   # Check if already installed
-  if eval "pip${pip_version} list | grep -F '${package}' &> /dev/null" || eval "command -v '${command_name}' &> /dev/null"; then
+  if ${sudo}pip${pip_version} list | grep -F "${package}" &> /dev/null || command -v ${command_name} &> /dev/null; then
     pac_log_skip "Pip${pip_version}" "${package}"
     return 0
   fi
 
+  local res=0
+
+  pac_pre_install "${package}" "pip${pip_version}"
+  res=$?; [[ ${res} -gt 0 ]] && return ${res}
+
   # Execute installation
   if ${is_global}; then
-    if execlog "pip${pip_version} install -g ${args} ${package}"; then
+    if execlog "${sudo}pip${pip_version} install -g ${args} ${package}"; then
       pac_log_success "Pip${pip_version}" "${package}"
-      return 0
     else
+      res=$?
       pac_log_failed "Pip${pip_version}" "${package}"
-      return 1
+      return ${res}
     fi
   else
-    if execlog "pip${pip_version} install ${args} ${package}"; then
+    if execlog "${sudo}pip${pip_version} install ${args} ${package}"; then
       pac_log_success "Pip${pip_version}" "${package}"
-      return 0
     else
+      res=$?
       pac_log_failed "Pip${pip_version}" "${package}"
-      return 1
+      return ${res}
     fi
   fi
+
+  pac_post_install "${package}" "pip${pip_version}"
+  res=$?
+
+  return ${res}
+}
+
+
+is_pip_installed() {
+  local pip_version=${1:-}
+  if command -v "pip${pip_version}" &> /dev/null; then
+    return 0
+  fi
+  return 1
 }
 

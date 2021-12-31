@@ -153,8 +153,7 @@ abort() {
   exit 0
 }
 
-# $2 argument accepts integer to exit with exit code.
-# Logs ERROR message on VERBOSE then exit $2.
+# Logs ERROR message to stderr on VERBOSE then exit $2.
 error() {
   local depth=1
   OPTIND=1

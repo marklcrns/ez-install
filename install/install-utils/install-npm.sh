@@ -12,22 +12,17 @@ fi
   || return 0
 
 
-source "${BASH_SOURCE%/*}/../utils/pac-logger.sh"
+source "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 
-
-_is_npm_installed() {
-  if eval "command -v npm &> /dev/null"; then
-    return 0
-  fi
-  return 1
-}
 
 npm_install() {
+  local as_root=false
   local is_local=false
-  local args='--' command_name=
+  local args='--'
+  local command_name=""
 
   OPTIND=1
-  while getopts "a:c:l" opt; do
+  while getopts "a:c:lS:" opt; do
     case ${opt} in
       a)
         args="${OPTARG} --"
@@ -38,19 +33,33 @@ npm_install() {
       l)
         is_local=true
         ;;
+      S)
+        as_root=${OPTARG}
+        ;;
     esac
   done
   shift "$((OPTIND-1))"
 
   local package="${@%.*}"
+  local sudo=""
 
-  if ! _is_npm_installed; then
+  if ${as_root}; then
+    if command -v sudo &> /dev/null; then
+      sudo="sudo "
+    else
+      pac_log_failed 'Npm' "${package}" "Npm '${package}' installation failed. 'sudo' not installed"
+      return 3
+    fi
+  fi
+
+
+  if ! is_npm_installed; then
     pac_log_failed 'Npm' "${package}" "Npm '${package}' installation failed. npm not installed"
     return 1
   fi
 
   # Check if package exists in npm repository
-  if eval "npm search '${package}' | grep -q '^No matches found' &> /dev/null"; then
+  if npm search "${package}" | grep -q '^No matches found' &> /dev/null; then
     error "'${package}' does not exists in the npm repository"
     pac_log_failed 'Npm' "${package}" "Npm '${package}' package not found in npm repository"
     return 1
@@ -58,34 +67,53 @@ npm_install() {
 
   # Check if package already installed
   if ${is_local}; then
-    if eval "npm list | grep -F '${package}' &> /dev/null"; then
+    if npm list | grep -F "${package}" &> /dev/null; then
       pac_log_skip 'Npm' "${package}" "Npm '${package}' local package already installed"
       return 0
     fi
   else
-    if eval "npm list -g | grep -F '${package}' &> /dev/null"; then
+    if npm list -g | grep -F "${package}" &> /dev/null; then
       pac_log_skip 'Npm' "${package}" "Npm '${package}' global package already installed"
       return 0
     fi
   fi
 
+  local res=0
+
+  pac_pre_install "${package}" 'npm'
+  res=$?; [[ ${res} -gt 0 ]] && return ${res}
+
   # Execute installation
   if ${is_local}; then
-    if execlog "npm install ${args} '${package}'"; then
+    if execlog "${sudo}npm install ${args} '${package}'"; then
       pac_log_success 'Npm' "${package}" "Npm '${package}' local package installation successful"
       return 0
     else
+      res=$?
       pac_log_failed 'Npm' "${package}" "Npm '${package}' local package installation failed"
-      return 1
+      return ${res}
     fi
   else
-    if execlog "npm install -g ${args} '${package}'"; then
+    if execlog "${sudo}npm install -g ${args} '${package}'"; then
       pac_log_success 'Npm' "${package}" "Npm '${package}' global package installation successful"
       return 0
     else
+      res=$?
       pac_log_failed 'Npm' "${package}" "Npm '${package}' global package installation failed"
-      return 1
+      return ${res}
     fi
   fi
+
+  pac_post_install "${package}" 'npm'
+  res=$?
+  return ${res}
+}
+
+
+is_npm_installed() {
+  if command -v npm &> /dev/null; then
+    return 0
+  fi
+  return 1
 }
 

@@ -6,23 +6,30 @@ set -o nounset
   && readonly INSTALL_INIT_SH_INCLUDED=1 \
   || return 0
 
-# Symlink safe
-INIT_PATH="$(realpath -- "${BASH_SOURCE[0]}")"
-INIT_DIR="$(cd -P "$(dirname "${INIT_PATH}")" >/dev/null 2>&1 && pwd)"
 
-source "${INIT_DIR}/../common/include.sh"
+source "${EZ_INSTALL_HOME}/common/include.sh"
 
-include "${INIT_DIR}/../.ez-installrc"
+include "${EZ_INSTALL_HOME}/.ez-installrc"
 include "${HOME}/.ez-installrc"
-include "${INIT_DIR}/common.sh"
-include "${INIT_DIR}/install.sh"
-include "${INIT_DIR}/pac-install.sh"
-include "${INIT_DIR}/../common/sys.sh"
+include "${EZ_INSTALL_HOME}/install/common.sh"
+include "${EZ_INSTALL_HOME}/install/install.sh"
+include "${EZ_INSTALL_HOME}/install/pac-install.sh"
+include "${EZ_INSTALL_HOME}/common/sys.sh"
 
+[[ -z "${RUN_AS_SU+x}" ]]       && RUN_AS_SU=false
 [[ -z "${SKIP_CONFIRM+x}" ]]    && SKIP_CONFIRM=false
 [[ -z "${VERBOSE+x}" ]]         && VERBOSE=false
 [[ -z "${DEBUG+x}" ]]           && DEBUG=false
 [[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=3
 
-unset INIT_PATH
-unset INIT_DIR
+handle_package_args() {
+  OPTIND=1
+  while getopts "S:" opt; do
+    case ${opt} in
+      S)
+        as_root=${OPTARG}
+        ;;
+    esac
+  done
+  shift "$((OPTIND-1))"
+}

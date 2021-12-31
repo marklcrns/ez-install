@@ -3,40 +3,32 @@
 set -o pipefail
 set -o nounset
 
-source "${BASH_SOURCE%/*}/common/include.sh"
+source "${EZ_INSTALL_HOME}/common/include.sh"
 
-############################################################### LOAD RC FILE ###
+############################################################## LOAD RC FILES ###
 
-include "${BASH_SOURCE%/*}/.ez-installrc"
+include "${EZ_INSTALL_HOME}/.ez-installrc"
 include "${HOME}/.ez-installrc"
 
 ###################################################### EXTERNAL DEPENDENCIES ###
 
-include "${BASH_SOURCE%/*}/common/common.sh"
-include "${BASH_SOURCE%/*}/common/array.sh"
-include "${BASH_SOURCE%/*}/common/sys.sh"
-include "${BASH_SOURCE%/*}/install/utils/actions.sh"
-include "${BASH_SOURCE%/*}/install/utils/pac-logger.sh"
-include "${BASH_SOURCE%/*}/install/utils/pac-transform.sh"
-include "${BASH_SOURCE%/*}/install/pac-install.sh"
-include "${BASH_SOURCE%/*}/install/install.sh"
-include "${BASH_SOURCE%/*}/install/common.sh"
+include "${EZ_INSTALL_HOME}/common/common.sh"
+include "${EZ_INSTALL_HOME}/common/array.sh"
+include "${EZ_INSTALL_HOME}/common/sys.sh"
+include "${EZ_INSTALL_HOME}/install/utils/actions.sh"
+include "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
+include "${EZ_INSTALL_HOME}/install/utils/pac-transform.sh"
+include "${EZ_INSTALL_HOME}/install/pac-install.sh"
+include "${EZ_INSTALL_HOME}/install/install.sh"
+include "${EZ_INSTALL_HOME}/install/common.sh"
 
 ################################################## CONSTANT GLOBAL VARIABLES ###
 
-readonly EZ_VERSION="0.2"
-
-readonly SCRIPT_ARGS="$@"
-
+readonly EZ_VERSION="0.2-beta"
 readonly LOG_SYSLOG=true
 readonly LOG_FILELOG=true
+readonly SCRIPT_ARGS="$@"
 readonly DOWNLOADS_DIR="${HOME}/Downloads"
-
-# Source custom rc file if exist
-CUSTOM_EZ_INSTALL_RC="${HOME}/.ez-installrc"
-if [[ -e "${CUSTOM_EZ_INSTALL_RC}" ]]; then
-  source "${CUSTOM_EZ_INSTALL_RC}"
-fi
 
 ############################################################### FLAG OPTIONS ###
 
@@ -70,6 +62,7 @@ function handle_args() {
       # translate --gnu-long-options to -g (short options)
       --destination)    args="${args:-}-d ";;
       --package-dir)    args="${args:-}-D ";;
+      --as-root)        args="${args:-}-S ";;
       --verbose)        args="${args:-}-v ";;
       --debug)          args="${args:-}-x ";;
       --skip-confirm)   args="${args:-}-y ";;
@@ -84,19 +77,23 @@ function handle_args() {
 
   eval set -- ${args:-}
 
+  [[ -z "${RUN_AS_SU+x}" ]]       && RUN_AS_SU=false
   [[ -z "${SKIP_CONFIRM+x}" ]]    && SKIP_CONFIRM=false
   [[ -z "${VERBOSE+x}" ]]         && VERBOSE=false
   [[ -z "${DEBUG+x}" ]]           && DEBUG=false
   [[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=3
 
   OPTIND=1
-  while getopts "d:D:vxyhV" opt; do
+  while getopts "d:D:SvxyhV" opt; do
     case ${opt} in
       d)
-        readonly DESTINATION="${OPTARG}"
+        DESTINATION="${OPTARG}"
         ;;
       D)
         PACKAGE_DIR="${OPTARG}"
+        ;;
+      S)
+        RUN_AS_SU=true
         ;;
       v)
         VERBOSE=true
@@ -137,10 +134,12 @@ function handle_args() {
 
   resolve_package_dir
 
+  readonly RUN_AS_SU
   readonly SKIP_CONFIRM
   readonly VERBOSE
   readonly DEBUG
   readonly LOG_DEBUG_LEVEL
+  readonly DESTINATION
   readonly PACKAGE_DIR
   readonly PACKAGES
 
@@ -178,14 +177,14 @@ _main () {
 
   ! ${continue} && exit $?
 
-  pac_array_jsonify packages
+  pac_array_jsonify -S ${RUN_AS_SU} packages
 
   # echo "${packages[@]}"
-  for package in "${packages[@]}"; do
-    echo "${package}" | ./lib/parser/jq -r ".package"
-  done
+  # for package in "${packages[@]}"; do
+  #   echo "${package}" | ./lib/parser/jq -r ".package"
+  # done
 
-  confirm "About to install the package(s) above. Continue? (Y/y): " || \
+  confirm "You are about to install the package(s) above. Continue? (Y/y): " || \
     exit $?
 
   # if [[ ! -d "${DOWNLOADS_DIR}" ]]; then

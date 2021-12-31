@@ -12,12 +12,13 @@ fi
   || return 0
 
 
-source "${BASH_SOURCE%/*}/../utils/actions.sh"
-source "${BASH_SOURCE%/*}/../utils/pac-logger.sh"
+source "${EZ_INSTALL_HOME}/install/utils/actions.sh"
+source "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 
 
 local_install() {
   local command_name=
+
   OPTIND=1
   while getopts "c:" opt; do
     case ${opt} in
@@ -31,9 +32,16 @@ local_install() {
   local package="${@%.*}"
 
   # Check if already installed
-  if eval "command -v '${command_name}' &> /dev/null"; then
+  if command -v ${command_name} &> /dev/null; then
     pac_log_skip "Local" "${package}"
     return 2
   fi
+
+  pac_pre_install "${package}" 'local'
+  res=$?; [[ ${res} -gt 0 ]] && return ${res}
+
+  pac_post_install "${package}" 'local'
+  res=$?
+  return ${res}
 }
 
