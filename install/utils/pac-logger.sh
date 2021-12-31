@@ -33,9 +33,9 @@ pac_log_success() {
     ok -d 2 "${manager} '${package}' package installation successful"
   fi
 
-  local log="${package}-SUCCESSFUL"
+  local log="'${package}' SUCCESSFUL"
   if ! has_pac_log_duplicate "${log}" "${SUCCESSFUL_PACKAGES[@]}"; then
-    SUCCESSFUL_PACKAGES=( ${SUCCESSFUL_PACKAGES[@]} "${manager}-${log}" )
+    SUCCESSFUL_PACKAGES=( ${SUCCESSFUL_PACKAGES[@]} "${manager} ${log}" )
   fi
 }
 
@@ -51,9 +51,9 @@ pac_log_skip() {
     ok -d 2 "${manager} '${package}' package already installed"
   fi
 
-  local log="${package}-SKIPPED"
+  local log="'${package}' SKIPPED"
   if ! has_pac_log_duplicate "${log}" "${SKIPPED_PACKAGES[@]}"; then
-    SKIPPED_PACKAGES=( ${SKIPPED_PACKAGES[@]} "${manager}-${log}" )
+    SKIPPED_PACKAGES=( ${SKIPPED_PACKAGES[@]} "${manager} ${log}" )
   fi
 }
 
@@ -69,9 +69,9 @@ pac_log_failed() {
     error -d 2 "${manager} '${package}' package installation failed"
   fi
 
-  local log="${package}-FAILED"
+  local log="'${package}' FAILED"
   if ! has_pac_log_duplicate "${log}" "${FAILED_PACKAGES[@]}"; then
-    FAILED_PACKAGES=( ${FAILED_PACKAGES[@]} "${manager}-${log}" )
+    FAILED_PACKAGES=( ${FAILED_PACKAGES[@]} "${manager} ${log}" )
   fi
 }
 
@@ -81,11 +81,14 @@ has_pac_log_duplicate() {
   shift 1
   local log=( "${@}" )
 
-  for package in ${log[@]}; do
-    if [[ "${package}" =~ .*${new_log}.* ]]; then
+
+  local i=
+  for ((i = 0; i < ${#log[@]}; ++i)); do
+    if [[ "${log[$i]}" =~ .*${new_log}.* ]]; then
       return 0
     fi
   done
+
   return 1
 }
 
@@ -97,26 +100,34 @@ pac_report() {
   local skipped_count=0
   local failed_count=0
 
-  echo -e "\n${COLOR_UL_NC}Successful Installations${COLOR_NC}\n"
-  for package in ${SUCCESSFUL_PACKAGES[@]}; do
-    echo -e "${COLOR_GREEN}${package}${COLOR_NC}"
-    total_count=$(expr ${total_count} + 1)
-    successful_count=$(expr ${successful_count} + 1)
-  done
+  local i=
 
-  echo -e "\n${COLOR_UL_NC}Skipped Installations${COLOR_NC}\n"
-  for package in ${SKIPPED_PACKAGES[@]}; do
-    echo -e "${COLOR_YELLOW}${package}${COLOR_NC}"
-    total_count=$(expr ${total_count} + 1)
-    successful_count=$(expr ${successful_count} + 1)
-  done
+  if [[ -n ${SUCCESSFUL_PACKAGES[@]} ]]; then
+    echo -e "\n${COLOR_UL_NC}Successful Installations${COLOR_NC}\n"
+    for ((i = 0; i < ${#SUCCESSFUL_PACKAGES[@]}; ++i)); do
+      echo -e "${COLOR_GREEN}${SUCCESSFUL_PACKAGES[$i]}${COLOR_NC}"
+      total_count=$(expr ${total_count} + 1)
+      successful_count=$(expr ${successful_count} + 1)
+    done
+  fi
 
-  echo -e "\n${COLOR_UL_NC}Failed Installations${COLOR_NC}\n"
-  for package in ${FAILED_PACKAGES[@]}; do
-    echo -e "${COLOR_RED}${package}${COLOR_NC}"
-    total_count=$(expr ${total_count} + 1)
-    successful_count=$(expr ${successful_count} + 1)
-  done
+  if [[ -n ${SKIPPED_PACKAGES[@]} ]]; then
+    echo -e "\n${COLOR_UL_NC}Skipped Installations${COLOR_NC}\n"
+    for ((i = 0; i < ${#SKIPPED_PACKAGES[@]}; ++i)); do
+      echo -e "${COLOR_YELLOW}${SKIPPED_PACKAGES[$i]}${COLOR_NC}"
+      total_count=$(expr ${total_count} + 1)
+      successful_count=$(expr ${successful_count} + 1)
+    done
+  fi
+
+  if [[ -n ${FAILED_PACKAGES[@]} ]]; then
+    echo -e "\n${COLOR_UL_NC}Failed Installations${COLOR_NC}\n"
+    for ((i = 0; i < ${#FAILED_PACKAGES[@]}; ++i)); do
+      echo -e "${COLOR_RED}${FAILED_PACKAGES[$i]}${COLOR_NC}"
+      total_count=$(expr ${total_count} + 1)
+      successful_count=$(expr ${successful_count} + 1)
+    done
+  fi
 
   cat << EOF
 
