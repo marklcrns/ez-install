@@ -199,9 +199,14 @@ function _main () {
   fi
 
   if $DEBUG && $VERBOSE || $JSON; then
+    if [[ ! -e "${jq}" ]]; then
+      error "Missing ${jq} dependency"
+      return $BASH_EZ_EX_DEP_NOTFOUND
+    fi
+
     # echo "${packages[@]}"
     for package in ${packages[@]}; do
-      echo "${package}" | ./lib/parser/jq -r ".package"
+      echo "${package}" | ${EZ_INSTALL_HOME}/lib/parser/jq -r ".package"
     done
   fi
 
