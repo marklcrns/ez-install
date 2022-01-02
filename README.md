@@ -35,13 +35,13 @@ export EZ_INSTALL_HOME='~/.ez-install'
 ## Usage
 
 ```sh
-./ez-install [ flags ] [ package(s) ]
+ez [ flags ] [ package(s) ]
 
 # from cmdline arguments
-./ez-install build-essential git-lfs nvim
+ez build-essential git-lfs nvim
 
 # from a file
-./ez-install "$(cat packages.txt)"
+ez "$(cat packages.txt)"
 ```
 
 ## Config
