@@ -12,11 +12,14 @@ fi
   || return 0
 
 
-source "${EZ_INSTALL_HOME}/install/utils/actions.sh"
-source "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
+source "${EZ_INSTALL_HOME}/common/include.sh"
+
+include "${EZ_INSTALL_HOME}/install/const.sh"
+include "${EZ_INSTALL_HOME}/install/utils/actions.sh"
+include "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 
 
-local_install() {
+function local_install() {
   local command_name=
 
   OPTIND=1
@@ -29,19 +32,26 @@ local_install() {
   done
   shift "$((OPTIND-1))"
 
+  if [[ -z "${@+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
   local package="${@%.*}"
 
   # Check if already installed
   if command -v ${command_name} &> /dev/null; then
     pac_log_skip "Local" "${package}"
-    return 2
+    return $BASH_EX_OK
   fi
 
+  local res=0
+
   pac_pre_install "${package}" 'local'
-  res=$?; [[ ${res} -gt 0 ]] && return ${res}
+  res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   pac_post_install "${package}" 'local'
   res=$?
-  return ${res}
+  return $res
 }
 

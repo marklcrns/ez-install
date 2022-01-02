@@ -9,13 +9,17 @@ fi
 # Header guard
 [[ -z "${INSTALL_UTILS_INSTALL_CURL_SH_INCLUDED+x}" ]] \
   && readonly INSTALL_UTILS_INSTALL_CURL_SH_INCLUDED=1 \
-  || return 0
+  || return $BASH_EX_OK
 
 
-source "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
+source "${EZ_INSTALL_HOME}/common/include.sh"
+
+include "${EZ_INSTALL_HOME}/install/const.sh"
+include "${EZ_INSTALL_HOME}/install/utils/actions.sh"
+include "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 
 
-curl_install() {
+function curl_install() {
   local as_root=false
   local args='-sSL --'
   local to=""
@@ -44,35 +48,40 @@ curl_install() {
   done
   shift "$((OPTIND-1))"
 
+  if [[ -z "${@+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
   local from="${@}"
   local sudo=""
 
-  if ${as_root}; then
+  if $as_root; then
     if command -v sudo &> /dev/null; then
       sudo="sudo "
     else
       pac_log_failed 'Curl' "${package}" "Curl '${package}' installation failed. 'sudo' not installed"
-      return 3
+      return $BASH_EX_MISUSE
     fi
   fi
 
-  if ! is_curl_installed; then
+  is_curl_installed
+  res=$?
+  if [[ $res -ne $BASH_EX_OK ]]; then
     pac_log_failed 'Curl' "${from}" "Curl '${from}' installation failed. curl not installed"
-    return 1
+    return $res
   fi
 
   # Check if already installed
-  if [[ -n ${command_name} ]]; then
-    if command -v ${command_name} &> /dev/null; then
-      pac_log_skip "Curl" "${package_name}"
-      return 0
-    fi
+  if [[ -n ${command_name} ]] && command -v ${command_name} &> /dev/null; then
+    pac_log_skip "Curl" "${package_name}"
+    return $BASH_EX_OK
   fi
 
   local res=0
 
   pac_pre_install "${package_name}" 'curl'
-  res=$?; [[ ${res} -gt 0 ]] && return ${res}
+  res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   # Resolve destination
   if [[ -n "${to}" ]]; then
@@ -81,7 +90,7 @@ curl_install() {
 
     if [[ -f "${to}" ]]; then
       pac_log_skip "Curl" "${to}"
-      return 0
+      return $BASH_EX_OK
     fi
 
     # Execute installation
@@ -91,7 +100,7 @@ curl_install() {
     else
       res=$?
       pac_log_failed 'Curl' "${from}" "Curl '${from}' -> '${to}' failed!"
-      return ${res}
+      return $res
     fi
   else
     # Execute installation
@@ -101,20 +110,20 @@ curl_install() {
     else
       res=$?
       pac_log_failed 'Curl' "${from}" "Curl '${from}' failed!"
-      return ${res}
+      return $res
     fi
   fi
 
   pac_post_install "${package_name}" 'curl'
   res=$?
-  return ${res}
+  return $res
 }
 
 
-is_curl_installed() {
+function is_curl_installed() {
   if command -v curl &> /dev/null; then
-    return 0
+    return $BASH_EX_OK
   fi
-  return 1
+  return $BASH_EX_NOTFOUND
 }
 

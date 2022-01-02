@@ -11,6 +11,8 @@ fi
   && readonly UTILS_PAC_RESOLVER_SH_INCLUDED=1 \
   || return 0
 
+[[ -z "${DEBUG+x}" ]] && DEBUG=false
+
 source "${EZ_INSTALL_HOME}/common/include.sh"
 
 include "${EZ_INSTALL_HOME}/common/colors.sh"
@@ -39,17 +41,17 @@ function pac_array_jsonify() {
   local i=
   for i in "${!pac_array[@]}"; do
     local package="${pac_array[$i]}"
-    pac_jsonify -S ${as_root} -- package
+    pac_jsonify -S $as_root -- package
     res=$?
 
-    if [[ ${res} -gt 0 ]]; then
+    if [[ $res -ne $BASH_EX_OK ]]; then
       eval "${pac_array_name}[$i]='{\"package\":{\"name\":\"${pac_array[$i]}\",\"path\":null}}'"
     else
       eval "${pac_array_name}[$i]='${package}'"
     fi
   done
 
-  return ${res}
+  return $res
 }
 
 
@@ -81,7 +83,7 @@ function pac_jsonify() {
   fetch_package package_path
   res=$?
 
-  if [[ ${res} -gt 0 ]]; then
+  if [[ $res -ne $BASH_EX_OK ]]; then
     local selected=""
     if select_package "${_package}" selected "${root_package}"; then
       # WARNING dangerous substitution! Replaces last occurrence (most recent addition only) of $_package
@@ -91,7 +93,7 @@ function pac_jsonify() {
       package_path="${selected}"
     else
       error "No such '${_package}' package found!"
-      return 1
+      return $BASH_EZ_EX_PAC_NOTFOUND
     fi
   fi
 
@@ -99,7 +101,7 @@ function pac_jsonify() {
   eval "${global_pac_var_name}+='\"package\":{'"
   eval "${global_pac_var_name}+='\"name\":\"${_package}\",'"
   eval "${global_pac_var_name}+='\"path\":\"${package_path}\",'"
-  eval "${global_pac_var_name}+='\"as_root\":${as_root}'"
+  eval "${global_pac_var_name}+='\"as_root\":$as_root'"
 
   local -a package_dependencies=( $(${EZ_INSTALL_HOME}/install/utils/metadata-parser "dependency" "${package_path}") )
 
@@ -119,13 +121,13 @@ function pac_jsonify() {
     local i=
     for i in "${!package_dependencies[@]}"; do
       dependency="${package_dependencies[$i]}"
-      [[ ${i} -gt 0 ]] && eval "${global_pac_var_name}+=,"
+      [[ $i -gt 0 ]] && eval "${global_pac_var_name}+=,"
 
       info "${indent}Dependency: ${dependency}"
       eval "${global_pac_var_name}+='{'"
 
-      pac_jsonify -S ${as_root} -- "${global_pac_var_name}" dependency ${_package} $((depth+1))
-      res=$?; [[ ${res} -gt 0 ]] && return ${res}
+      pac_jsonify -S $as_root -- "${global_pac_var_name}" dependency ${_package} $((depth+1))
+      res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
       eval "${global_pac_var_name}+='}'"
       info "${indent}Dependency (resolved): ${dependency}"
@@ -144,9 +146,9 @@ function validate_package() {
   local package="${1:?}"
 
   info "Validating packages..."
-  ! ${DEBUG} && printf "${package}"
-  _validate_dependencies "${package}"
+  ! $DEBUG && printf "${package}"
 
+  _validate_dependencies "${package}"
   return $?
 }
 
@@ -159,35 +161,35 @@ function _validate_dependencies() {
   fetch_package _package_path
   res=$?
 
-  if [[ ${res} -gt 0 ]]; then
+  if [[ $res -ne $BASH_EX_OK ]]; then
     if has_alternate_package "${_package}"; then
-      ! ${DEBUG} && printf " ${COLOR_YELLOW}(CHOOSE)${COLOR_NC}\n"
-      return 0
+      ! $DEBUG && printf " ${COLOR_YELLOW}(CHOOSE)${COLOR_NC}\n"
+      return $BASH_EX_OK
     fi
-    ! ${DEBUG} && printf " ${COLOR_RED}(MISSING)${COLOR_NC}\n"
-    return 1
+    ! $DEBUG && printf " ${COLOR_RED}(MISSING)${COLOR_NC}\n"
+    return $BASH_EZ_EX_PAC_NOTFOUND
   else
-    ! ${DEBUG} && printf "\n"
+    ! $DEBUG && printf "\n"
   fi
 
   local -a _package_dependencies=( $(${EZ_INSTALL_HOME}/install/utils/metadata-parser "dependency" "${_package_path}") )
   local _has_missing=false
 
   for dependency in "${_package_dependencies[@]}"; do
-    ! ${DEBUG} && printf "${_indent}└─${dependency}"
+    ! $DEBUG && printf "${_indent}└─${dependency}"
     if has_package "${dependency}"; then
       _validate_dependencies "${dependency}"
     else
       if has_alternate_package ${dependency}; then
-        ! ${DEBUG} && printf " ${COLOR_YELLOW}(CHOOSE)${COLOR_NC}\n"
+        ! $DEBUG && printf " ${COLOR_YELLOW}(CHOOSE)${COLOR_NC}\n"
       else
-        ! ${DEBUG} && printf " ${COLOR_RED}(MISSING)${COLOR_NC}\n"
+        ! $DEBUG && printf " ${COLOR_RED}(MISSING)${COLOR_NC}\n"
         _has_missing=true
       fi
     fi
   done
 
   if ${_has_missing}; then
-    return 1
+    return $BASH_EZ_EX_PAC_NOTFOUND
   fi
 }

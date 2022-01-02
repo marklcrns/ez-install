@@ -3,45 +3,58 @@
 set -o pipefail
 set -o nounset
 
-source "${EZ_INSTALL_HOME}/common/colors.sh"
-source "${EZ_INSTALL_HOME}/common/log.sh"
-source "${EZ_INSTALL_HOME}/install/utils/actions.sh"
+source "${EZ_INSTALL_HOME}/common/include.sh"
 
+include "${EZ_INSTALL_HOME}/common/colors.sh"
+include "${EZ_INSTALL_HOME}/common/log.sh"
+include "${EZ_INSTALL_HOME}/install/const.sh"
+include "${EZ_INSTALL_HOME}/install/utils/actions.sh"
 
-[[ -z "$@" ]] && error "No arguments passed" 1
 
 [[ -z "${VERBOSE+x}" ]] && VERBOSE=true
-META="${1:?}"
 
+if [[ -z "${1+x}" ]]; then
+  error "${BASH_SYS_MSG_USAGE_MISSARG}"
+  exit $BASH_SYS_EX_USAGE
+fi
 if [[ "${2+x}" ]]; then
   FILE="${2}"
   if [[ ! -f "${FILE}" ]]; then
     error "Missing ${FILE} file" 1
+    exit $BASH_EZ_EX_PAC_NOTFOUND
   fi
 else
-  error "No file provided" 1
+  error "${BASH_SYS_MSG_USAGE_MISSARG}"
+  exit $BASH_SYS_EX_USAGE
 fi
 
-main() {
+META="${1}"
+
+function _main() {
   local start_parsing=true
 
   while IFS="" read -r line; do
     if [[ "${line}" == "# ---" ]]; then
-      if ${start_parsing}; then
+      if $start_parsing; then
         start_parsing=false
         continue
       else
-        return 0
+        return $BASH_EX_OK
       fi
     fi
 
-    if ! ${start_parsing} && [[ "${line}" =~ "${META}" ]]; then
+    if ! $start_parsing && [[ "${line}" =~ "${META}" ]]; then
       printf '%s\n' "${line}" | awk -F ':' '{print $2}' | xargs
     fi
   done < "${FILE}"
 }
 
-main
+res=0
+_main
+res=$?
 
 unset VERBOSE
 unset META
+
+exit $res
+

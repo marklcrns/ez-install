@@ -15,13 +15,16 @@ fi
   || return 0
 
 
-source "${EZ_INSTALL_HOME}/common/sys.sh"
-source "${EZ_INSTALL_HOME}/common/colors.sh"
-source "${EZ_INSTALL_HOME}/common/log.sh"
-source "${EZ_INSTALL_HOME}/install/install.sh"
+source "${EZ_INSTALL_HOME}/common/include.sh"
+
+include "${EZ_INSTALL_HOME}/common/sys.sh"
+include "${EZ_INSTALL_HOME}/common/colors.sh"
+include "${EZ_INSTALL_HOME}/common/log.sh"
+include "${EZ_INSTALL_HOME}/install/const.sh"
+include "${EZ_INSTALL_HOME}/install/install.sh"
 
 
-resolve_package_dir() {
+function resolve_package_dir() {
   os_release
   local distrib_id="${OS_DISTRIB_ID}"; to_lower distrib_id
   local distrib_release="${OS_DISTRIB_RELEASE}"
@@ -38,43 +41,51 @@ resolve_package_dir() {
 }
 
 
-fetch_package() {
+function fetch_package() {
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
   local package_var_name="${1:-}"
   eval "local package=\"\$${package_var_name}\""
 
-  [[ -z "${package}" ]] && error "No package provided"
+  if [[ -z "${package+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_INVREFVAR}"
+    return $BASH_SYS_EX_USAGE
+  fi
  
   if [[ -e "${LOCAL_PACKAGE_DIR}/${package}" ]]; then
     info "Package '${package}' found in '${LOCAL_PACKAGE_DIR}'"
     eval "${package_var_name}='${LOCAL_PACKAGE_DIR}/${package}'"
-    return 0
+    return $BASH_EX_OK
   elif [[ -e "${PACKAGE_DIR}/${package}" ]]; then
     info "Package '${package}' found in '${PACKAGE_DIR}'"
     eval "${package_var_name}='${PACKAGE_DIR}/${package}'"
-    return 0
+    return $BASH_EX_OK
   else
-    warning "Package '${package}' not found"
-    return 1
+    skip "Package '${package}' not found"
+    return $BASH_EZ_EX_PAC_NOTFOUND
   fi
 }
 
 
-has_package() {
+function has_package() {
   if [[ ! -e "${LOCAL_PACKAGE_DIR}/${1:?}" ]] && [[ ! -e "${PACKAGE_DIR}/${1}" ]]; then
-    return 1 || return 0
+    return $BASH_EZ_EX_PAC_NOTFOUND || return $BASH_EX_OK
   fi
 }
 
 
 # TODO: Search as executable name instead if package not found using grep
 function select_package() {
-  if [[ -z "${1:-}" ]]; then
-    error "No package provided"
-    return 1
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
   fi
-  if [[ -z "${2:-}" ]]; then
-    error "No variable name provided for selected package"
-    return 1
+  if [[ -z "${2+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
   fi
 
   local package="${1%.*}"
@@ -118,17 +129,18 @@ function select_package() {
 
   if [[ -n "${select}" ]]; then
     eval "${selected_var_name}=${select}"
-    return 0
+    return $BASH_EX_OK
   else
-    return 1
+    skip "No matching package for '${package}'"
+    return $BASH_EZ_EX_PAC_NOTFOUND
   fi
 }
 
 
-has_alternate_package() {
-  if [[ -z "${1:-}" ]]; then
-    error "No package provided"
-    return 1
+function has_alternate_package() {
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
   fi
 
   local package="${1%.*}"
@@ -143,18 +155,18 @@ has_alternate_package() {
 
   if [[ -n "${matches+x}" ]]; then
     info "Alternate package found for '${package}'"
-    return 0
+    return $BASH_EX_OK
   fi
 
   info "Alternate package NOT found for '${package}'"
-  return 1
+  return $BASH_EZ_EX_PAC_NOTFOUND
 }
 
 
-get_sys_package_manager() {
-  if [[ -z "${1:-}" ]]; then
-    error "No variable name provided for package manager"
-    return 1
+function get_sys_package_manager() {
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
   fi
 
   local manager=""
@@ -176,10 +188,10 @@ get_sys_package_manager() {
       manager='zypper'
     fi
   else
-    log 'error' 'No package manager supported'
-    exit 1
+    error "${BASH_EZ_MSG_PACMAN_NOTFOUND}"
+    return $BASH_EZ_EX_PACMAN_NOTFOUND
   fi
 
-  eval "${1}='${manager}'" && return 0 || return 1
+  eval "${1}='${manager}'"
 }
 

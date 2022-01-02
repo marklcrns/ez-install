@@ -9,13 +9,17 @@ fi
 # Header guard
 [[ -z "${INSTALL_UTILS_INSTALL_GIT_SH_INCLUDED+x}" ]] \
   && readonly INSTALL_UTILS_INSTALL_GIT_SH_INCLUDED=1 \
-  || return 0
+  || return $BASH_EX_OK
 
 
-source "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
+source "${EZ_INSTALL_HOME}/common/include.sh"
+
+include "${EZ_INSTALL_HOME}/install/const.sh"
+include "${EZ_INSTALL_HOME}/install/utils/actions.sh"
+include "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 
 
-git_clone() {
+function git_clone() {
   local as_root=false
   local is_force=false
   local args='--'
@@ -45,32 +49,38 @@ git_clone() {
   done
   shift "$((OPTIND-1))"
 
-  local from="${@}"
-
-  if ${as_root}; then
-    if ! command -v sudo &> /dev/null; then
-      pac_log_failed 'Git' "${package}" "Git '${package}' installation failed. 'sudo' not installed"
-      return 3
-    fi
+  if [[ -z "${@+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
   fi
 
-  # Check if git is installed
-  if ! is_git_installed; then
-    pac_log_failed 'Git' "${package}" "Git '${package}' installation failed. git not installed"
-    return 1
+  local from="${@}"
+
+  if $as_root; then
+    if ! command -v sudo &> /dev/null; then
+      pac_log_failed 'Git' "${package}" "Git '${package}' installation failed. 'sudo' not installed"
+      return $BASH_EX_MISUSE
+    fi
   fi
 
   local res=0
 
+  is_git_installed
+  res=$?
+  if [[ $res -ne $BASH_EX_OK ]]; then
+    pac_log_failed 'Git' "${package}" "Git '${package}' installation failed. git not installed"
+    return $res
+  fi
+
   # Validate git repo link
   is_git_remote_reachable "${from}"
   res=$?
-  if [[ ${res} -eq 2 ]]; then
+  if [[ $res -eq 2 ]]; then
     pac_log_failed 'Git' "${from}" "Git clone '${from}' failed! Authentication timeout"
-    return ${res}
-  elif [[ ${res} -eq 1 ]]; then
+    return $res
+  elif [[ $res -eq 1 ]]; then
     pac_log_failed 'Git' "${from}" "Git clone '${from}' failed! Invalid git remote url"
-    return ${res}
+    return $res
   fi
 
   # Resolve destination
@@ -80,57 +90,57 @@ git_clone() {
   # Check destination directory validity
   if [[ ! -d "$(dirname "${to}")" ]]; then
     pac_log_failed 'Git' "${from}" "Git clone '${from}' -> '${to}' failed! Invalid destination path"
-    return 1
+    return $BASH_SYS_EX_CANTCREAT
   fi
 
   pac_pre_install "${package_name}" 'apt-add'
-  res=$?; [[ ${res} -gt 0 ]] && return ${res}
+  res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   # Replace existing repo destination dir if force
   if [[ -d "${to}" ]]; then
     if ${is_force}; then
-      if is_git_repo "${to}"; then
-        warning "Replacing '${to}' Git repository"
-        execlog "rm -rf '${to}'"
+      is_git_repo "${to}"
+      res=$?
+      if [[ $res -ne $BASH_EX_OK ]] ; then
+        pac_log_failed 'Git' "${from}" "Git clone '${from}' failed! '${to}' already exist and is not a git repository"
+        return $res
       fi
-      pac_log_failed 'Git' "${from}" "Git clone '${from}' failed! '${to}' already exist and is not a git repository"
-      return 1
+      warning "Replacing '${to}' Git repository"
+      execlog "rm -rf '${to}'"
     else
-      if is_git_repo "${to}"; then
-        pac_log_skip "Git" "${from}"
-        return 0
+      is_git_repo "${to}"
+      res=$?
+      if [[ $res -ne $BASH_EX_OK ]] ; then
+        pac_log_failed 'Git' "${from}" "Git clone '${from}' failed! '${to}' already exist"
+        return $res
       fi
-      pac_log_failed 'Git' "${from}" "Git clone '${from}' failed! '${to}' already exist"
-      return 1
+      pac_log_skip "Git" "${from}"
+      return $res
     fi
   fi
 
   # Execute cloning
-  clone_repo -a "${args}" -o "${to}" -S ${as_root} -- "${from}"
+  clone_repo -a "${args}" -o "${to}" -S $as_root -- "${from}"
   res=$?
-  if [[ ${res} -gt 0 ]]; then
-    if [[ ${res} -eq 2 ]]; then
+  if [[ $res -ne $BASH_EX_OK ]]; then
+    if [[ $res -eq $BASH_SYS_EX_SOFTWARE ]]; then
       pac_log_failed 'Git' "${from}" "Git clone '${from}' failed! Authentication timeout"
-    elif [[ ${res} -eq 1 ]]; then
+    else
       pac_log_failed 'Git' "${from}" "Git clone '${from}' -> '${to}' failed"
     fi
-    return ${res}
+    return $res
   fi
 
   pac_post_install "${package_name}" 'apt-add'
   res=$?
-  if [[ ${res} -eq 0 ]]; then
+  if [[ $res -eq $BASH_EX_OK ]]; then
     pac_log_success 'Git' "${from}" "Git clone '${from}' -> '${to}' successful"
   fi
-  return ${res}
+  return $res
 }
 
 
-# Recursive
-# returns 0 if ok,
-# returns 1 if not found,
-# returns 2 if authentication failed
-clone_repo() {
+function clone_repo() {
   local as_root=false
   local retry=${retry:-${GIT_AUTH_MAX_RETRY:-5}}
   local args=""
@@ -155,57 +165,65 @@ clone_repo() {
   done
   shift "$((OPTIND-1))"
 
+  if [[ -z "${@+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
   local from="${@}"
   local stderr=""
   local sudo=""
   local res=0
 
-  ${as_root} && sudo="sudo "
+  $as_root && sudo="sudo "
 
   # NOTE: do not set stderr to `local` inline to prevent overwritting exit code from subshell
   info "Cloning '${from}' -> '${to}'"
   stderr="$(${sudo}git clone ${args} "${from}" "${to}" 2>&1 > /dev/null; exit $?)"; res=$?
   info "Execute: git clone ${args} ${from} ${to}"
 
-  [[ ${res} -eq 0 ]] || [[ -z "${stderr}" ]] && return 0
+  [[ $res -eq $BASH_EX_OK ]] || [[ -z "${stderr}" ]] && return $res
 
   if [[ "${stderr}" =~ 'Authentication failed' ]]; then
-    if [[ "${retry}" -ne 0 ]]; then
+    if [[ "${retry}" -ne $BASH_EX_OK ]]; then
       warning "Git authentication failed. Try again (${retry} remaining)\n"
       ((--retry))
-      clone_repo -a "${args}" -o "${to}" -S ${as_root} -- "${from}"
+      clone_repo -a "${args}" -o "${to}" -S $as_root -- "${from}"
       res=$?
-      return ${res}
+      return $res
     else
       error "Git authentication timeout!"
-      return 2
+      return $BASH_SYS_EX_SOFTWARE
     fi
   else
     pac_log_failed 'Git' "${from}" "${stderr}"
-    return ${res}
+    return $res
   fi
 
-  return 1
+  return $res
 }
 
 
-is_git_installed() {
+function is_git_installed() {
   if command -v git &> /dev/null; then
-    return 0
+    return $BASH_EX_OK
   fi
-  return 1
+  return $BASH_EX_NOTFOUND
 }
 
 
-# Recursive
-# returns 0 if ok,
-# returns 1 if not found,
-# returns 2 if authentication failed
-is_git_remote_reachable() {
+function is_git_remote_reachable() {
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
   local repo="${1:-}"
   local retry=${retry:-${GIT_AUTH_MAX_RETRY:-5}}
 
-  [[ -z "${repo}" ]] || [[ ! "${repo}" =~ ^git@|^https://|^git:// ]] && return 1
+  if [[ -z "${repo}" ]] || [[ ! "${repo}" =~ ^git@|^https://|^git:// ]]; then
+    return $BASH_SYS_EX_USAGE
+  fi
 
   local stderr=""
   local res=0
@@ -213,7 +231,7 @@ is_git_remote_reachable() {
   # NOTE: do not set stderr to `local` inline to prevent overwritting exit code from subshell
   stderr="$(git ls-remote -q "${repo}" 2>&1 > /dev/null)"; res=$?
 
-  [[ ${res} -eq 0 ]] || [[ -z "${stderr}" ]] && return 0
+  [[ $res -eq $BASH_EX_OK ]] || [[ -z "${stderr}" ]] && return $BASH_EX_OK
 
   if [[ "${stderr}" =~ 'Authentication failed' ]]; then
     if [[ ${retry} -ne 0 ]]; then
@@ -221,22 +239,25 @@ is_git_remote_reachable() {
       ((--retry))
       is_git_remote_reachable "${repo}"
       res=$?
-      return ${res}
+      return $res
     else
       warning "Git authentication timeout!"
-      return 2
+      return $BASH_SYS_EX_SOFTWARE
     fi
   else
     pac_log_failed 'Git' "${from}" "${stderr}"
-    return ${res}
+    return $res
   fi
 
-  return 1
+  return $res
 }
 
 
-is_git_repo() {
+function is_git_repo() {
   repo_dir="${1:-}"
-  [[ -d "${repo_dir}/.git" ]] && return 0 || return 1
+  if [[ -d "${repo_dir}/.git" ]]; then
+    return $BASH_EX_OK
+  fi
+  return $BASH_SYS_EX_CANTCREAT
 }
 

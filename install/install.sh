@@ -12,13 +12,16 @@ fi
   || return 0
 
 
-source "${EZ_INSTALL_HOME}/install/utils/actions.sh"
+source "${EZ_INSTALL_HOME}/common/include.sh"
+
+include "${EZ_INSTALL_HOME}/install/const.sh"
+include "${EZ_INSTALL_HOME}/install/utils/actions.sh"
 for install_script in ${EZ_INSTALL_HOME}/install/install-utils/install-*.sh; do
-  source "${install_script}"
+  include "${install_script}"
 done
 
 
-install() {
+function install() {
   local args=""
   local command_name=""
   local package_name=""
@@ -52,18 +55,24 @@ install() {
   local package=""
   local destination=""
 
-  [[ -z "${1+x}" ]] && error "No package manager provided"
-  [[ -z "${2+x}" ]] && error "No package provided"
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+  if [[ -z "${2+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
 
   package_manager="$(echo "${1}" | awk '{print tolower($0)}')"
-  file="${2:-${package_name}}"
+  file="${2}"
   package="${file}"
   destination="${3:-}"
 
   if [[ ${package_manager} == "curl" ]] || [[ ${package_manager} == "wget" ]] || [[ ${package_manager} == "git" ]]; then
     if [[ -z "${package_name}" ]]; then
       error "No package name provided for '${package_manager} ${package}'"
-      return 2
+      return $BASH_SYS_EX_USAGE
     fi
     file="${package_name}"
   fi
@@ -72,62 +81,59 @@ install() {
 
   case ${package_manager} in
     apt)
-      apt_install -a "${args}" -c "${command_name}" -S ${as_root} -u ${update} -- "${package}" || return 1
+      apt_install -a "${args}" -c "${command_name}" -S $as_root -u $update -- "${package}"
       ;;
     apt-add)
-      apt_add_repo -a "${args}" -c "${command_name}" -S ${as_root} -- ${package} || return 1
+      apt_add_repo -a "${args}" -c "${command_name}" -S $as_root -- ${package}
       ;;
     npm)
-      npm_install -a "${args}" -c "${command_name}" -S ${as_root} -- "${package}" || return 1
+      npm_install -a "${args}" -c "${command_name}" -S $as_root -- "${package}"
       ;;
     pip)
-      pip_install -a "${args}" -c "${command_name}" -S ${as_root} -- "${package}" || return 1
+      pip_install -a "${args}" -c "${command_name}" -S $as_root -- "${package}"
       ;;
     pip2)
-      pip_install -v 2 -a "${args}" -c "${command_name}" -S ${as_root} -- "${package}" || return 1
+      pip_install -v 2 -a "${args}" -c "${command_name}" -S $as_root -- "${package}"
       ;;
     pip3)
-      pip_install -v 3 -a "${args}" -c "${command_name}" -S ${as_root} -- "${package}" || return 1
+      pip_install -v 3 -a "${args}" -c "${command_name}" -S $as_root -- "${package}"
       ;;
     pkg)
-      pkg_install -a "${args}" -c "${command_name}" -S ${as_root} -- "${package}" || return 1
+      pkg_install -a "${args}" -c "${command_name}" -S $as_root -u $update -- "${package}"
       ;;
     curl)
       curl_install -a "${args}" \
                    -c "${command_name}" \
                    -n "${package_name}" \
                    -o "${destination}" \
-                   -S ${as_root} \
+                   -S $as_root \
                    -- "${package}" \
-                   || return 1
       ;;
     wget)
       wget_install -a "${args}" \
                    -c "${command_name}" \
                    -n "${package_name}" \
                    -o "${destination}" \
-                   -S ${as_root} \
+                   -S $as_root \
                    -- "${package}" \
-                   || return 1
       ;;
     git)
       git_clone -a "${args}" \
                 -n "${package_name}" \
                 -o "${destination}" \
-                -S ${as_root} \
+                -S $as_root \
                 -- "${package}" \
-                || return 1
       ;;
     local)
       # Do nothing but check if executable exists and trigger pre and post processes
-      local_install -c "${command_name}" -- "${package}" || return 0
+      local_install -c "${command_name}" -- "${package}"
       ;;
     *)
-      error "'${package_manager}' package manager not supported"
-      return 1
+      error "${BASH_EZ_MSG_PACMAN_NOTFOUND}"
+      return $BASH_EZ_EX_PACMAN_NOTFOUND
       ;;
   esac
 
   res=$?
-  return ${res}
+  return $res
 }

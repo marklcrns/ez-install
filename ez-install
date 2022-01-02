@@ -12,6 +12,7 @@ include "${HOME}/.ez-installrc"
 
 ###################################################### EXTERNAL DEPENDENCIES ###
 
+include "${EZ_INSTALL_HOME}/install/const.sh"
 include "${EZ_INSTALL_HOME}/common/common.sh"
 include "${EZ_INSTALL_HOME}/common/array.sh"
 include "${EZ_INSTALL_HOME}/common/sys.sh"
@@ -33,7 +34,7 @@ readonly DOWNLOADS_DIR="${HOME}/Downloads"
 ############################################################### FLAG OPTIONS ###
 
 
-usage() {
+function usage() {
   cat << EOF
 ${SCRIPT_NAME}
 
@@ -53,6 +54,7 @@ OPTIONS:
 
 EOF
 }
+
 
 function handle_args() {
   local arg=
@@ -106,29 +108,32 @@ function handle_args() {
         SKIP_CONFIRM=true
         ;;
       h)
-        usage; exit 0
+        usage; exit $BASH_EX_OK
         ;;
       V)
-        echo "${SCRIPT_NAME} ${VERSION}"; exit 0
+        echo "${SCRIPT_NAME} ${VERSION}"; exit $BASH_EX_OK
         ;;
     esac
   done
   shift "$((OPTIND-1))"
 
   if [[ -p /dev/stdin ]]; then
-    error "Piped arguments not supported" 1
+    error "Piped arguments not supported"
+    exit $BASH_SYS_EX_USAGE
   fi
 
   if [[ ! -t 0 && ! -p /dev/stdin ]]; then
-    error "Stdin redirection not supported" 1
+    error "Stdin redirection not supported"
+    exit $BASH_SYS_EX_USAGE
   fi
 
   # Arguments from terminal
   if [[ -t 0 ]]; then
-    if [[ -n "${@}" ]]; then
+    if [[ -n "${@+x}" ]]; then
       IFS=" " read -a PACKAGES <<< "${@}"
     else
-      error "No package(s) provided" 1
+      error "No package(s) provided"
+      exit $BASH_SYS_EX_USAGE
     fi
   fi
 
@@ -143,17 +148,18 @@ function handle_args() {
   readonly PACKAGE_DIR
   readonly PACKAGES
 
-  return 0
+  return $BASH_EX_OK
 }
 
 ############################################################# MAIN EXECUTION ###
 
-_ctrl_c() {
+function _ctrl_c() {
   echo ""
-  error "${SCRIPT_PATH} Interrupted!" 1
+  error "${SCRIPT_PATH} Interrupted!"
+  exit $BASH_EX_TERMCTRLC
 }
 
-_main () {
+function _main () {
   script_vars
   handle_args "${SCRIPT_ARGS}"
 
@@ -171,16 +177,16 @@ _main () {
   for package in ${packages[@]}; do
     validate_package "${package}"
     local res=$?
-    if ! ${continue} && [[ ${res} -eq 0 ]]; then
+    if ! ${continue} && [[ ${res} -eq $BASH_EX_OK ]]; then
       continue=true
     fi
   done
   ! ${continue} && exit ${res}
 
   info "Jsonifying..."
-  pac_array_jsonify -S ${RUN_AS_SU} packages
+  pac_array_jsonify -S $RUN_AS_SU packages
 
-  if ${DEBUG} && ${VERBOSE}; then
+  if $DEBUG && $VERBOSE; then
     echo "${packages[@]}"
     for package in "${packages[@]}"; do
       echo "${package}" | ./lib/parser/jq -r ".package"
@@ -188,17 +194,22 @@ _main () {
   fi
 
   confirm "You are about to install the package(s) above. Continue? (Y/y): " \
-    || exit $?
+    || exit $BASH_EX_GENERAL
 
   # if [[ ! -d "${DOWNLOADS_DIR}" ]]; then
   #   mkdir -p "${DOWNLOADS_DIR}"
   # fi
   # cd ${DOWNLOADS_DIR}
 
+  local res=0
+
   pac_batch_json_install "${packages[@]}"
+  res=$?; [[ $res -ne $BASH_EX_OK ]] && exit $res
+
   [[ -n "${packages+x}" ]] && pac_report
 
   finish "Installation finished!"
+  return $BASH_EX_OK
 }
 
 _main

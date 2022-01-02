@@ -11,6 +11,7 @@ source "${EZ_INSTALL_HOME}/common/include.sh"
 
 include "${EZ_INSTALL_HOME}/.ez-installrc"
 include "${HOME}/.ez-installrc"
+include "${EZ_INSTALL_HOME}/install/const.sh"
 include "${EZ_INSTALL_HOME}/install/common.sh"
 include "${EZ_INSTALL_HOME}/install/install.sh"
 include "${EZ_INSTALL_HOME}/install/pac-install.sh"
@@ -22,7 +23,7 @@ include "${EZ_INSTALL_HOME}/common/sys.sh"
 [[ -z "${DEBUG+x}" ]]           && DEBUG=false
 [[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=3
 
-handle_package_args() {
+function handle_package_args() {
   OPTIND=1
   while getopts "S:" opt; do
     case ${opt} in

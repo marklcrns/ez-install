@@ -35,14 +35,17 @@ fi
   || return 0
 
 
-source "${EZ_INSTALL_HOME}/common/log.sh"
-source "${EZ_INSTALL_HOME}/common/string.sh"
+source "${EZ_INSTALL_HOME}/common/include.sh"
+
+include "${EZ_INSTALL_HOME}/common/log.sh"
+include "${EZ_INSTALL_HOME}/common/string.sh"
+include "${EZ_INSTALL_HOME}/install/const.sh"
 
 
 [[ -z "${VERBOSE+x}" ]] && VERBOSE=false
 
 # Logs INFO message on VERBOSE.
-info() {
+function info() {
   local depth=1
   OPTIND=1
   while getopts "d:" opt; do
@@ -54,7 +57,12 @@ info() {
   done
   shift "$((OPTIND-1))"
 
-  local message="${1:-}"
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  local message="${1}"
 
   if ${VERBOSE}; then
     log 'info' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}(): ${message}"
@@ -64,7 +72,7 @@ info() {
 }
 
 # Logs NOTICE message on VERBOSE.
-ok() {
+function ok() {
   local depth=1
   OPTIND=1
   while getopts "d:" opt; do
@@ -76,7 +84,12 @@ ok() {
   done
   shift "$((OPTIND-1))"
 
-  local message="${1:-}"
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  local message="${1}"
 
   if ${VERBOSE}; then
     log 'notice' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}(): ${message}"
@@ -85,8 +98,9 @@ ok() {
   fi
 }
 
-# Logs NOTICE message on VERBOSE then exit 0.
-finish() {
+
+# Logs NOTICE message on VERBOSE.
+function skip() {
   local depth=1
   OPTIND=1
   while getopts "d:" opt; do
@@ -98,18 +112,51 @@ finish() {
   done
   shift "$((OPTIND-1))"
 
-  local message="${1:-}"
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  local message="${1}"
 
   if ${VERBOSE}; then
     log 'notice' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}(): ${message}"
   else
     log 'notice' "${message}"
+  fi
+}
+
+
+# Logs WARN message on VERBOSE then exit 0.
+function finish() {
+  local depth=1
+  OPTIND=1
+  while getopts "d:" opt; do
+    case ${opt} in
+      d)
+        depth=${OPTARG}
+        ;;
+    esac
+  done
+  shift "$((OPTIND-1))"
+
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  local message="${1}"
+
+  if ${VERBOSE}; then
+    log 'warn' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}(): ${message}"
+  else
+    log 'warn' "${message}"
   fi
   exit 0
 }
 
 # Logs WARN message on VERBOSE.
-warning() {
+function warning() {
   local depth=1
   OPTIND=1
   while getopts "d:" opt; do
@@ -121,7 +168,12 @@ warning() {
   done
   shift "$((OPTIND-1))"
 
-  local message="${1:-}"
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  local message="${1}"
 
   if ${VERBOSE}; then
     log 'warn' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}(): ${message}"
@@ -131,7 +183,7 @@ warning() {
 }
 
 # Logs WARN message on VERBOSE then exit 0.
-abort() {
+function abort() {
   local depth=1
   OPTIND=1
   while getopts "d:" opt; do
@@ -143,7 +195,12 @@ abort() {
   done
   shift "$((OPTIND-1))"
 
-  local message="${1:-}"
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  local message="${1}"
 
   if ${VERBOSE}; then
     log 'warn' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}(): ${message}"
@@ -154,7 +211,7 @@ abort() {
 }
 
 # Logs ERROR message to stderr on VERBOSE then exit $2.
-error() {
+function error() {
   local depth=1
   OPTIND=1
   while getopts "d:" opt; do
@@ -166,17 +223,25 @@ error() {
   done
   shift "$((OPTIND-1))"
 
-  local message="${1:-}"
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  local message="${1}"
+  local exit_code=${2:-$BASH_EX_GENERAL}
 
   if ${VERBOSE}; then
-    log 'error' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}(): ${message}" ${2:-0}
+    log 'error' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}(): ${message}"
   else
-    log 'error' "${message}" ${2:-0}
+    log 'error' "${message}"
   fi
+  return $exit_code
 }
 
+
 # Execute message then log DEBUG on VERBOSE.
-execlog() {
+function execlog() {
   local depth=1
   OPTIND=1
   while getopts "d:" opt; do
@@ -188,7 +253,12 @@ execlog() {
   done
   shift "$((OPTIND-1))"
 
-  local command="${1:-}"
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  local command="${1}"
   strip_ansi_code command
 
   if ${VERBOSE}; then
@@ -198,7 +268,6 @@ execlog() {
     log 'debug' "${command}"
     eval "${command}" >/dev/null 2>&1
   fi
-
-  return ${?}
+  return $?
 }
 

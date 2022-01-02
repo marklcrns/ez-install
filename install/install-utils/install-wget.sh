@@ -9,14 +9,18 @@ fi
 # Header guard
 [[ -z "${INSTALL_UTILS_INSTALL_WGET_SH_INCLUDED+x}" ]] \
   && readonly INSTALL_UTILS_INSTALL_WGET_SH_INCLUDED=1 \
-  || return 0
+  || return $BASH_EX_OK
 
 
-source "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
+source "${EZ_INSTALL_HOME}/common/include.sh"
+
+include "${EZ_INSTALL_HOME}/install/const.sh"
+include "${EZ_INSTALL_HOME}/install/utils/actions.sh"
+include "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 
 
 # Specify destination directory
-wget_install() {
+function wget_install() {
   local as_root=false
   local args='-c --'
   local to=""
@@ -45,36 +49,40 @@ wget_install() {
   done
   shift "$((OPTIND-1))"
 
+  if [[ -z "${@+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
   local from="${@}"
   local sudo=""
 
-  if ${as_root}; then
+  if $as_root; then
     if command -v sudo &> /dev/null; then
       sudo="sudo "
     else
       pac_log_failed 'Wget' "${package}" "Wget '${package}' installation failed. 'sudo' not installed"
-      return 3
-    fi
-  fi
-
-
-  if ! is_wget_installed; then
-    pac_log_failed 'Wget' "${from}" "Wget '${from}' installation failed. wget not installed"
-    return 1
-  fi
-
-  # Check if already installed
-  if [[ -n ${command_name} ]]; then
-    if command -v ${command_name} &> /dev/null; then
-      pac_log_skip "Wget" "${package_name}"
-      return 0
+      return $BASH_EX_MISUSE
     fi
   fi
 
   local res=0
 
+  is_wget_installed
+  res=$?
+  if [[ $res -ne $BASH_EX_OK ]]; then
+    pac_log_failed 'Wget' "${from}" "Wget '${from}' installation failed. wget not installed"
+    return $res
+  fi
+
+  # Check if already installed
+  if [[ -n ${command_name} ]] && command -v ${command_name} &> /dev/null; then
+    pac_log_skip "Wget" "${package_name}"
+    return $BASH_EX_OK
+  fi
+
   pac_pre_install "${package_name}" 'wget'
-  res=$?; [[ ${res} -gt 0 ]] && return ${res}
+  res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   if [[ -n "${to}" ]]; then
     # Create destination directory
@@ -89,7 +97,7 @@ wget_install() {
 
     if [[ -f "${to}" ]]; then
       pac_log_skip "Wget" "${to}"
-      return 0
+      return $BASH_EX_OK
     fi
 
     # Execute installation
@@ -99,7 +107,7 @@ wget_install() {
     else
       res=$?
       pac_log_failed 'Wget' "${from}" "Wget '${from}' -> '${to}' failed!"
-      return ${res}
+      return $res
     fi
   else
     # Execute installation
@@ -109,20 +117,20 @@ wget_install() {
     else
       res=$?
       pac_log_failed 'Wget' "${from}" "Wget '${from}' failed!"
-      return ${res}
+      return $res
     fi
   fi
 
   pac_post_install "${package_name}" 'wget'
   res=$?
-  return ${res}
+  return $res
 }
 
 
-is_wget_installed() {
+function is_wget_installed() {
   if command -v wget &> /dev/null; then
-    return 0
+    return $BASH_EX_OK
   fi
-  return 1
+  return $BASH_EX_NOTFOUND
 }
 

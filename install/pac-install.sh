@@ -12,56 +12,74 @@ fi
   || return 0
 
 
-source "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
-source "${EZ_INSTALL_HOME}/install/utils/progress-bar.sh"
+source "${EZ_INSTALL_HOME}/common/include.sh"
+
+include "${EZ_INSTALL_HOME}/install/const.sh"
+include "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
+include "${EZ_INSTALL_HOME}/install/utils/progress-bar.sh"
 
 
 # TODO: Append package install status onto progress bar
-pac_batch_json_install() {
-  local packages=("${@}")
+function pac_batch_json_install() {
+  if [[ -z "${@+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  local packages=( "${@}" )
   local width="${#packages[@]}"
-  local jq='./lib/parser/jq'
+  local jq="${EZ_INSTALL_HOME}/lib/parser/jq"
+
+  if [[ ! -e "${jq}" ]]; then
+    error "Missing ${jq} dependency"
+    return $BASH_EZ_EX_DEP_NOTFOUND
+  fi
+
+  local root_package=""
+  local root_package_name=""
+  local root_package_manager=""
 
   local res=0
+  local i=1
+  for package in ${packages[@]}; do
+    root_package="$(echo "${package}" | ${jq} -crM ".package")"
+    root_package_name="$(echo "${root_package}" | ${jq} -crM ".name")"
+    pac_json_install "${root_package}"
+    res=$?
 
-  if [[ -n "${packages}" ]]; then
-    local i=1
-    local root_package=""
-    local root_package_name=""
-    local root_package_manager=""
-    for package in ${packages[@]}; do
-      root_package="$(echo "${package}" | ${jq} -crM ".package")"
-      root_package_name="$(echo "${root_package}" | ${jq} -crM ".name")"
-      pac_json_install "${root_package}"
-      res=$?
-
-      # Report root package failure
-      if [[ ${res} -gt 0 ]]; then
-        if [[ "${root_package_name##*.}" != "${root_package_name}" ]]; then
-          root_package_manager="${root_package_name##*.}"
-          capitalize root_package_manager
-        else
-          root_package_manager="N/A"
-        fi
-        pac_log_failed "${root_package_manager}" "${root_package_name}" "'${root_package_name}' installation failed"
+    # Report root package failure
+    if [[ $res -ne $BASH_EX_OK ]]; then
+      if [[ "${root_package_name##*.}" != "${root_package_name}" ]]; then
+        root_package_manager="${root_package_name##*.}"
+        capitalize root_package_manager
+      else
+        root_package_manager="N/A"
       fi
+      pac_log_failed "${root_package_manager}" "${root_package_name}" "'${root_package_name}' installation failed"
+    fi
 
-      prog_bar "$(("${i}*100/${width}"))"
-      echo "- ${root_package_name}"
-      ((++i))
-    done
-  else
-    error "Required packages array not found"
-  fi
+    prog_bar "$(("${i}*100/${width}"))"
+    echo "- ${root_package_name}"
+    ((++i))
+  done
 }
 
 
-pac_json_install() {
+function pac_json_install() {
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
   local package="${1}"
-  local jq='./lib/parser/jq'
+  local jq="${EZ_INSTALL_HOME}/lib/parser/jq"
+
+  if [[ ! -e "${jq}" ]]; then
+    error "Missing ${jq} dependency"
+    return $BASH_EZ_EX_DEP_NOTFOUND
+  fi
 
   if [[ "${package}" != "null" ]]; then
-
     local package_name="$(echo ${package} | ${jq} -crM ".name")"
     local package_dir="$(dirname -- "$(echo ${package} | ${jq} -crM ".path")")"
     local as_root=$(echo ${package} | ${jq} -crM ".as_root")
@@ -79,7 +97,7 @@ pac_json_install() {
           sub_package="$(echo "${dependencies}" | ${jq} -crM ".package")"
           pac_json_install ${sub_package}
           res=$?
-          [[ ${res} -gt 0 ]] && return ${res} # Abort immediately
+          [[ $res -ne $BASH_EX_OK ]] && return $res # Abort immediately
         fi
       done
     else
@@ -88,24 +106,24 @@ pac_json_install() {
         sub_package="$(echo "${dependencies}" | ${jq} -crM ".package")"
         pac_json_install ${sub_package}
         res=$?
-        [[ ${res} -gt 0 ]] && return ${res} # Abort immediately
+        [[ $res -ne $BASH_EX_OK ]] && return $res # Abort immediately
       fi
     fi
-    pac_install -S ${as_root} -- "${package_name}" "${package_dir}"
+    pac_install -S $as_root -- "${package_name}" "${package_dir}"
     res=$?
   fi
-  return ${res}
+  return $res
 }
 
 
-pac_install() {
+function pac_install() {
   local as_root=false
   local recursive=false
   OPTIND=1
-  while getopts "rS:" opt; do
+  while getopts "r:S:" opt; do
     case ${opt} in
       r)
-        recursive=true
+        recursive=${OPTARG}
         ;;
       S)
         as_root=${OPTARG}
@@ -114,9 +132,13 @@ pac_install() {
   done
   shift "$((OPTIND-1))"
 
-  local package="${1:?}"
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  local package="${1}"
   local package_dir="${2:-}"
-  local recursive="${3:-0}"
 
   if [[ -z "${package_dir}" ]]; then
     local res=0
@@ -124,44 +146,45 @@ pac_install() {
     fetch_package package_dir
     res=$?
 
-    if [[ ${res} -gt 0 ]]; then
+    if [[ $res -ne $BASH_EX_OK ]]; then
       local selected=
       if select_package "${package}" selected; then
         package_dir="$(dirname -- ${selected})"
       else
         pac_log_failed 'N/A' "${package}" "Package '${package}' not found"
-        return 1
+        return $BASH_EZ_EX_PAC_NOTFOUND
       fi
     fi
   fi
 
   if [[ ! -f "${package_dir}/${package}" ]]; then
     pac_log_failed 'N/A' "${package}" "Package '${package}' not found in ${package_dir}"
-    return 1
+    return $BASH_EZ_EX_PAC_NOTFOUND
   fi
 
   # Install dependencies
-  if [[ ${recursive} -eq 1 ]]; then
+  if $recursive; then
     local dependency_tracker="${EZ_INSTALL_HOME}/install/utils/dependency-tracker"
     local dependencies="$(${dependency_tracker} -p "${package}" -d "${package_dir}")"
 
     for dependency in ${dependencies}; do
       info "Installing ${package} dependency -- ${dependency}"
-      pac_install -r ${recursive} "${dependency}"
+      pac_install -r $recursive -- "${dependency}"
       local res=$?
-      [[ ${res} -gt 0 ]] && return ${res}
+      [[ $res -ne $BASH_EX_OK ]] && return $res
     done
   fi
 
   info "Installing '${package}' from '${package_dir}'"
-  source "${package_dir}/${package}" -S ${as_root}
+  source "${package_dir}/${package}" -S $as_root
   res=$?
-  return ${res}
+  return $res
 }
 
 
-pac_batch_install() {
+function pac_batch_install() {
   local recursive=false
+
   OPTIND=1
   while getopts "r:" opt; do
     case ${opt} in
@@ -172,33 +195,44 @@ pac_batch_install() {
   done
   shift "$((OPTIND-1))"
 
-  local packages=("${@}")
+  if [[ -z "${@+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  local packages=( "${@}" )
   local width="${#packages[@]}"
 
-  if [[ -n "${packages}" ]]; then
-    local i=1
-    for package in ${packages[@]}; do
-      pac_install -r ${recursive} "${package}"
-      prog_bar "$(("${i}*100/${width}"))"
-      echo "- ${package}"
-      ((++i))
-    done
-  else
-    error "Required packages array not found"
-  fi
+  local i=1
+  for package in ${packages[@]}; do
+    pac_install -r $recursive "${package}"
+    prog_bar "$(("${i}*100/${width}"))"
+    echo "- ${package}"
+    ((++i))
+  done
 }
 
 
-pac_deploy_init() {
-  local target="${1:-}"
+function pac_deploy_init() {
+  if [[ -z "${@+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  local target="${1}"
   local from="${EZ_INSTALL_HOME}/install/init.sh"
+
+  if [[ ! -e "${from}" ]]; then
+    error "Missing '${from}'"
+    return $BASH_EZ_EX_DEP_NOTFOUND
+  fi
 
   if [[ -f "${target}" ]]; then
     warning "Replacing '${target}' with '${from}' symlink"
     execlog "rm ${target}"
   elif [[ -d "${target}" ]]; then
     error "Target '${target}' is a directory!"
-    return 1
+    return $BASH_SYS_EX_CANTCREAT
   elif [[ ! -d "$(dirname -- "${target}")" ]]; then
     execlog "mkdir -p '$(dirname -- "${target}")'"
   fi
@@ -207,15 +241,19 @@ pac_deploy_init() {
     ok "${from} -> ${target} symlink created"
   else
     error "${from} -> ${target} symlink failed"
+    return $BASH_SYS_EX_CANTCREAT
   fi
 }
 
 
-pac_pre_install() {
-  [[ -z "${1:-}" ]] && error "No package provided"
+function pac_pre_install() {
+  if [[ -z "${@+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
 
   local package="${1}"
-  local package_manager="${2:-}"
+  local package_manager="${2:-N/A}"
 
   local res=0
   local package_pre_path=""
@@ -223,35 +261,44 @@ pac_pre_install() {
   # Pre process global
   package_pre_path="${package}.pre"
   fetch_package package_pre_path
-  if [[ ${$?} -eq 0 ]]; then
+  if [[ $? -eq $BASH_EX_OK ]]; then
+    info "Executing ${package_pre-path}..."
     source "${package_pre_path}"
     res=$?
-  fi
-
-  if [[ ${res} -eq 0 ]] && [[ -n "${package_manager}" ]]; then
-    to_lower package_manager
-    # Pre process global
-    package_pre_path="${package}.${package_manager}.pre"
-    fetch_package package_pre_path
-    if [[ ${$?} -eq 0 ]]; then
-      source "${package_pre_path}"
-      res=$?
+    if [[ $res -ne $BASH_EX_OK ]]; then
+      capitalize package_manager
+      pac_log_failed "${package_manager}" "${package}" "${package_manager} '${package}' global pre installation failed"
+      return $res
     fi
   fi
 
-  if [[ ${res} -gt 0 ]]; then
-    capitalize package_manager
-    pac_log_failed "${package_manager}" "${package}" "${package_manager} '${package}' pre installation failed"
+    # Pre process local
+  if [[ "${package_manager}" != 'N/A' ]]; then
+    to_lower package_manager
+    package_pre_path="${package}.${package_manager}.pre"
+    fetch_package package_pre_path
+    if [[ $? -eq $BASH_EX_OK ]]; then
+      info "Executing ${package_pre-path}..."
+      source "${package_pre_path}"
+      res=$?
+      if [[ $res -ne $BASH_EX_OK ]]; then
+        capitalize package_manager
+        pac_log_failed "${package_manager}" "${package}" "${package_manager} '${package}' local pre installation failed"
+        return $res
+      fi
+    fi
   fi
-  return ${res}
 }
 
 
-pac_post_install() {
-  [[ -z "${1:-}" ]] && error "No package provided"
+function pac_post_install() {
+  if [[ -z "${@+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
 
   local package="${1}"
-  local package_manager="${2:-}"
+  local package_manager="${2:-N/A}"
 
   local res=0
   local package_post_path=""
@@ -259,26 +306,31 @@ pac_post_install() {
   # Post process global
   package_post_path="${package}.post"
   fetch_package package_post_path
-  if [[ ${$?} -eq 0 ]]; then
+  if [[ $? -eq $BASH_EX_OK ]]; then
+    info "Executing ${package_pre-path}..."
     source "${package_post_path}"
     res=$?
-  fi
-
-  if [[ ${res} -eq 0 ]] && [[ -n "${package_manager}" ]]; then
-    to_lower package_manager
-    # Post process global
-    package_post_path="${package}.${package_manager}.post"
-    fetch_package package_post_path
-    if [[ ${$?} -eq 0 ]]; then
-      source "${package_post_path}"
-      res=$?
+    if [[ $res -ne $BASH_EX_OK ]]; then
+      capitalize package_manager
+      pac_log_failed "${package_manager}" "${package}" "${package_manager} '${package}' global post installation failed"
+      return $res
     fi
   fi
 
-  if [[ ${res} -gt 0 ]]; then
-    capitalize package_manager
-    pac_log_failed "${package_manager}" "${package}" "${package_manager} '${package}' post installation failed"
+  # Post process local
+  if [[ "${package_manager}" != 'N/A' ]]; then
+    to_lower package_manager
+    package_post_path="${package}.${package_manager}.post"
+    fetch_package package_post_path
+    if [[ $? -eq $BASH_EX_OK ]]; then
+      info "Executing ${package_pre-path}..."
+      source "${package_post_path}"
+      res=$?
+      if [[ $res -ne $BASH_EX_OK ]]; then
+        capitalize package_manager
+        pac_log_failed "${package_manager}" "${package}" "${package_manager} '${package}' local post installation failed"
+        return $res
+      fi
+    fi
   fi
-
-  return ${res}
 }

@@ -29,7 +29,7 @@ starting from scratch less painful.
   - [X] Dependency system
   - [X] Print dependency tree before installation
   - [X] Prevent package installation with missing dependencies
-  - [X] Full support for custom package install script directory
+  - [ ] Full support for custom package install script directory
 - [X] More flexible installation
   - [X] Support individual installation via commandline
   - [ ] Support JSON install configuration

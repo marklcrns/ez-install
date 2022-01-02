@@ -6,15 +6,16 @@ set -o nounset
 source "${EZ_INSTALL_HOME}/common/include.sh"
 
 include "${EZ_INSTALL_HOME}/install/init.sh"
+include "${EZ_INSTALL_HOME}/install/utils/actions.sh"
 
 os_release
 
-SCRIPT_DIR="${BASH_SOURCE%/*}"
 VERBOSE=true
 DEBUG=true
+SCRIPT_DIR="${BASH_SOURCE%/*}"
 PACKAGE_DIR="${PACKAGE_ROOT_DIR}/${OS_DISTRIB_ID}/${OS_DISTRIB_RELEASE}"
 
-_main() {
+function _main() {
   pac_deploy_init "${PACKAGE_DIR}/__init__.sh"
 
   local -a _essentials=(
@@ -227,14 +228,22 @@ _main() {
   )
 
   local template_args=
-  ${VERBOSE} && template_args+="-v "
-  ${DEBUG} && template_args+="-x "
+  $VERBOSE && template_args+="-v "
+  $DEBUG && template_args+="-x "
 
   for package in "${packages[@]}"; do
     ${SCRIPT_DIR}/generate-template -y ${template_args} "${package}"
   done
-  printf "'${PACKAGE_DIR}' packages build finished\n"
+  finish "'${PACKAGE_DIR}' packages build finished"
 }
 
+res=0
 _main
+res=$?
 
+unset VERBOSE
+unset DEBUG
+unset SCRIPT_DIR
+unset PACKAGE_DIR
+
+exit $res

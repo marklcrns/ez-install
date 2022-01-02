@@ -9,13 +9,17 @@ fi
 # Header guard
 [[ -z "${INSTALL_UTILS_INSTALL_PKG_SH_INCLUDED+x}" ]] \
   && readonly INSTALL_UTILS_INSTALL_PKG_SH_INCLUDED=1 \
-  || return 0
+  || return $BASH_EX_OK
 
 
-source "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
+source "${EZ_INSTALL_HOME}/common/include.sh"
+
+include "${EZ_INSTALL_HOME}/install/const.sh"
+include "${EZ_INSTALL_HOME}/install/utils/actions.sh"
+include "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 
 
-pkg_install() {
+function pkg_install() {
   local as_root=false
   local is_update=false
   local args='--'
@@ -40,38 +44,45 @@ pkg_install() {
   done
   shift "$((OPTIND-1))"
 
+  if [[ -z "${@+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
   local package="${@%.*}"
   local sudo=""
 
-  if ${as_root}; then
+  if $as_root; then
     if command -v sudo &> /dev/null; then
       sudo="sudo "
     else
       pac_log_failed 'Pkg' "${package}" "Pkg '${package}' installation failed. 'sudo' not installed"
-      return 3
+      return $BASH_EX_MISUSE
     fi
   fi
 
-  if ! is_pkg_installed; then
+  local res=0
+
+  is_pkg_installed
+  res=$?
+  if [[ $res -ne $BASH_EX_OK ]]; then
     pac_log_failed 'Pkg' "${package}" "Pkg '${package}' installation failed. pkg not installed"
-    return 1
+    return $res
   fi
 
   # Check if already installed
   if pkg search "${package}" | grep 'installed' &> /dev/null || command -v ${command_name} &> /dev/null; then
     pac_log_skip 'Pkg' "${package}"
-    return 0
+    return $BASH_EX_OK
   fi
 
-  local res=0
-
-  if ${is_update}; then
-    pkg_update -S ${as_root}
-    res=$?; [[ ${res} -gt 0 ]] && return ${res}
+  if $is_update; then
+    pkg_update -S $as_root
+    res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
   fi
 
   pac_pre_install "${package}" 'pkg'
-  res=$?; [[ ${res} -gt 0 ]] && return ${res}
+  res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   # Execute installation
   if execlog "${sudo}pkg install -y ${args} '${package}'"; then
@@ -79,17 +90,17 @@ pkg_install() {
   else
     res=$?
     pac_log_failed 'Pkg' "${package}"
-    return ${res}
+    return $res
   fi
 
   pac_post_install "${package}" 'pkg'
   res=$?
 
-  return ${res}
+  return $res
 }
 
 
-pkg_update() {
+function pkg_update() {
   local as_root=false
 
   OPTIND=1
@@ -104,31 +115,31 @@ pkg_update() {
 
   local sudo=""
 
-  if ${as_root}; then
+  if $as_root; then
     if command -v sudo &> /dev/null; then
       sudo="sudo "
     else
-      return 3
+      return $BASH_EX_MISUSE
     fi
   fi
 
   local res=
 
-  if execlog 'pkg upgrade -y'; then
+  if execlog "${sudo}pkg upgrade -y"; then
     ok 'Pkg upgrade successful!'
   else
     res=$?
     error 'Pkg upgrade failed'
   fi
 
-  return ${res}
+  return $res
 }
 
 
-is_pkg_installed() {
+function is_pkg_installed() {
   if command -v pkg &> /dev/null; then
-    return 0
+    return $BASH_EX_OK
   fi
-  return 1
+  return $BASH_EX_NOTFOUND
 }
 

@@ -9,13 +9,17 @@ fi
 # Header guard
 [[ -z "${INSTALL_UTILS_INSTALL_PIP_SH_INCLUDED+x}" ]] \
   && readonly INSTALL_UTILS_INSTALL_PIP_SH_INCLUDED=1 \
-  || return 0
+  || return $BASH_EX_OK
 
 
-source "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
+source "${EZ_INSTALL_HOME}/common/include.sh"
+
+include "${EZ_INSTALL_HOME}/install/const.sh"
+include "${EZ_INSTALL_HOME}/install/utils/actions.sh"
+include "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 
 
-pip_install() {
+function pip_install() {
   local as_root=false
   local is_global=false
   local args='--'
@@ -44,50 +48,57 @@ pip_install() {
   done
   shift "$((OPTIND-1))"
 
+  if [[ -z "${@+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
   local package="${@%.*}"
   local sudo=""
 
-  if ${as_root}; then
+  if $as_root; then
     if command -v sudo &> /dev/null; then
       sudo="sudo "
     else
       pac_log_failed "Pip${pip_version}" "${package}" "Pip${pip_version} '${package}' installation failed. 'sudo' not installed"
-      return 3
+      return $BASH_EX_MISUSE
     fi
   fi
 
-  if ! is_pip_installed ${pip_version}; then
+  local res=0
+
+  is_pip_installed
+  res=$?
+  if [[ $res -ne $BASH_EX_OK ]]; then
     pac_log_failed "Pip${pip_version}" "${package}" "Pip${pip_version} '${package}' installation failed. pip${pip_version} not installed"
-    return 1
+    return $res
   fi
 
   # Check pip version if not 2 or 3
   if [[ -n ${pip_version} ]]; then
     if [[ "${pip_version}" -gt 3 || ${pip_version} -lt 2 ]]; then
       pac_log_failed "Pip${pip_version}" "${package}" "Pip${pip_version} '${package}' package failed. Invalid pip version"
-      return 1
+      return $BASH_EX_NOTFOUND
     fi
   fi
 
   # Check if already installed
   if ${sudo}pip${pip_version} list | grep -F "${package}" &> /dev/null || command -v ${command_name} &> /dev/null; then
     pac_log_skip "Pip${pip_version}" "${package}"
-    return 0
+    return $BASH_EX_OK
   fi
 
-  local res=0
-
   pac_pre_install "${package}" "pip${pip_version}"
-  res=$?; [[ ${res} -gt 0 ]] && return ${res}
+  res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   # Execute installation
-  if ${is_global}; then
+  if $is_global; then
     if execlog "${sudo}pip${pip_version} install -g ${args} ${package}"; then
       pac_log_success "Pip${pip_version}" "${package}"
     else
       res=$?
       pac_log_failed "Pip${pip_version}" "${package}"
-      return ${res}
+      return $res
     fi
   else
     if execlog "${sudo}pip${pip_version} install ${args} ${package}"; then
@@ -95,22 +106,22 @@ pip_install() {
     else
       res=$?
       pac_log_failed "Pip${pip_version}" "${package}"
-      return ${res}
+      return $res
     fi
   fi
 
   pac_post_install "${package}" "pip${pip_version}"
   res=$?
 
-  return ${res}
+  return $res
 }
 
 
-is_pip_installed() {
+function is_pip_installed() {
   local pip_version=${1:-}
   if command -v "pip${pip_version}" &> /dev/null; then
-    return 0
+    return $BASH_EX_OK
   fi
-  return 1
+  return $BASH_EX_NOTFOUND
 }
 

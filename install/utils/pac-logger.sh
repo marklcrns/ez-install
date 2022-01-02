@@ -12,9 +12,11 @@ fi
   || return 0
 
 
-source "${EZ_INSTALL_HOME}/install/utils/actions.sh"
-source "${EZ_INSTALL_HOME}/common/colors.sh"
-source "${EZ_INSTALL_HOME}/common/stack.sh"
+source "${EZ_INSTALL_HOME}/common/include.sh"
+
+include "${EZ_INSTALL_HOME}/common/colors.sh"
+include "${EZ_INSTALL_HOME}/install/const.sh"
+include "${EZ_INSTALL_HOME}/install/utils/actions.sh"
 
 
 [[ -z "${SUCCESSFUL_PACKAGES+x}" ]] && declare -a SUCCESSFUL_PACKAGES=()
@@ -22,7 +24,7 @@ source "${EZ_INSTALL_HOME}/common/stack.sh"
 [[ -z "${FAILED_PACKAGES+x}" ]]     && declare -a FAILED_PACKAGES=()
 
 
-pac_log_success() {
+function pac_log_success() {
   local manager="${1}"
   local package="${2}"
   local message="${3:-}"
@@ -35,30 +37,30 @@ pac_log_success() {
 
   local log="'${package}' SUCCESSFUL"
   if ! has_pac_log_duplicate "${log}" "${SUCCESSFUL_PACKAGES[@]}"; then
-    SUCCESSFUL_PACKAGES=( ${SUCCESSFUL_PACKAGES[@]} "${manager} ${log}" )
+    SUCCESSFUL_PACKAGES=( "${SUCCESSFUL_PACKAGES[@]}" "${manager} ${log}" )
   fi
 }
 
 
-pac_log_skip() {
+function pac_log_skip() {
   local manager="${1}"
   local package="${2}"
   local message="${3:-}"
 
   if [[ -n "${message}" ]]; then
-    ok -d 2 "${message}"
+    skip -d 2 "${message}"
   else
-    ok -d 2 "${manager} '${package}' package already installed"
+    skip -d 2 "${manager} '${package}' package already installed"
   fi
 
   local log="'${package}' SKIPPED"
   if ! has_pac_log_duplicate "${log}" "${SKIPPED_PACKAGES[@]}"; then
-    SKIPPED_PACKAGES=( ${SKIPPED_PACKAGES[@]} "${manager} ${log}" )
+    SKIPPED_PACKAGES=( "${SKIPPED_PACKAGES[@]}" "${manager} ${log}" )
   fi
 }
 
 
-pac_log_failed() {
+function pac_log_failed() {
   local manager="${1}"
   local package="${2}"
   local message="${3:-}"
@@ -71,12 +73,12 @@ pac_log_failed() {
 
   local log="'${package}' FAILED"
   if ! has_pac_log_duplicate "${log}" "${FAILED_PACKAGES[@]}"; then
-    FAILED_PACKAGES=( ${FAILED_PACKAGES[@]} "${manager} ${log}" )
+    FAILED_PACKAGES=( "${FAILED_PACKAGES[@]}" "${manager} ${log}" )
   fi
 }
 
 
-has_pac_log_duplicate() {
+function has_pac_log_duplicate() {
   local new_log=${1:-}
   shift 1
   local log=( "${@}" )
@@ -85,16 +87,16 @@ has_pac_log_duplicate() {
   local i=
   for ((i = 0; i < ${#log[@]}; ++i)); do
     if [[ "${log[$i]}" =~ .*${new_log}.* ]]; then
-      return 0
+      return $BASH_EX_OK
     fi
   done
 
-  return 1
+  return $BASH_EX_GENERAL
 }
 
 
 # TODO: Excluded duplicates
-pac_report() {
+function pac_report() {
   local total_count=0
   local successful_count=0
   local skipped_count=0
@@ -114,7 +116,7 @@ pac_report() {
   if [[ -n ${SKIPPED_PACKAGES[@]} ]]; then
     echo -e "\n${COLOR_UL_NC}Skipped Installations${COLOR_NC}\n"
     for ((i = 0; i < ${#SKIPPED_PACKAGES[@]}; ++i)); do
-      echo -e "${COLOR_YELLOW}${SKIPPED_PACKAGES[$i]}${COLOR_NC}"
+      echo -e "${COLOR_BLUE}${SKIPPED_PACKAGES[$i]}${COLOR_NC}"
       total_count=$(expr ${total_count} + 1)
       successful_count=$(expr ${successful_count} + 1)
     done
