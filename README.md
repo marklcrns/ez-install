@@ -29,7 +29,8 @@ Finally, `export EZ_INSTALL_HOME` in your `~/.bashrc` or `~/.zshrc` or in any
 environment rc file of your shell initialized on startup.
 
 ```sh
-export EZ_INSTALL_HOME='~/.ez-install'
+# Use $HOME instead of `~`. Produce less path problems
+export EZ_INSTALL_HOME="${HOME}/.ez-install"
 ```
 
 ## Usage
