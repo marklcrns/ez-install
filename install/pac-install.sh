@@ -15,6 +15,7 @@ fi
 source "${EZ_INSTALL_HOME}/common/include.sh"
 
 include "${EZ_INSTALL_HOME}/install/const.sh"
+include "${EZ_INSTALL_HOME}/install/common.sh"
 include "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 include "${EZ_INSTALL_HOME}/install/utils/progress-bar.sh"
 
@@ -117,12 +118,13 @@ function pac_json_install() {
 
 
 function pac_install() {
-  local as_root=false
   local recursive=false
+  local as_root=false
+
   OPTIND=1
-  while getopts "r:S:" opt; do
+  while getopts "R:S:" opt; do
     case ${opt} in
-      r)
+      R)
         recursive=${OPTARG}
         ;;
       S)
@@ -137,7 +139,8 @@ function pac_install() {
     return $BASH_SYS_EX_USAGE
   fi
 
-  local package="${1}"
+  parse_inline_opts "${1}"
+  local package="${1%#*}"     # Strip #opts
   local package_dir="${2:-}"
 
   if [[ -z "${package_dir}" ]]; then
@@ -169,7 +172,7 @@ function pac_install() {
 
     for dependency in ${dependencies}; do
       info "Installing ${package} dependency -- ${dependency}"
-      pac_install -r $recursive -- "${dependency}"
+      pac_install -R $recursive -S $as_root -- "${dependency}"
       local res=$?
       [[ $res -ne $BASH_EX_OK ]] && return $res
     done
@@ -184,12 +187,16 @@ function pac_install() {
 
 function pac_batch_install() {
   local recursive=false
+  local as_root=false
 
   OPTIND=1
-  while getopts "r:" opt; do
+  while getopts "R:S:" opt; do
     case ${opt} in
-      r)
+      R)
         recursive=${OPTARG}
+        ;;
+      S)
+        as_root=${OPTARG}
         ;;
     esac
   done
@@ -205,7 +212,7 @@ function pac_batch_install() {
 
   local i=1
   for package in ${packages[@]}; do
-    pac_install -r $recursive "${package}"
+    pac_install -R $recursive -S $as_root -- "${package}"
     prog_bar "$(("${i}*100/${width}"))"
     echo "- ${package}"
     ((++i))

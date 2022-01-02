@@ -17,15 +17,20 @@ source "${EZ_INSTALL_HOME}/common/include.sh"
 
 include "${EZ_INSTALL_HOME}/common/colors.sh"
 include "${EZ_INSTALL_HOME}/common/log.sh"
+include "${EZ_INSTALL_HOME}/install/const.sh"
 include "${EZ_INSTALL_HOME}/install/common.sh"
 
 
 function pac_array_jsonify() {
+  local recursive=true
   local as_root=false
 
   OPTIND=1
-  while getopts "S:" opt; do
+  while getopts "R:S:" opt; do
     case ${opt} in
+      R)
+        recursive=${OPTARG}
+        ;;
       S)
         as_root=${OPTARG}
         ;;
@@ -33,15 +38,21 @@ function pac_array_jsonify() {
   done
   shift "$((OPTIND-1))"
 
-  local pac_array_name=${1:?}
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  local pac_array_name=${1}
   eval "pac_array=( \"\${${pac_array_name}[@]}\" )"
 
   local res=0
 
   local i=
+  local package=
   for i in "${!pac_array[@]}"; do
-    local package="${pac_array[$i]}"
-    pac_jsonify -S $as_root -- package
+    package="${pac_array[$i]}"
+    pac_jsonify -R $recursive -S $as_root -- package
     res=$?
 
     if [[ $res -ne $BASH_EX_OK ]]; then
@@ -56,11 +67,15 @@ function pac_array_jsonify() {
 
 
 function pac_jsonify() {
+  local recursive=true
   local as_root=false
 
   OPTIND=1
-  while getopts "S:" opt; do
+  while getopts "R:S:" opt; do
     case ${opt} in
+      R)
+        recursive=${OPTARG}
+        ;;
       S)
         as_root=${OPTARG}
         ;;
@@ -68,13 +83,21 @@ function pac_jsonify() {
   done
   shift "$((OPTIND-1))"
 
-  local global_pac_var_name="${1:?}"
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  local global_pac_var_name="${1}"
   local local_pac_var_name="${2:-${1}}"
   local root_package=${3:-}
   local depth=${4:-1}
   local indent="${indent:-}|  "
 
   eval "local _package=\${$local_pac_var_name}"
+
+  parse_inline_opts "${_package}"
+  _package="${_package%#*}" # Strip #opts
 
   info "Fetching: ${_package}"
 
@@ -103,38 +126,40 @@ function pac_jsonify() {
   eval "${global_pac_var_name}+='\"path\":\"${package_path}\",'"
   eval "${global_pac_var_name}+='\"as_root\":$as_root'"
 
-  local -a package_dependencies=( $(${EZ_INSTALL_HOME}/install/utils/metadata-parser "dependency" "${package_path}") )
+  if $recursive; then
+    local -a package_dependencies=( $(${EZ_INSTALL_HOME}/install/utils/metadata-parser "dependency" "${package_path}") )
 
-  # Handle dependencies recursively
-  if [[ -n ${package_dependencies+x} ]]; then
-    info "${indent}Dependency detected for ${_package} (${#package_dependencies[@]})"
+    # Handle dependencies recursively
+    if [[ -n ${package_dependencies+x} ]]; then
+      info "${indent}Dependency detected for ${_package} (${#package_dependencies[@]})"
 
-    if [[ ${#package_dependencies[@]} -gt 1 ]]; then
-      eval "${global_pac_var_name}+=',\"dependencies\":['"
+      if [[ ${#package_dependencies[@]} -gt 1 ]]; then
+        eval "${global_pac_var_name}+=',\"dependencies\":['"
+      else
+        eval "${global_pac_var_name}+=',\"dependencies\":'"
+      fi
+
+      local dependency=""
+      local res=0
+
+      local i=
+      for i in "${!package_dependencies[@]}"; do
+        dependency="${package_dependencies[$i]}"
+        [[ $i -gt 0 ]] && eval "${global_pac_var_name}+=,"
+
+        info "${indent}Dependency: ${dependency}"
+        eval "${global_pac_var_name}+='{'"
+
+        pac_jsonify -R $recursive -S $as_root -- "${global_pac_var_name}" dependency ${_package} $((depth+1))
+        res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
+
+        eval "${global_pac_var_name}+='}'"
+        info "${indent}Dependency (resolved): ${dependency}"
+      done
+      [[ ${#package_dependencies[@]} -gt 1 ]] && eval "${global_pac_var_name}+=']'"
     else
-      eval "${global_pac_var_name}+=',\"dependencies\":'"
+      info "${indent}No dependency detected for ${_package}"
     fi
-
-    local dependency=""
-    local res=0
-
-    local i=
-    for i in "${!package_dependencies[@]}"; do
-      dependency="${package_dependencies[$i]}"
-      [[ $i -gt 0 ]] && eval "${global_pac_var_name}+=,"
-
-      info "${indent}Dependency: ${dependency}"
-      eval "${global_pac_var_name}+='{'"
-
-      pac_jsonify -S $as_root -- "${global_pac_var_name}" dependency ${_package} $((depth+1))
-      res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
-
-      eval "${global_pac_var_name}+='}'"
-      info "${indent}Dependency (resolved): ${dependency}"
-    done
-    [[ ${#package_dependencies[@]} -gt 1 ]] && eval "${global_pac_var_name}+=']'"
-  else
-    info "${indent}No dependency detected for ${_package}"
   fi
 
   [[ ${depth} -eq 1 ]] && eval "${global_pac_var_name}+='}'"
@@ -142,18 +167,91 @@ function pac_jsonify() {
 }
 
 
+function validate_packages() {
+  local recursive=true
+  local as_root=false
+
+  OPTIND=1
+  while getopts "R:S:" opt; do
+    case ${opt} in
+      R)
+        recursive=${OPTARG}
+        ;;
+      S)
+        as_root=${OPTARG}
+        ;;
+    esac
+  done
+  shift "$((OPTIND-1))"
+
+  if [[ -z "${@+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  local packages=( "${@}" )
+
+  # Only continue with at least one valid package
+  local continue=false
+  local res=0
+  for package in ${packages[@]}; do
+    validate_package -R $RECURSIVE -S $AS_ROOT -- "${package}"
+    res=$?
+    if ! ${continue} && [[ ${res} -eq $BASH_EX_OK ]]; then
+      continue=true
+    fi
+  done
+  ! ${continue} && return ${res} || return $BASH_EX_OK
+}
+
+
 function validate_package() {
-  local package="${1:?}"
+  local recursive=true
+  local as_root=false
+
+  OPTIND=1
+  while getopts "R:S:" opt; do
+    case ${opt} in
+      R)
+        recursive=${OPTARG}
+        ;;
+      S)
+        as_root=${OPTARG}
+        ;;
+    esac
+  done
+  shift "$((OPTIND-1))"
+
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  parse_inline_opts "${1}"
+  local package="${1%#*}"   # Strip #opts
 
   info "Validating packages..."
   ! $DEBUG && printf "${package}"
+  $as_root && ! $DEBUG && printf " ${COLOR_BLUE}(ROOT)${COLOR_NC} "
 
-  _validate_dependencies "${package}"
-  return $?
+  if $recursive; then
+    _validate_dependencies "${package}" $as_root
+    return $?
+  fi
+
+  ! $DEBUG && printf "\n"
+  return $BASH_EX_OK
 }
 
+
 function _validate_dependencies() {
-  local _package="${1:?}"
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  local _package="${1}"
+  local _as_root=${2:-false}
   local _package_path="${_package}"
   local _indent="${_indent:-}│  "
 
@@ -177,8 +275,10 @@ function _validate_dependencies() {
 
   for dependency in "${_package_dependencies[@]}"; do
     ! $DEBUG && printf "${_indent}└─${dependency}"
+    $_as_root && ! $DEBUG && printf " ${COLOR_BLUE}(ROOT)${COLOR_NC} "
+
     if has_package "${dependency}"; then
-      _validate_dependencies "${dependency}"
+      _validate_dependencies "${dependency}" $_as_root
     else
       if has_alternate_package ${dependency}; then
         ! $DEBUG && printf " ${COLOR_YELLOW}(CHOOSE)${COLOR_NC}\n"

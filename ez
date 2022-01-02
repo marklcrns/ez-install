@@ -64,6 +64,7 @@ function handle_args() {
       # translate --gnu-long-options to -g (short options)
       --destination)    args="${args:-}-d ";;
       --package-dir)    args="${args:-}-D ";;
+      --no-recursive)   args="${args:-}-R ";;
       --as-root)        args="${args:-}-S ";;
       --verbose)        args="${args:-}-v ";;
       --debug)          args="${args:-}-x ";;
@@ -79,14 +80,15 @@ function handle_args() {
 
   eval set -- ${args:-}
 
-  [[ -z "${RUN_AS_SU+x}" ]]       && RUN_AS_SU=false
   [[ -z "${SKIP_CONFIRM+x}" ]]    && SKIP_CONFIRM=false
   [[ -z "${VERBOSE+x}" ]]         && VERBOSE=false
   [[ -z "${DEBUG+x}" ]]           && DEBUG=false
   [[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=3
+  [[ -z "${RECURSIVE+x}" ]]       && RECURSIVE=true
+  [[ -z "${AS_ROOT+x}" ]]         && AS_ROOT=false
 
   OPTIND=1
-  while getopts "d:D:SvxyhV" opt; do
+  while getopts "d:D:RSvxyhV" opt; do
     case ${opt} in
       d)
         DESTINATION="${OPTARG}"
@@ -94,8 +96,11 @@ function handle_args() {
       D)
         PACKAGE_DIR="${OPTARG}"
         ;;
+      R)
+        RECURSIVE=false
+        ;;
       S)
-        RUN_AS_SU=true
+        AS_ROOT=true
         ;;
       v)
         VERBOSE=true
@@ -141,11 +146,12 @@ function handle_args() {
 
   resolve_package_dir
 
-  readonly RUN_AS_SU
   readonly SKIP_CONFIRM
   readonly VERBOSE
   readonly DEBUG
   readonly LOG_DEBUG_LEVEL
+  readonly RECURSIVE
+  readonly AS_ROOT
   readonly DESTINATION
   readonly PACKAGE_DIR
   readonly PACKAGES
@@ -175,22 +181,17 @@ function _main () {
 
   ! ${DEBUG} && echo -e "About to install the following packages:\n"
 
-  local continue=false
-  for package in ${packages[@]}; do
-    validate_package "${package}"
-    local res=$?
-    if ! ${continue} && [[ ${res} -eq $BASH_EX_OK ]]; then
-      continue=true
-    fi
-  done
-  ! ${continue} && exit ${res}
+  local res=0
+
+  validate_packages ${packages[@]}
+  res=$?; [[ ${res} -ne $BASH_EX_OK ]] && return $res
 
   info "Jsonifying..."
-  pac_array_jsonify -S $RUN_AS_SU packages
+  pac_array_jsonify -R $RECURSIVE -S $AS_ROOT -- packages
 
   if $DEBUG && $VERBOSE; then
     echo "${packages[@]}"
-    for package in "${packages[@]}"; do
+    for package in ${packages[@]}; do
       echo "${package}" | ./lib/parser/jq -r ".package"
     done
   fi
@@ -202,8 +203,6 @@ function _main () {
   #   mkdir -p "${DOWNLOADS_DIR}"
   # fi
   # cd ${DOWNLOADS_DIR}
-
-  local res=0
 
   pac_batch_json_install "${packages[@]}"
   res=$?; [[ $res -ne $BASH_EX_OK ]] && exit $res

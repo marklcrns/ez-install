@@ -163,6 +163,37 @@ function has_alternate_package() {
 }
 
 
+# Requires $recursive and $as_root to be defined outside of function
+function parse_inline_opts() {
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+  
+  local __package="${1%#*}"   # Strip #opts
+  local __opts="${1##*#}"     # Strip package
+
+  if [[ "${__opts}" != "${__package}" ]]; then
+    for __opt in ${__opts//,/ }; do
+      case ${__opt} in
+        root)
+          as_root=true
+          ;;
+        noroot)
+          as_root=false
+          ;;
+        dep)
+          recursive=true
+          ;;
+        nodep)
+          recursive=false
+          ;;
+      esac
+    done
+  fi
+}
+
+
 function get_sys_package_manager() {
   if [[ -z "${1+x}" ]]; then
     error "${BASH_SYS_MSG_USAGE_MISSARG}"
