@@ -4,5 +4,5 @@ EZ_HOME := ~/.ez-install
 
 $(INSTALL_DIR)/ez:
 	sudo mkdir -p ${INSTALL_DIR}
-	sudo ln -s $(EZ_HOME)/ez $@
+	sudo ln -sf $(EZ_HOME)/ez $@
 
