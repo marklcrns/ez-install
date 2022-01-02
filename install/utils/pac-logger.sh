@@ -118,7 +118,7 @@ function pac_report() {
     for ((i = 0; i < ${#SKIPPED_PACKAGES[@]}; ++i)); do
       echo -e "${COLOR_BLUE}${SKIPPED_PACKAGES[$i]}${COLOR_NC}"
       total_count=$(expr ${total_count} + 1)
-      successful_count=$(expr ${successful_count} + 1)
+      skipped_count=$(expr ${skipped_count} + 1)
     done
   fi
 
@@ -127,7 +127,7 @@ function pac_report() {
     for ((i = 0; i < ${#FAILED_PACKAGES[@]}; ++i)); do
       echo -e "${COLOR_RED}${FAILED_PACKAGES[$i]}${COLOR_NC}"
       total_count=$(expr ${total_count} + 1)
-      successful_count=$(expr ${successful_count} + 1)
+      failed_count=$(expr ${failed_count} + 1)
     done
   fi
 
