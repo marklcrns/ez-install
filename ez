@@ -64,6 +64,7 @@ function handle_args() {
       # translate --gnu-long-options to -g (short options)
       --destination)    args="${args:-}-d ";;
       --package-dir)    args="${args:-}-D ";;
+      --json)           args="${args:-}-j ";;
       --no-recursive)   args="${args:-}-R ";;
       --as-root)        args="${args:-}-S ";;
       --verbose)        args="${args:-}-v ";;
@@ -84,17 +85,21 @@ function handle_args() {
   [[ -z "${VERBOSE+x}" ]]         && VERBOSE=false
   [[ -z "${DEBUG+x}" ]]           && DEBUG=false
   [[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=3
+  [[ -z "${JSON+x}" ]]            && JSON=false
   [[ -z "${RECURSIVE+x}" ]]       && RECURSIVE=true
   [[ -z "${AS_ROOT+x}" ]]         && AS_ROOT=false
 
   OPTIND=1
-  while getopts "d:D:RSvxyhV" opt; do
+  while getopts "d:D:jRSvxyhV" opt; do
     case ${opt} in
       d)
         DESTINATION="${OPTARG}"
         ;;
       D)
         PACKAGE_DIR="${OPTARG}"
+        ;;
+      j)
+        JSON=true
         ;;
       R)
         RECURSIVE=false
@@ -183,14 +188,17 @@ function _main () {
 
   local res=0
 
-  validate_packages ${packages[@]}
-  res=$?; [[ ${res} -ne $BASH_EX_OK ]] && return $res
+  # TODO: Fully support json configs
+  if ! $JSON; then
+    validate_packages ${packages[@]}
+    res=$?; [[ ${res} -ne $BASH_EX_OK ]] && return $res
 
-  info "Jsonifying..."
-  pac_array_jsonify -R $RECURSIVE -S $AS_ROOT -- packages
+    info "Jsonifying..."
+    pac_array_jsonify -R $RECURSIVE -S $AS_ROOT -- packages
+  fi
 
-  if $DEBUG && $VERBOSE; then
-    echo "${packages[@]}"
+  if $DEBUG && $VERBOSE || $JSON; then
+    # echo "${packages[@]}"
     for package in ${packages[@]}; do
       echo "${package}" | ./lib/parser/jq -r ".package"
     done

@@ -51,6 +51,7 @@ file in `~/.ez-installrc`
 
 ## TODO
 
+- [ ] Integrate with [Dotfiles Manager](https://github.com/marklcrns/scripts/blob/master/tools/dotfiles/README.md)
 - [ ] More practical package installer template generator
   - [X] Modularize script
   - [X] Option to generate package dependency
@@ -60,22 +61,33 @@ file in `~/.ez-installrc`
   - [X] Dependency system
   - [X] Print dependency tree before installation
   - [X] Prevent package installation with missing dependencies
-  - [ ] Full support for custom package install script directory
+  - [X] Full support for custom package install directory
 - [X] More flexible installation
   - [X] Support individual installation via commandline
-  - [ ] Support JSON install configuration
+  - [X] Support JSON install configuration
 - [ ] Add more features
   - [ ] Cache all installed packages
   - [ ] Uninstall script
   - [ ] Package update script
     - [ ] Package version watcher
 - [ ] OS support
-  - [x] Ubuntu
-    - [x] 20.04 Focal Fossa
-    - [x] 18.04 Bionic Beaver
-  - [x] Ubuntu (WSL/WSL2)
-    - [x] 20.04 Focal Fossa
-    - [x] 18.04 Bionic Beaver
+  - [x] Debian/Ubuntu
+    - [x] 20.04
+    - [x] 18.04
+  - [x] Debian/Ubuntu (WSL/WSL2)
+    - [x] 20.04
+    - [x] 18.04
   - [ ] More OS support coming
+- [ ] Package managers support
+  - [X] apt
+  - [X] apt-add
+  - [X] pkg
+  - [X] npm
+  - [X] pip
+  - [X] git
+  - [X] curl
+  - [X] wget
+  - [X] local
+  - [ ] More support coming
 - [ ] Bourne Shell support
 
