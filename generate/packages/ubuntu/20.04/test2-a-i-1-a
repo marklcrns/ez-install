@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+########################################################### PACKAGE METADATA ###
+# ---
+# package: test2-a-i-1-a
+# executable: test2-a-i-1-a
+# package-manager: 
+# dependency: test2-a-i-1
+# author: 
+# date: 2021-12-30
+# ---
+################################################################################
+
+source "${BASH_SOURCE%/*}/__init__.sh"
+
+############################################################## START INSTALL ###
+
+# TODO: Finish test2-a-i-1-a installation template
+
+_main() {
+  # Package name defaults to filename
+  local args=""
+  local package="test2-a-i-1-a"
+  local package_name="test2-a-i-1-a"
+  local executable_name="test2-a-i-1-a"
+  local package_manager="${PACKAGE_MANAGER:-}"
+  local destination=""
+
+  # Get system package manager
+  [[ -z "${package_manager}" ]] && get_sys_package_manager package_manager
+
+  # Install package
+  install -a "${args}" -c "${executable_name}" -n "${package_name}" -u false -- "${package_manager}" "${package}" "${destination}"
+
+  local res=$?
+  return ${res}
+}
+
+################################################################ END INSTALL ###
+
+_main
+# SOURCED BY `pac-install()`, DO NOT USE `exit`. USE `return` INSTEAD

@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+source "${BASH_SOURCE%/*}/__init__.sh"
+
+_main() {
+  if curl_install -a '-fsSL' -- 'https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg'; then
+    # Uninstall old docker version
+    apt_purge docker
+    apt_purge docker-engine
+    apt_purge docker.io
+    apt_purge containerd
+    apt_purge runc
+
+    echo \
+      "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
+      | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null && return 0
+  else
+    return 1
+  fi
+}
+
+_main

@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+_main() {
+  ~/.fzf/install
+}
+
+_main

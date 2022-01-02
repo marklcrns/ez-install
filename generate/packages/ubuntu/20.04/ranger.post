@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+_main() {
+  ranger --copy-config=all
+}
+
+_main

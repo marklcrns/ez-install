@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+_main() {
+  git lfs install
+}
+
+_main

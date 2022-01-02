@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+########################################################### PACKAGE METADATA ###
+# ---
+# package: test4-b-1
+# executable: test4-b-1
+# package-manager: 
+# dependency: test4-a test4-b
+# author: 
+# date: 2021-12-30
+# ---
+################################################################################
+
+source "${BASH_SOURCE%/*}/__init__.sh"
+
+############################################################## START INSTALL ###
+
+# TODO: Finish test4-b-1 installation template
+
+_main() {
+  # Package name defaults to filename
+  local args=""
+  local package="test4-b-1"
+  local package_name="test4-b-1"
+  local executable_name="test4-b-1"
+  local package_manager="${PACKAGE_MANAGER:-}"
+  local destination=""
+
+  # Get system package manager
+  [[ -z "${package_manager}" ]] && get_sys_package_manager package_manager
+
+  # Install package
+  install -a "${args}" -c "${executable_name}" -n "${package_name}" -u false -- "${package_manager}" "${package}" "${destination}"
+
+  local res=$?
+  return ${res}
+}
+
+################################################################ END INSTALL ###
+
+_main
+# SOURCED BY `pac-install()`, DO NOT USE `exit`. USE `return` INSTEAD
