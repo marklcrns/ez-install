@@ -109,6 +109,7 @@ function handle_args() {
         ;;
       v)
         VERBOSE=true
+        LOG_DEBUG_LEVEL=4
         ;;
       x)
         DEBUG=true
@@ -193,7 +194,7 @@ function _main () {
     validate_packages ${packages[@]}
     res=$?; [[ ${res} -ne $BASH_EX_OK ]] && return $res
 
-    info "Jsonifying..."
+    echo "Jsonifying..."
     pac_array_jsonify -R $RECURSIVE -S $AS_ROOT -- packages
   fi
 
@@ -211,6 +212,8 @@ function _main () {
   #   mkdir -p "${DOWNLOADS_DIR}"
   # fi
   # cd ${DOWNLOADS_DIR}
+
+  warning "Installation in progress... Do not interrupt!"
 
   pac_batch_json_install "${packages[@]}"
   res=$?; [[ $res -ne $BASH_EX_OK ]] && exit $res

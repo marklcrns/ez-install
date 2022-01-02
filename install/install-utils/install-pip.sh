@@ -24,10 +24,11 @@ function pip_install() {
   local is_global=false
   local args='--'
   local command_name=""
+  local package_name=""
   local pip_version=""
 
   OPTIND=1
-  while getopts "a:c:gS:v:" opt; do
+  while getopts "a:c:gn:S:v:" opt; do
     case ${opt} in
       a)
         args="${OPTARG} --"
@@ -37,6 +38,9 @@ function pip_install() {
         ;;
       g)
         is_global=true
+        ;;
+      n)
+        package_name="${OPTARG}"
         ;;
       S)
         as_root=${OPTARG}
@@ -55,12 +59,13 @@ function pip_install() {
 
   local package="${@%.*}"
   local sudo=""
+  [[ -z "${package_name}" ]] && package_name="${package}"
 
   if $as_root; then
     if command -v sudo &> /dev/null; then
       sudo="sudo "
     else
-      pac_log_failed "Pip${pip_version}" "${package}" "Pip${pip_version} '${package}' installation failed. 'sudo' not installed"
+      pac_log_failed "Pip${pip_version}" "${package_name}" "Pip${pip_version} '${package_name}' installation failed. 'sudo' not installed"
       return $BASH_EX_MISUSE
     fi
   fi
@@ -70,47 +75,47 @@ function pip_install() {
   is_pip_installed
   res=$?
   if [[ $res -ne $BASH_EX_OK ]]; then
-    pac_log_failed "Pip${pip_version}" "${package}" "Pip${pip_version} '${package}' installation failed. pip${pip_version} not installed"
+    pac_log_failed "Pip${pip_version}" "${package_name}" "Pip${pip_version} '${package_name}' installation failed. pip${pip_version} not installed"
     return $res
   fi
 
   # Check pip version if not 2 or 3
   if [[ -n ${pip_version} ]]; then
     if [[ "${pip_version}" -gt 3 || ${pip_version} -lt 2 ]]; then
-      pac_log_failed "Pip${pip_version}" "${package}" "Pip${pip_version} '${package}' package failed. Invalid pip version"
+      pac_log_failed "Pip${pip_version}" "${package_name}" "Pip${pip_version} '${package_name}' package failed. Invalid pip version"
       return $BASH_EX_NOTFOUND
     fi
   fi
 
   # Check if already installed
   if ${sudo}pip${pip_version} list | grep -F "${package}" &> /dev/null || command -v ${command_name} &> /dev/null; then
-    pac_log_skip "Pip${pip_version}" "${package}"
+    pac_log_skip "Pip${pip_version}" "${package_name}"
     return $BASH_EX_OK
   fi
 
-  pac_pre_install "${package}" "pip${pip_version}"
+  pac_pre_install "${package_name}" "pip${pip_version}"
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   # Execute installation
   if $is_global; then
     if execlog "${sudo}pip${pip_version} install -g ${args} ${package}"; then
-      pac_log_success "Pip${pip_version}" "${package}"
+      pac_log_success "Pip${pip_version}" "${package_name}"
     else
       res=$?
-      pac_log_failed "Pip${pip_version}" "${package}"
+      pac_log_failed "Pip${pip_version}" "${package_name}"
       return $res
     fi
   else
     if execlog "${sudo}pip${pip_version} install ${args} ${package}"; then
-      pac_log_success "Pip${pip_version}" "${package}"
+      pac_log_success "Pip${pip_version}" "${package_name}"
     else
       res=$?
-      pac_log_failed "Pip${pip_version}" "${package}"
+      pac_log_failed "Pip${pip_version}" "${package_name}"
       return $res
     fi
   fi
 
-  pac_post_install "${package}" "pip${pip_version}"
+  pac_post_install "${package_name}" "pip${pip_version}"
   res=$?
 
   return $res

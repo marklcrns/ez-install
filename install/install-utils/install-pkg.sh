@@ -24,15 +24,19 @@ function pkg_install() {
   local is_update=false
   local args='--'
   local command_name=""
+  local package_name=""
 
   OPTIND=1
-  while getopts "a:c:S:u" opt; do
+  while getopts "a:c:n:S:u" opt; do
     case ${opt} in
       a)
         args="${OPTARG} --"
         ;;
       c)
         command_name="${OPTARG}"
+        ;;
+      n)
+        package_name="${OPTARG}"
         ;;
       S)
         as_root=${OPTARG}
@@ -51,12 +55,13 @@ function pkg_install() {
 
   local package="${@%.*}"
   local sudo=""
+  [[ -z "${package_name}" ]] && package_name="${package}"
 
   if $as_root; then
     if command -v sudo &> /dev/null; then
       sudo="sudo "
     else
-      pac_log_failed 'Pkg' "${package}" "Pkg '${package}' installation failed. 'sudo' not installed"
+      pac_log_failed 'Pkg' "${package_name}" "Pkg '${package_name}' installation failed. 'sudo' not installed"
       return $BASH_EX_MISUSE
     fi
   fi
@@ -66,13 +71,13 @@ function pkg_install() {
   is_pkg_installed
   res=$?
   if [[ $res -ne $BASH_EX_OK ]]; then
-    pac_log_failed 'Pkg' "${package}" "Pkg '${package}' installation failed. pkg not installed"
+    pac_log_failed 'Pkg' "${package_name}" "Pkg '${package_name}' installation failed. pkg not installed"
     return $res
   fi
 
   # Check if already installed
   if pkg search "${package}" | grep 'installed' &> /dev/null || command -v ${command_name} &> /dev/null; then
-    pac_log_skip 'Pkg' "${package}"
+    pac_log_skip 'Pkg' "${package_name}"
     return $BASH_EX_OK
   fi
 
@@ -81,19 +86,19 @@ function pkg_install() {
     res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
   fi
 
-  pac_pre_install "${package}" 'pkg'
+  pac_pre_install "${package_name}" 'pkg'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   # Execute installation
   if execlog "${sudo}pkg install -y ${args} '${package}'"; then
-    pac_log_success 'Pkg' "${package}"
+    pac_log_success 'Pkg' "${package_name}"
   else
     res=$?
-    pac_log_failed 'Pkg' "${package}"
+    pac_log_failed 'Pkg' "${package_name}"
     return $res
   fi
 
-  pac_post_install "${package}" 'pkg'
+  pac_post_install "${package_name}" 'pkg'
   res=$?
 
   return $res

@@ -55,12 +55,13 @@ function curl_install() {
 
   local from="${@}"
   local sudo=""
+  [[ -z "${package_name}" ]] && package_name="${from}"
 
   if $as_root; then
     if command -v sudo &> /dev/null; then
       sudo="sudo "
     else
-      pac_log_failed 'Curl' "${package}" "Curl '${package}' installation failed. 'sudo' not installed"
+      pac_log_failed 'Curl' "${package_name}" "Curl '${package_name}' installation failed. 'sudo' not installed"
       return $BASH_EX_MISUSE
     fi
   fi
@@ -68,7 +69,7 @@ function curl_install() {
   is_curl_installed
   res=$?
   if [[ $res -ne $BASH_EX_OK ]]; then
-    pac_log_failed 'Curl' "${from}" "Curl '${from}' installation failed. curl not installed"
+    pac_log_failed 'Curl' "${package_name}" "Curl '${package_name}' installation failed. curl not installed"
     return $res
   fi
 
@@ -86,30 +87,31 @@ function curl_install() {
   # Resolve destination
   if [[ -n "${to}" ]]; then
     local filename="$(basename -- "${from}")"
-    to="${to}/${filename}"
+    # NOTE: ~ does not expand when tested with -d
+    to="${to//\~/${HOME}}/${filename}"
 
     if [[ -f "${to}" ]]; then
-      pac_log_skip "Curl" "${to}"
+      pac_log_skip "Curl" "${package_name}"
       return $BASH_EX_OK
     fi
 
     # Execute installation
     # NOTE: DO NOT SURROUND $from to permit shell command piping
     if execlog "${sudo}curl --create-dirs -o '${to}' ${args} ${from}"; then
-      pac_log_success 'Curl' "${from}" "Curl '${from}' -> '${to}' successful"
+      pac_log_success 'Curl' "${package_name}" "Curl '${from}' -> '${to}' successful"
     else
       res=$?
-      pac_log_failed 'Curl' "${from}" "Curl '${from}' -> '${to}' failed!"
+      pac_log_failed 'Curl' "${package_name}" "Curl '${from}' -> '${to}' failed!"
       return $res
     fi
   else
     # Execute installation
     # NOTE: DO NOT SURROUND $from to permit shell command piping
     if execlog "${sudo}curl ${args} ${from}"; then
-      pac_log_success 'Curl' "${from}" "Curl '${from}' successful"
+      pac_log_success 'Curl' "${package_name}" "Curl '${package_name}' successful"
     else
       res=$?
-      pac_log_failed 'Curl' "${from}" "Curl '${from}' failed!"
+      pac_log_failed 'Curl' "${package_name}" "Curl '${package_name}' failed!"
       return $res
     fi
   fi

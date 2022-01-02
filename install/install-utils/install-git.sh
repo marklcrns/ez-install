@@ -28,7 +28,7 @@ function git_clone() {
   local package_name=""
 
   OPTIND=1
-  while getopts "fa:o:n:S:" opt; do
+  while getopts "fa:c:n:o:S:" opt; do
     case ${opt} in
       f)
         is_force=true
@@ -36,11 +36,14 @@ function git_clone() {
       a)
         args="${OPTARG} --"
         ;;
-      o)
-        to="${OPTARG}"
+      c)
+        command_name="${OPTARG}"
         ;;
       n)
         package_name="${OPTARG}"
+        ;;
+      o)
+        to="${OPTARG}"
         ;;
       S)
         as_root=${OPTARG}
@@ -55,10 +58,11 @@ function git_clone() {
   fi
 
   local from="${@}"
+  [[ -z "${package_name}" ]] && package_name="${from}"
 
   if $as_root; then
     if ! command -v sudo &> /dev/null; then
-      pac_log_failed 'Git' "${package}" "Git '${package}' installation failed. 'sudo' not installed"
+      pac_log_failed 'Git' "${package_name}" "Git '${package_name}' installation failed. 'sudo' not installed"
       return $BASH_EX_MISUSE
     fi
   fi
@@ -68,28 +72,36 @@ function git_clone() {
   is_git_installed
   res=$?
   if [[ $res -ne $BASH_EX_OK ]]; then
-    pac_log_failed 'Git' "${package}" "Git '${package}' installation failed. git not installed"
+    pac_log_failed 'Git' "${package_name}" "Git '${package_name}' installation failed. git not installed"
     return $res
+  fi
+
+  # Check if already installed
+  if [[ -n ${command_name} ]] && command -v ${command_name} &> /dev/null; then
+    pac_log_skip "Git" "${package_name}"
+    return $BASH_EX_OK
   fi
 
   # Validate git repo link
   is_git_remote_reachable "${from}"
   res=$?
   if [[ $res -eq 2 ]]; then
-    pac_log_failed 'Git' "${from}" "Git clone '${from}' failed! Authentication timeout"
+    pac_log_failed 'Git' "${package_name}" "Git clone '${package_name}' failed! Authentication timeout"
     return $res
   elif [[ $res -eq 1 ]]; then
-    pac_log_failed 'Git' "${from}" "Git clone '${from}' failed! Invalid git remote url"
+    pac_log_failed 'Git' "${package_name}" "Git clone '${package_name}' failed! Invalid git remote url"
     return $res
   fi
 
   # Resolve destination
   local repo_name="$(basename -- "${from}" '.git')"
   [[ -z "${to}" ]] && to="./${repo_name}"
+  # NOTE: ~ does not expand when tested with -d
+  to=${to//\~/${HOME}}
 
   # Check destination directory validity
-  if [[ ! -d "$(dirname "${to}")" ]]; then
-    pac_log_failed 'Git' "${from}" "Git clone '${from}' -> '${to}' failed! Invalid destination path"
+  if [[ ! -d "$(dirname -- "${to}")" ]]; then
+    pac_log_failed 'Git' "${package_name}" "Git clone '${from}' -> '${to}' failed! Invalid destination path"
     return $BASH_SYS_EX_CANTCREAT
   fi
 
@@ -102,7 +114,7 @@ function git_clone() {
       is_git_repo "${to}"
       res=$?
       if [[ $res -ne $BASH_EX_OK ]] ; then
-        pac_log_failed 'Git' "${from}" "Git clone '${from}' failed! '${to}' already exist and is not a git repository"
+        pac_log_failed 'Git' "${package_name}" "Git clone '${package_name}' failed! '${to}' already exist and is not a git repository"
         return $res
       fi
       warning "Replacing '${to}' Git repository"
@@ -111,10 +123,10 @@ function git_clone() {
       is_git_repo "${to}"
       res=$?
       if [[ $res -ne $BASH_EX_OK ]] ; then
-        pac_log_failed 'Git' "${from}" "Git clone '${from}' failed! '${to}' already exist"
+        pac_log_failed 'Git' "${package_name}" "Git clone '${package_name}' failed! '${to}' already exist"
         return $res
       fi
-      pac_log_skip "Git" "${from}"
+      pac_log_skip "Git" "${package_name}"
       return $res
     fi
   fi
@@ -124,9 +136,9 @@ function git_clone() {
   res=$?
   if [[ $res -ne $BASH_EX_OK ]]; then
     if [[ $res -eq $BASH_SYS_EX_SOFTWARE ]]; then
-      pac_log_failed 'Git' "${from}" "Git clone '${from}' failed! Authentication timeout"
+      pac_log_failed 'Git' "${package_name}" "Git clone '${package_name}' failed! Authentication timeout"
     else
-      pac_log_failed 'Git' "${from}" "Git clone '${from}' -> '${to}' failed"
+      pac_log_failed 'Git' "${package_name}" "Git clone '${from}' -> '${to}' failed"
     fi
     return $res
   fi
@@ -134,7 +146,7 @@ function git_clone() {
   pac_post_install "${package_name}" 'apt-add'
   res=$?
   if [[ $res -eq $BASH_EX_OK ]]; then
-    pac_log_success 'Git' "${from}" "Git clone '${from}' -> '${to}' successful"
+    pac_log_success 'Git' "${package_name}" "Git clone '${from}' -> '${to}' successful"
   fi
   return $res
 }

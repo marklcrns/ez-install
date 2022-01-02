@@ -61,7 +61,7 @@ function wget_install() {
     if command -v sudo &> /dev/null; then
       sudo="sudo "
     else
-      pac_log_failed 'Wget' "${package}" "Wget '${package}' installation failed. 'sudo' not installed"
+      pac_log_failed 'Wget' "${package_name}" "Wget '${package_name}' installation failed. 'sudo' not installed"
       return $BASH_EX_MISUSE
     fi
   fi
@@ -71,7 +71,7 @@ function wget_install() {
   is_wget_installed
   res=$?
   if [[ $res -ne $BASH_EX_OK ]]; then
-    pac_log_failed 'Wget' "${from}" "Wget '${from}' installation failed. wget not installed"
+    pac_log_failed 'Wget' "${package_name}" "Wget '${package_name}' installation failed. wget not installed"
     return $res
   fi
 
@@ -85,6 +85,7 @@ function wget_install() {
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   if [[ -n "${to}" ]]; then
+    to=${to//\~/${HOME}}
     # Create destination directory
     if [[ ! -d "${to}" ]]; then
       warning "Creating destination directory '${to}'"
@@ -93,30 +94,31 @@ function wget_install() {
 
     # Resolve destination
     local filename="$(basename -- "${from}")"
+    # NOTE: ~ does not expand when tested with -d
     to="${to}/${filename}"
 
     if [[ -f "${to}" ]]; then
-      pac_log_skip "Wget" "${to}"
+      pac_log_skip "Wget" "${package_name}"
       return $BASH_EX_OK
     fi
 
     # Execute installation
     # NOTE: DO NOT SURROUND $from to permit shell command piping
     if execlog "${sudo}wget -O '${to}' ${args} ${from}"; then
-      pac_log_success 'Wget' "${from}" "Wget '${from}' -> '${to}' successful"
+      pac_log_success 'Wget' "${package_name}" "Wget '${from}' -> '${to}' successful"
     else
       res=$?
-      pac_log_failed 'Wget' "${from}" "Wget '${from}' -> '${to}' failed!"
+      pac_log_failed 'Wget' "${package_name}" "Wget '${from}' -> '${to}' failed!"
       return $res
     fi
   else
     # Execute installation
     # NOTE: DO NOT SURROUND $from to permit shell command piping
     if execlog "${sudo}wget ${args} ${from}"; then
-      pac_log_success 'Wget' "${from}" "Wget '${from}' successful"
+      pac_log_success 'Wget' "${package_name}" "Wget '${package_name}' successful"
     else
       res=$?
-      pac_log_failed 'Wget' "${from}" "Wget '${from}' failed!"
+      pac_log_failed 'Wget' "${package_name}" "Wget '${package_name}' failed!"
       return $res
     fi
   fi

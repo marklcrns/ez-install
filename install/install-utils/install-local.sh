@@ -20,13 +20,17 @@ include "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 
 
 function local_install() {
-  local command_name=
+  local command_name=""
+  local package_name=""
 
   OPTIND=1
-  while getopts "c:" opt; do
+  while getopts "c:n:" opt; do
     case ${opt} in
       c)
         command_name="${OPTARG}"
+        ;;
+      n)
+        package_name="${OPTARG}"
         ;;
     esac
   done
@@ -38,19 +42,20 @@ function local_install() {
   fi
 
   local package="${@%.*}"
+  [[ -z "${package_name}" ]] && package_name="${package}"
 
   # Check if already installed
   if command -v ${command_name} &> /dev/null; then
-    pac_log_skip "Local" "${package}"
+    pac_log_skip "Local" "${package_name}"
     return $BASH_EX_OK
   fi
 
   local res=0
 
-  pac_pre_install "${package}" 'local'
+  pac_pre_install "${package_name}" 'local'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
-  pac_post_install "${package}" 'local'
+  pac_post_install "${package_name}" 'local'
   res=$?
   return $res
 }

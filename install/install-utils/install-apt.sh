@@ -26,15 +26,19 @@ function apt_add_repo() {
   local is_update=false
   local args='--'
   local command_name=""
+  local package_name=""
 
   OPTIND=1
-  while getopts "a:c:S:u:" opt; do
+  while getopts "a:c:n:S:u:" opt; do
     case ${opt} in
       a)
         args="${OPTARG} --"
         ;;
       c)
         command_name="${OPTARG}"
+        ;;
+      n)
+        package_name="${OPTARG}"
         ;;
       S)
         as_root=${OPTARG}
@@ -54,6 +58,7 @@ function apt_add_repo() {
   local repo="${@}"
   local apt_repo_dir='/etc/apt/'
   local sudo=""
+  [[ -z "${package_name}" ]] && package_name="${repo}"
 
   strip_substr 'ppa:' repo
 
@@ -61,7 +66,7 @@ function apt_add_repo() {
     if command -v sudo &> /dev/null; then
       sudo="sudo "
     else
-      pac_log_failed 'Apt-add' "${repo}" "Apt-add '${repo}' installation failed. 'sudo' not installed"
+      pac_log_failed 'Apt-add' "${package_name}" "Apt-add '${package_name}' installation failed. 'sudo' not installed"
       return $BASH_EX_MISUSE
     fi
   fi
@@ -71,12 +76,12 @@ function apt_add_repo() {
   is_apt_installed
   res=$?
   if [[ $res -ne $BASH_EX_OK ]]; then
-    pac_log_failed 'Apt-add' "${repo}" "Apt-add '${repo}' installation failed. apt not installed"
+    pac_log_failed 'Apt-add' "${package_name}" "Apt-add '${package_name}' installation failed. apt not installed"
     return $res
   fi
 
   if find ${apt_repo_dir} -name "*.list" | xargs cat | grep -h "^[[:space:]]*deb.*${repo}" &> /dev/null; then
-    pac_log_skip 'Apt-add' "${repo}"
+    pac_log_skip 'Apt-add' "${package_name}"
     return $BASH_EX_OK
   fi
 
@@ -85,23 +90,23 @@ function apt_add_repo() {
     res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
   fi
 
-  pac_pre_install "${command_name}" 'apt-add'
+  pac_pre_install "${package_name}" 'apt-add'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   # Execute installation
   is_wsl && set_nameserver "8.8.8.8"
   if execlog "apt-add-repository -y ${args} '${repo}' &> /dev/null"; then
-    pac_log_success 'Apt-add' "${repo}"
+    pac_log_success 'Apt-add' "${package_name}"
     return $BASH_EX_OK
   else
     res=$?
-    pac_log_failed 'Apt-add' "${repo}"
+    pac_log_failed 'Apt-add' "${package_name}"
     execlog "apt-add-repository -r '${repo}'"
     return $res
   fi
   is_wsl && restore_nameserver
 
-  pac_post_install "${command_name}" 'apt-add'
+  pac_post_install "${package_name}" 'apt-add'
   res=$?
   return $res
 }
@@ -113,15 +118,19 @@ function apt_install() {
   local is_update=false
   local args='--'
   local command_name=""
+  local package_name=""
 
   OPTIND=1
-  while getopts "a:c:S:u:" opt; do
+  while getopts "a:c:n:S:u:" opt; do
     case ${opt} in
       a)
         args="${OPTARG} --"
         ;;
       c)
         command_name="${OPTARG}"
+        ;;
+      n)
+        package_name="${OPTARG}"
         ;;
       S)
         as_root=${OPTARG}
@@ -140,12 +149,13 @@ function apt_install() {
 
   local package="${@%.*}"
   local sudo=""
+  [[ -z "${package_name}" ]] && package_name="${package}"
 
   if $as_root; then
     if command -v "sudo" &> /dev/null; then
       sudo="sudo "
     else
-      pac_log_failed 'Apt' "${package}" "Apt '${package}' installation failed. 'sudo' not installed"
+      pac_log_failed 'Apt' "${package_name}" "Apt '${package_name}' installation failed. 'sudo' not installed"
       return $BASH_EX_MISUSE
     fi
   fi
@@ -155,19 +165,19 @@ function apt_install() {
   is_apt_installed
   res=$?
   if [[ $res -ne $BASH_EX_OK ]]; then
-    pac_log_failed 'Apt' "${package}" "Apt '${package}' installation failed. Apt not installed"
+    pac_log_failed 'Apt' "${package_name}" "Apt '${package_name}' installation failed. Apt not installed"
     return $res
   fi
 
   # Check if package exists in apt repository
   if ! apt-cache search --names-only "^${package}.*" | grep -F "${package}" &> /dev/null; then
-    pac_log_failed 'Apt' "${package}" "Apt '${package}' does not exists in the apt repository"
+    pac_log_failed 'Apt' "${package_name}" "Apt '${package_name}' does not exists in the apt repository"
     return $BASH_EZ_EX_PAC_NOTFOUND
   fi
 
   # Check if already installed
   if command -v "${command_name}" &> /dev/null || dpkg -s "${package}" &> /dev/null; then
-    pac_log_skip "Apt" "${package}"
+    pac_log_skip "Apt" "${package_name}"
     return $BASH_EX_OK
   fi
 
@@ -178,19 +188,19 @@ function apt_install() {
     res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
   fi
 
-  pac_pre_install "${package}" 'apt'
+  pac_pre_install "${package_name}" 'apt'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   # Execute installation
   if execlog "${sudo}apt install -y ${args} '${package}'"; then
-    pac_log_success 'Apt' "${package}"
+    pac_log_success 'Apt' "${package_name}"
   else
     res=$?
-    pac_log_failed 'Apt' "${package}"
+    pac_log_failed 'Apt' "${package_name}"
     return $res
   fi
 
-  pac_post_install "${package}" 'apt'
+  pac_post_install "${package_name}" 'apt'
   res=$?
 
   return $res
@@ -275,15 +285,21 @@ function apt_upgrade() {
 
 function apt_purge() {
   local as_root=false
-  local args='--' command_name=
+  local args='--'
+  local command_name=""
+  local package_name=""
+
   OPTIND=1
-  while getopts "a:c:u:S:" opt; do
+  while getopts "a:c:n:u:S:" opt; do
     case ${opt} in
       a)
         args="${OPTARG} --"
         ;;
       c)
         command_name="${OPTARG}"
+        ;;
+      n)
+        package_name="${OPTARG}"
         ;;
       S)
         as_root=${OPTARG}
@@ -299,12 +315,13 @@ function apt_purge() {
 
   local package="${@%.*}"
   local sudo=""
+  [[ -z "${package_name}" ]] && package_name="${package}"
 
   if $as_root; then
     if command -v "sudo" &> /dev/null; then
       sudo="sudo "
     else
-      pac_log_failed 'Apt' "${package}" "Apt '${package}' installation failed. 'sudo' not installed"
+      pac_log_failed 'Apt' "${package_name}" "Apt '${package_name}' installation failed. 'sudo' not installed"
       return $BASH_EX_MISUSE
     fi
   fi
@@ -314,22 +331,22 @@ function apt_purge() {
   is_apt_installed
   res=$?
   if [[ $res -ne $BASH_EX_OK ]]; then
-    pac_log_failed 'Apt' "${package}" "Apt '${package}' installation failed. apt not installed"
+    pac_log_failed 'Apt' "${package_name}" "Apt '${package_name}' installation failed. apt not installed"
     return $res
   fi
 
   # Check if already installed
   if ! dpkg -s "${package}" &> /dev/null || ! command -v "${command_name}" &> /dev/null; then
-    pac_log_skip 'Apt-purge' "${package}" "Apt purge '${package}' skipped. Package not installed."
+    pac_log_skip 'Apt-purge' "${package_name}" "Apt purge '${package_name}' skipped. Package not installed."
     return $BASH_EX_OK
   fi
 
   # Execute installation
   if execlog "${sudo}apt purge --auto-remove -y ${args} '${package}'"; then
-    pac_log_success 'Apt-purge' "${package}" "Apt purge '${package}' successful!"
+    pac_log_success 'Apt-purge' "${package_name}" "Apt purge '${package_name}' successful!"
   else
     res=$?
-    pac_log_failed 'Apt-purge' "${package}" "Apt purge '${package}' failed!"
+    pac_log_failed 'Apt-purge' "${package_name}" "Apt purge '${package_name}' failed!"
   fi
 
   return $res

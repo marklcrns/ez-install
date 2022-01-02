@@ -81,25 +81,58 @@ function install() {
 
   case ${package_manager} in
     apt)
-      apt_install -a "${args}" -c "${command_name}" -S $as_root -u $update -- "${package}"
+      apt_install -a "${args}" \
+                  -c "${command_name}" \
+                  -n "${package_name}" \
+                  -S $as_root \
+                  -u $update \
+                  -- "${package}" \
       ;;
     apt-add)
-      apt_add_repo -a "${args}" -c "${command_name}" -S $as_root -- ${package}
+      apt_add_repo -a "${args}" \
+                   -c "${command_name}" \
+                   -n "${package_name}" \
+                   -S $as_root \
+                   -u $update \
+                   -- "${package}" \
       ;;
     npm)
-      npm_install -a "${args}" -c "${command_name}" -S $as_root -- "${package}"
+      npm_install -a "${args}" \
+                  -c "${command_name}" \
+                  -n "${package_name}" \
+                  -S $as_root \
+                  -- "${package}" \
       ;;
     pip)
-      pip_install -a "${args}" -c "${command_name}" -S $as_root -- "${package}"
+      pip_install -a "${args}" \
+                  -c "${command_name}" \
+                  -n "${package_name}" \
+                  -S $as_root \
+                  -- "${package}" \
       ;;
     pip2)
-      pip_install -v 2 -a "${args}" -c "${command_name}" -S $as_root -- "${package}"
+      pip_install -v 2 \
+                  -a "${args}" \
+                  -c "${command_name}" \
+                  -n "${package_name}" \
+                  -S $as_root \
+                  -- "${package}" \
       ;;
     pip3)
-      pip_install -v 3 -a "${args}" -c "${command_name}" -S $as_root -- "${package}"
+      pip_install -v 3 \
+                  -a "${args}" \
+                  -c "${command_name}" \
+                  -n "${package_name}" \
+                  -S $as_root \
+                  -- "${package}" \
       ;;
     pkg)
-      pkg_install -a "${args}" -c "${command_name}" -S $as_root -u $update -- "${package}"
+      pkg_install -a "${args}" \
+                  -c "${command_name}" \
+                  -n "${package_name}" \
+                  -S $as_root \
+                  -u $update \
+                  -- "${package}" \
       ;;
     curl)
       curl_install -a "${args}" \
@@ -119,6 +152,7 @@ function install() {
       ;;
     git)
       git_clone -a "${args}" \
+                -c "${command_name}" \
                 -n "${package_name}" \
                 -o "${destination}" \
                 -S $as_root \
