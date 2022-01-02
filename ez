@@ -119,11 +119,13 @@ function handle_args() {
 
   if [[ -p /dev/stdin ]]; then
     error "Piped arguments not supported"
+    usage;
     exit $BASH_SYS_EX_USAGE
   fi
 
   if [[ ! -t 0 && ! -p /dev/stdin ]]; then
     error "Stdin redirection not supported"
+    usage;
     exit $BASH_SYS_EX_USAGE
   fi
 

@@ -11,4 +11,4 @@ DEBUG=false
 LOG_DEBUG_LEVEL=3
 EZ_INSTALL_HOME="$(realpath -s ${BASH_SOURCE%/*})"
 PACKAGE_ROOT_DIR="$(realpath -s "${BASH_SOURCE%/*}/generate/packages")"
-
+LOCAL_PACKAGE_ROOT_DIR="${HOME}/.ez-install.d/packages"

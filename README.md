@@ -1,10 +1,36 @@
 # ez-install
 
 ez-install intends to alleviate the pain of installing UNIX binaries, packages,
-git repositories, personal configurations, environment setup, etc., which makes
-starting from scratch less painful.
+git repositories, personal configurations, environment setup, etc.
 
 ![Demo](./demo.gif)
+
+## Installation
+
+Firstly, clone the repo.
+
+```sh
+git clone --depth=1 https://github.com/marklcrns/ez-install ~/.ez-install
+```
+
+Then, create a soft symlink of the `ez` into `${INSTALL_DIR}`, preferably one
+included in `$PATH` e.g., `/usr/local/bin`.
+
+```sh
+mkdir -p ${INSTALL_DIR}
+ln -s ~/.ez/ez ${INSTALL_DIR}
+
+# or simply run from root dir (will install in /usr/local/bin/)
+
+make
+```
+
+Finally, `export EZ_INSTALL_HOME` in your `~/.bashrc` or `~/.zshrc` or in any
+environment rc file of your shell initialized on startup.
+
+```sh
+export EZ_INSTALL_HOME='~/.ez-install'
+```
 
 ## Usage
 
@@ -12,11 +38,16 @@ starting from scratch less painful.
 ./ez-install [ flags ] [ package(s) ]
 
 # from cmdline arguments
-./ez-install pac1 pac2 pac3
+./ez-install build-essential git-lfs nvim
 
 # from a file
 ./ez-install "$(cat packages.txt)"
 ```
+
+## Config
+
+All custom packages, by default, are located in `~/.ez-install.d` and local rc
+file in `~/.ez-installrc`
 
 ## TODO
 
