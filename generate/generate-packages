@@ -218,7 +218,6 @@ function _main() {
     "${_languages[@]}"
     "${_package_manager[@]}"
     "${_shell[@]}"
-    "${_test[@]}"
     "${_session_manager[@]}"
     "${_file_manager[@]}"
     "${_text_editor[@]}"
