@@ -13,7 +13,9 @@ fi
   || return 0
 
 
-source "${EZ_INSTALL_HOME}/common/const.sh"
+source "${EZ_INSTALL_HOME}/common/include.sh"
+
+include "${EZ_INSTALL_HOME}/common/const.sh"
 
 
 readonly BASH_EZ_EX__BASE=101

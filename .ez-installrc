@@ -5,10 +5,14 @@
   && readonly GLOBAL_EZ_INSTALL_RC_INCLUDED=1 \
   || return 0
 
-SKIP_CONFIRM=false
-VERBOSE=false
-DEBUG=false
-LOG_DEBUG_LEVEL=3
-EZ_INSTALL_HOME="$(realpath -s ${BASH_SOURCE%/*})"
-PACKAGE_ROOT_DIR="$(realpath -s "${BASH_SOURCE%/*}/generate/packages")"
-LOCAL_PACKAGE_ROOT_DIR="${HOME}/.ez-install.d/packages"
+[[ -z "${SKIP_CONFIRM+x}" ]]    && SKIP_CONFIRM=false
+[[ -z "${VERBOSE+x}" ]]         && VERBOSE=false
+[[ -z "${DEBUG+x}" ]]           && DEBUG=false
+[[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=3
+
+[[ ! -d "${EZ_INSTALL_HOME:-}" ]]        && export EZ_INSTALL_HOME="$(realpath ${BASH_SOURCE%/*})"
+[[ ! -d "${PACKAGE_ROOT_DIR:-}" ]]       && PACKAGE_ROOT_DIR="$(realpath "${BASH_SOURCE%/*}/generate/packages")"
+[[ ! -d "${LOCAL_PACKAGE_ROOT_DIR:-}" ]] && LOCAL_PACKAGE_ROOT_DIR="${HOME}/.ez-install.d/packages"
+
+# Source local .ez-installrc
+[[ -e "${HOME}/.ez-installrc" ]] && source "${HOME}/.ez-installrc"

@@ -7,10 +7,9 @@ set -o nounset
   || return 0
 
 
+source "${BASH_SOURCE%/*}/../.ez-installrc"
 source "${EZ_INSTALL_HOME}/common/include.sh"
 
-include "${EZ_INSTALL_HOME}/.ez-installrc"
-include "${HOME}/.ez-installrc"
 include "${EZ_INSTALL_HOME}/install/const.sh"
 include "${EZ_INSTALL_HOME}/install/common.sh"
 include "${EZ_INSTALL_HOME}/install/install.sh"

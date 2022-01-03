@@ -3,19 +3,15 @@
 set -o pipefail
 set -o nounset
 
+source "${BASH_SOURCE%/*}/.ez-installrc"
 source "${EZ_INSTALL_HOME}/common/include.sh"
-
-############################################################## LOAD RC FILES ###
-
-include "${EZ_INSTALL_HOME}/.ez-installrc"
-include "${HOME}/.ez-installrc"
 
 ###################################################### EXTERNAL DEPENDENCIES ###
 
-include "${EZ_INSTALL_HOME}/install/const.sh"
 include "${EZ_INSTALL_HOME}/common/common.sh"
 include "${EZ_INSTALL_HOME}/common/array.sh"
 include "${EZ_INSTALL_HOME}/common/sys.sh"
+include "${EZ_INSTALL_HOME}/install/const.sh"
 include "${EZ_INSTALL_HOME}/install/utils/actions.sh"
 include "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 include "${EZ_INSTALL_HOME}/install/utils/pac-transform.sh"
@@ -199,6 +195,8 @@ function _main () {
   fi
 
   if $DEBUG && $VERBOSE || $JSON; then
+    local jq="${EZ_INSTALL_HOME}/lib/parser/jq"
+
     if [[ ! -e "${jq}" ]]; then
       error "Missing ${jq} dependency"
       return $BASH_EZ_EX_DEP_NOTFOUND
@@ -206,7 +204,7 @@ function _main () {
 
     # echo "${packages[@]}"
     for package in ${packages[@]}; do
-      echo "${package}" | ${EZ_INSTALL_HOME}/lib/parser/jq -r ".package"
+      echo "${package}" | ${jq} -r ".package"
     done
   fi
 
