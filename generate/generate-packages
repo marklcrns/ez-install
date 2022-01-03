@@ -3,7 +3,7 @@
 set -o pipefail
 set -o nounset
 
-source "$(dirname -- $(realpath -- "${BASH_SOURCE[@]}"))/../.ez-installrc"
+source "$(dirname -- $(realpath -- "${BASH_SOURCE[0]}"))/../.ez-installrc"
 source "${EZ_INSTALL_HOME}/common/include.sh"
 
 include "${EZ_INSTALL_HOME}/install/init.sh"
@@ -17,8 +17,6 @@ SCRIPT_DIR="${BASH_SOURCE%/*}"
 PACKAGE_DIR="${PACKAGE_ROOT_DIR}/${OS_DISTRIB_ID}/${OS_DISTRIB_RELEASE}"
 
 function _main() {
-  pac_deploy_init "${PACKAGE_DIR}/__init__.sh"
-
   local -a _essentials=(
     "build-essential"
     "libffi-dev"

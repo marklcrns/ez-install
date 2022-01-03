@@ -1,1 +1,0 @@
-/home/markl/Projects/Dev/my-repos/ez-install/install/init.sh

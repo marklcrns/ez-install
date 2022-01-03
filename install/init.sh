@@ -7,7 +7,7 @@ set -o nounset
   || return 0
 
 
-source "$(dirname -- $(realpath -- "${BASH_SOURCE[@]}"))/../.ez-installrc"
+source "$(dirname -- $(realpath -- "${BASH_SOURCE[0]}"))/../.ez-installrc"
 source "${EZ_INSTALL_HOME}/common/include.sh"
 
 include "${EZ_INSTALL_HOME}/install/const.sh"

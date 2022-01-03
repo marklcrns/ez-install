@@ -220,6 +220,7 @@ function pac_batch_install() {
 }
 
 
+# TODO: Deprecated
 function pac_deploy_init() {
   if [[ -z "${@+x}" ]]; then
     error "${BASH_SYS_MSG_USAGE_MISSARG}"

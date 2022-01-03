@@ -3,7 +3,7 @@
 set -o pipefail
 set -o nounset
 
-source "$(dirname -- $(realpath -- "${BASH_SOURCE[@]}"))/../.ez-installrc"
+source "$(dirname -- $(realpath -- "${BASH_SOURCE[0]}"))/../.ez-installrc"
 source "${EZ_INSTALL_HOME}/common/include.sh"
 
 include "${EZ_INSTALL_HOME}/common/common.sh"
@@ -176,7 +176,7 @@ cat > "${file_path}" <<- ___EOF___
 # ---
 ################################################################################
 
-source "\$(realpath -- \${BASH_SOURCE%/*}/__init__.sh)"
+source "\${EZ_INSTALL_HOME}/install/init.sh"
 
 ############################################################## START INSTALL ###
 
