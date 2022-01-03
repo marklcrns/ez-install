@@ -61,7 +61,7 @@ function npm_install() {
     if command -v sudo &> /dev/null; then
       sudo="sudo "
     else
-      pac_log_failed 'Npm' "${package_name}" "Npm '${package_name}' installation failed. 'sudo' not installed"
+      pac_log_failed $BASH_EX_MISUSE 'Npm' "${package_name}" "Npm '${package_name}' installation failed. 'sudo' not installed"
       return $BASH_EX_MISUSE
     fi
   fi
@@ -71,14 +71,14 @@ function npm_install() {
   is_npm_installed
   res=$?
   if [[ $res -ne $BASH_EX_OK ]]; then
-    pac_log_failed 'Npm' "${package_name}" "Npm '${package_name}' installation failed. npm not installed"
+    pac_log_failed $res 'Npm' "${package_name}" "Npm '${package_name}' installation failed. npm not installed"
     return $res
   fi
 
   # Check if package exists in npm repository
   if npm search "${package}" | grep -q '^No matches found' &> /dev/null; then
     error "'${package}' does not exists in the npm repository"
-    pac_log_failed 'Npm' "${package_name}" "Npm '${package_name}' package not found in npm repository"
+    pac_log_failed $BASH_EZ_EX_PAC_NOTFOUND 'Npm' "${package_name}" "Npm '${package_name}' package not found in npm repository"
     return $BASH_EZ_EX_PAC_NOTFOUND
   fi
 
@@ -105,7 +105,7 @@ function npm_install() {
       return $BASH_EX_OK
     else
       res=$?
-      pac_log_failed 'Npm' "${package_name}" "Npm '${package_name}' local package installation failed"
+      pac_log_failed $res 'Npm' "${package_name}" "Npm '${package_name}' local package installation failed"
       return $res
     fi
   else
@@ -114,7 +114,7 @@ function npm_install() {
       return $BASH_EX_OK
     else
       res=$?
-      pac_log_failed 'Npm' "${package_name}" "Npm '${package_name}' global package installation failed"
+      pac_log_failed $res 'Npm' "${package_name}" "Npm '${package_name}' global package installation failed"
       return $res
     fi
   fi

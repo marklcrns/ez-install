@@ -65,7 +65,7 @@ function pip_install() {
     if command -v sudo &> /dev/null; then
       sudo="sudo "
     else
-      pac_log_failed "Pip${pip_version}" "${package_name}" "Pip${pip_version} '${package_name}' installation failed. 'sudo' not installed"
+      pac_log_failed $BASH_EX_MISUSE "Pip${pip_version}" "${package_name}" "Pip${pip_version} '${package_name}' installation failed. 'sudo' not installed"
       return $BASH_EX_MISUSE
     fi
   fi
@@ -75,14 +75,14 @@ function pip_install() {
   is_pip_installed
   res=$?
   if [[ $res -ne $BASH_EX_OK ]]; then
-    pac_log_failed "Pip${pip_version}" "${package_name}" "Pip${pip_version} '${package_name}' installation failed. pip${pip_version} not installed"
+    pac_log_failed $res "Pip${pip_version}" "${package_name}" "Pip${pip_version} '${package_name}' installation failed. pip${pip_version} not installed"
     return $res
   fi
 
   # Check pip version if not 2 or 3
   if [[ -n ${pip_version} ]]; then
     if [[ "${pip_version}" -gt 3 || ${pip_version} -lt 2 ]]; then
-      pac_log_failed "Pip${pip_version}" "${package_name}" "Pip${pip_version} '${package_name}' package failed. Invalid pip version"
+      pac_log_failed $BASH_EX_NOTFOUND "Pip${pip_version}" "${package_name}" "Pip${pip_version} '${package_name}' package failed. Invalid pip version"
       return $BASH_EX_NOTFOUND
     fi
   fi
@@ -102,7 +102,7 @@ function pip_install() {
       pac_log_success "Pip${pip_version}" "${package_name}"
     else
       res=$?
-      pac_log_failed "Pip${pip_version}" "${package_name}"
+      pac_log_failed $res "Pip${pip_version}" "${package_name}"
       return $res
     fi
   else
@@ -110,7 +110,7 @@ function pip_install() {
       pac_log_success "Pip${pip_version}" "${package_name}"
     else
       res=$?
-      pac_log_failed "Pip${pip_version}" "${package_name}"
+      pac_log_failed $res "Pip${pip_version}" "${package_name}"
       return $res
     fi
   fi

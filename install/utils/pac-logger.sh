@@ -15,6 +15,7 @@ fi
 source "${EZ_INSTALL_HOME}/common/include.sh"
 
 include "${EZ_INSTALL_HOME}/common/colors.sh"
+include "${EZ_INSTALL_HOME}/common/string.sh"
 include "${EZ_INSTALL_HOME}/install/const.sh"
 include "${EZ_INSTALL_HOME}/install/utils/actions.sh"
 
@@ -61,6 +62,12 @@ function pac_log_skip() {
 
 
 function pac_log_failed() {
+  local exit_code=
+  if [[ $1 -eq $1 ]]; then
+    exit_code=$1
+    shift 1
+  fi
+
   local manager="${1}"
   local package="${2}"
   local message="${3:-}"
@@ -71,7 +78,13 @@ function pac_log_failed() {
     error -d 2 "${manager} '${package}' package installation failed"
   fi
 
-  local log="'${package}' FAILED"
+  local log=""
+  if [[ -z $exit_code ]]; then
+    log="'${package}' FAILED"
+  else
+    log="'${package}' FAILED ($exit_code)"
+  fi
+
   if ! has_pac_log_duplicate "${log}" "${FAILED_PACKAGES[@]}"; then
     FAILED_PACKAGES=( "${FAILED_PACKAGES[@]}" "${manager} ${log}" )
   fi
@@ -86,7 +99,7 @@ function has_pac_log_duplicate() {
 
   local i=
   for ((i = 0; i < ${#log[@]}; ++i)); do
-    if [[ "${log[$i]}" =~ .*${new_log}.* ]]; then
+    if has_substr "${new_log}" "${log[$i]}"; then
       return $BASH_EX_OK
     fi
   done

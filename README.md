@@ -18,7 +18,7 @@ included in `$PATH` e.g., `/usr/local/bin`.
 
 ```sh
 mkdir -p ${INSTALL_DIR}
-ln -s ~/.ez/ez ${INSTALL_DIR}
+ln -s ~/.ez-install/ez ${INSTALL_DIR}
 
 # or simply run from root dir (will install in /usr/local/bin/)
 

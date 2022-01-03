@@ -61,7 +61,7 @@ function pkg_install() {
     if command -v sudo &> /dev/null; then
       sudo="sudo "
     else
-      pac_log_failed 'Pkg' "${package_name}" "Pkg '${package_name}' installation failed. 'sudo' not installed"
+      pac_log_failed $BASH_EX_MISUSE 'Pkg' "${package_name}" "Pkg '${package_name}' installation failed. 'sudo' not installed"
       return $BASH_EX_MISUSE
     fi
   fi
@@ -71,7 +71,7 @@ function pkg_install() {
   is_pkg_installed
   res=$?
   if [[ $res -ne $BASH_EX_OK ]]; then
-    pac_log_failed 'Pkg' "${package_name}" "Pkg '${package_name}' installation failed. pkg not installed"
+    pac_log_failed $res 'Pkg' "${package_name}" "Pkg '${package_name}' installation failed. pkg not installed"
     return $res
   fi
 
@@ -94,7 +94,7 @@ function pkg_install() {
     pac_log_success 'Pkg' "${package_name}"
   else
     res=$?
-    pac_log_failed 'Pkg' "${package_name}"
+    pac_log_failed $res 'Pkg' "${package_name}"
     return $res
   fi
 

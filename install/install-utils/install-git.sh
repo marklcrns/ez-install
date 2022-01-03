@@ -62,7 +62,7 @@ function git_clone() {
 
   if $as_root; then
     if ! command -v sudo &> /dev/null; then
-      pac_log_failed 'Git' "${package_name}" "Git '${package_name}' installation failed. 'sudo' not installed"
+      pac_log_failed $BASH_EX_MISUSE 'Git' "${package_name}" "Git '${package_name}' installation failed. 'sudo' not installed"
       return $BASH_EX_MISUSE
     fi
   fi
@@ -72,7 +72,7 @@ function git_clone() {
   is_git_installed
   res=$?
   if [[ $res -ne $BASH_EX_OK ]]; then
-    pac_log_failed 'Git' "${package_name}" "Git '${package_name}' installation failed. git not installed"
+    pac_log_failed $res 'Git' "${package_name}" "Git '${package_name}' installation failed. git not installed"
     return $res
   fi
 
@@ -86,10 +86,10 @@ function git_clone() {
   is_git_remote_reachable "${from}"
   res=$?
   if [[ $res -eq 2 ]]; then
-    pac_log_failed 'Git' "${package_name}" "Git clone '${package_name}' failed! Authentication timeout"
+    pac_log_failed $res 'Git' "${package_name}" "Git clone '${package_name}' failed! Authentication timeout"
     return $res
   elif [[ $res -eq 1 ]]; then
-    pac_log_failed 'Git' "${package_name}" "Git clone '${package_name}' failed! Invalid git remote url"
+    pac_log_failed $res 'Git' "${package_name}" "Git clone '${package_name}' failed! Invalid git remote url"
     return $res
   fi
 
@@ -101,7 +101,7 @@ function git_clone() {
 
   # Check destination directory validity
   if [[ ! -d "$(dirname -- "${to}")" ]]; then
-    pac_log_failed 'Git' "${package_name}" "Git clone '${from}' -> '${to}' failed! Invalid destination path"
+    pac_log_failed $BASH_SYS_EX_CANTCREAT 'Git' "${package_name}" "Git clone '${from}' -> '${to}' failed! Invalid destination path"
     return $BASH_SYS_EX_CANTCREAT
   fi
 
@@ -114,7 +114,7 @@ function git_clone() {
       is_git_repo "${to}"
       res=$?
       if [[ $res -ne $BASH_EX_OK ]] ; then
-        pac_log_failed 'Git' "${package_name}" "Git clone '${package_name}' failed! '${to}' already exist and is not a git repository"
+        pac_log_failed $res 'Git' "${package_name}" "Git clone '${package_name}' failed! '${to}' already exist and is not a git repository"
         return $res
       fi
       warning "Replacing '${to}' Git repository"
@@ -123,7 +123,7 @@ function git_clone() {
       is_git_repo "${to}"
       res=$?
       if [[ $res -ne $BASH_EX_OK ]] ; then
-        pac_log_failed 'Git' "${package_name}" "Git clone '${package_name}' failed! '${to}' already exist"
+        pac_log_failed $res 'Git' "${package_name}" "Git clone '${package_name}' failed! '${to}' already exist"
         return $res
       fi
       pac_log_skip "Git" "${package_name}"
@@ -136,9 +136,9 @@ function git_clone() {
   res=$?
   if [[ $res -ne $BASH_EX_OK ]]; then
     if [[ $res -eq $BASH_SYS_EX_SOFTWARE ]]; then
-      pac_log_failed 'Git' "${package_name}" "Git clone '${package_name}' failed! Authentication timeout"
+      pac_log_failed $res 'Git' "${package_name}" "Git clone '${package_name}' failed! Authentication timeout"
     else
-      pac_log_failed 'Git' "${package_name}" "Git clone '${from}' -> '${to}' failed"
+      pac_log_failed $res 'Git' "${package_name}" "Git clone '${from}' -> '${to}' failed"
     fi
     return $res
   fi
@@ -208,7 +208,7 @@ function clone_repo() {
       return $BASH_SYS_EX_SOFTWARE
     fi
   else
-    pac_log_failed 'Git' "${from}" "${stderr}"
+    pac_log_failed $res 'Git' "${from}" "${stderr}"
     return $res
   fi
 
@@ -257,7 +257,7 @@ function is_git_remote_reachable() {
       return $BASH_SYS_EX_SOFTWARE
     fi
   else
-    pac_log_failed 'Git' "${from}" "${stderr}"
+    pac_log_failed $res 'Git' "${from}" "${stderr}"
     return $res
   fi
 

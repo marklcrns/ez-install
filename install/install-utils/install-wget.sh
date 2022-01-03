@@ -61,7 +61,7 @@ function wget_install() {
     if command -v sudo &> /dev/null; then
       sudo="sudo "
     else
-      pac_log_failed 'Wget' "${package_name}" "Wget '${package_name}' installation failed. 'sudo' not installed"
+      pac_log_failed $BASH_EX_MISUSE 'Wget' "${package_name}" "Wget '${package_name}' installation failed. 'sudo' not installed"
       return $BASH_EX_MISUSE
     fi
   fi
@@ -71,7 +71,7 @@ function wget_install() {
   is_wget_installed
   res=$?
   if [[ $res -ne $BASH_EX_OK ]]; then
-    pac_log_failed 'Wget' "${package_name}" "Wget '${package_name}' installation failed. wget not installed"
+    pac_log_failed $res 'Wget' "${package_name}" "Wget '${package_name}' installation failed. wget not installed"
     return $res
   fi
 
@@ -108,7 +108,7 @@ function wget_install() {
       pac_log_success 'Wget' "${package_name}" "Wget '${from}' -> '${to}' successful"
     else
       res=$?
-      pac_log_failed 'Wget' "${package_name}" "Wget '${from}' -> '${to}' failed!"
+      pac_log_failed $res 'Wget' "${package_name}" "Wget '${from}' -> '${to}' failed!"
       return $res
     fi
   else
@@ -118,7 +118,7 @@ function wget_install() {
       pac_log_success 'Wget' "${package_name}" "Wget '${package_name}' successful"
     else
       res=$?
-      pac_log_failed 'Wget' "${package_name}" "Wget '${package_name}' failed!"
+      pac_log_failed $res 'Wget' "${package_name}" "Wget '${package_name}' failed!"
       return $res
     fi
   fi

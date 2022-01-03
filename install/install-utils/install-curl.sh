@@ -61,7 +61,7 @@ function curl_install() {
     if command -v sudo &> /dev/null; then
       sudo="sudo "
     else
-      pac_log_failed 'Curl' "${package_name}" "Curl '${package_name}' installation failed. 'sudo' not installed"
+      pac_log_failed $BASH_EX_MISUSE 'Curl' "${package_name}" "Curl '${package_name}' installation failed. 'sudo' not installed"
       return $BASH_EX_MISUSE
     fi
   fi
@@ -69,7 +69,7 @@ function curl_install() {
   is_curl_installed
   res=$?
   if [[ $res -ne $BASH_EX_OK ]]; then
-    pac_log_failed 'Curl' "${package_name}" "Curl '${package_name}' installation failed. curl not installed"
+    pac_log_failed $res 'Curl' "${package_name}" "Curl '${package_name}' installation failed. curl not installed"
     return $res
   fi
 
@@ -101,7 +101,7 @@ function curl_install() {
       pac_log_success 'Curl' "${package_name}" "Curl '${from}' -> '${to}' successful"
     else
       res=$?
-      pac_log_failed 'Curl' "${package_name}" "Curl '${from}' -> '${to}' failed!"
+      pac_log_failed $res 'Curl' "${package_name}" "Curl '${from}' -> '${to}' failed!"
       return $res
     fi
   else
@@ -111,7 +111,7 @@ function curl_install() {
       pac_log_success 'Curl' "${package_name}" "Curl '${package_name}' successful"
     else
       res=$?
-      pac_log_failed 'Curl' "${package_name}" "Curl '${package_name}' failed!"
+      pac_log_failed $res 'Curl' "${package_name}" "Curl '${package_name}' failed!"
       return $res
     fi
   fi

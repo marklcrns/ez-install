@@ -56,7 +56,7 @@ function pac_batch_json_install() {
       else
         root_package_manager="N/A"
       fi
-      pac_log_failed "${root_package_manager}" "${root_package_name%.*}" "'${root_package_name}' installation failed"
+      pac_log_failed $res "${root_package_manager}" "${root_package_name%.*}" "'${root_package_name}' installation failed"
     fi
 
     prog_bar "$(("${i}*100/${width}"))"
@@ -154,14 +154,15 @@ function pac_install() {
       if select_package "${package}" selected; then
         package_dir="$(dirname -- ${selected})"
       else
-        pac_log_failed 'N/A' "${package}" "Package '${package}' not found"
-        return $BASH_EZ_EX_PAC_NOTFOUND
+        res=$?
+        pac_log_failed $res 'N/A' "${package}" "Package '${package}' not found"
+        return $res
       fi
     fi
   fi
 
   if [[ ! -f "${package_dir}/${package}" ]]; then
-    pac_log_failed 'N/A' "${package}" "Package '${package}' not found in ${package_dir}"
+    pac_log_failed $BASH_EZ_EX_PAC_NOTFOUND 'N/A' "${package}" "Package '${package}' not found in ${package_dir}"
     return $BASH_EZ_EX_PAC_NOTFOUND
   fi
 
@@ -275,7 +276,7 @@ function pac_pre_install() {
     res=$?
     if [[ $res -ne $BASH_EX_OK ]]; then
       capitalize package_manager
-      pac_log_failed "${package_manager}" "${package}" "${package_manager} '${package}' global pre installation failed"
+      pac_log_failed $res "${package_manager}" "${package}" "${package_manager} '${package}' global pre installation failed"
       return $res
     fi
   fi
@@ -291,7 +292,7 @@ function pac_pre_install() {
       res=$?
       if [[ $res -ne $BASH_EX_OK ]]; then
         capitalize package_manager
-        pac_log_failed "${package_manager}" "${package}" "${package_manager} '${package}' local pre installation failed"
+        pac_log_failed $res "${package_manager}" "${package}" "${package_manager} '${package}' local pre installation failed"
         return $res
       fi
     fi
@@ -320,7 +321,7 @@ function pac_post_install() {
     res=$?
     if [[ $res -ne $BASH_EX_OK ]]; then
       capitalize package_manager
-      pac_log_failed "${package_manager}" "${package}" "${package_manager} '${package}' global post installation failed"
+      pac_log_failed $res "${package_manager}" "${package}" "${package_manager} '${package}' global post installation failed"
       return $res
     fi
   fi
@@ -336,7 +337,7 @@ function pac_post_install() {
       res=$?
       if [[ $res -ne $BASH_EX_OK ]]; then
         capitalize package_manager
-        pac_log_failed "${package_manager}" "${package}" "${package_manager} '${package}' local post installation failed"
+        pac_log_failed $res "${package_manager}" "${package}" "${package_manager} '${package}' local post installation failed"
         return $res
       fi
     fi

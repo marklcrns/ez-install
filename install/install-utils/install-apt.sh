@@ -66,7 +66,7 @@ function apt_add_repo() {
     if command -v sudo &> /dev/null; then
       sudo="sudo "
     else
-      pac_log_failed 'Apt-add' "${package_name}" "Apt-add '${package_name}' installation failed. 'sudo' not installed"
+      pac_log_failed $BASH_EX_MISUSE 'Apt-add' "${package_name}" "Apt-add '${package_name}' installation failed. 'sudo' not installed"
       return $BASH_EX_MISUSE
     fi
   fi
@@ -76,7 +76,7 @@ function apt_add_repo() {
   is_apt_installed
   res=$?
   if [[ $res -ne $BASH_EX_OK ]]; then
-    pac_log_failed 'Apt-add' "${package_name}" "Apt-add '${package_name}' installation failed. apt not installed"
+    pac_log_failed $res 'Apt-add' "${package_name}" "Apt-add '${package_name}' installation failed. apt not installed"
     return $res
   fi
 
@@ -100,7 +100,7 @@ function apt_add_repo() {
     return $BASH_EX_OK
   else
     res=$?
-    pac_log_failed 'Apt-add' "${package_name}"
+    pac_log_failed $res 'Apt-add' "${package_name}"
     execlog "apt-add-repository -r '${repo}'"
     return $res
   fi
@@ -155,7 +155,7 @@ function apt_install() {
     if command -v "sudo" &> /dev/null; then
       sudo="sudo "
     else
-      pac_log_failed 'Apt' "${package_name}" "Apt '${package_name}' installation failed. 'sudo' not installed"
+      pac_log_failed $BASH_EX_MISUSE 'Apt' "${package_name}" "Apt '${package_name}' installation failed. 'sudo' not installed"
       return $BASH_EX_MISUSE
     fi
   fi
@@ -165,13 +165,13 @@ function apt_install() {
   is_apt_installed
   res=$?
   if [[ $res -ne $BASH_EX_OK ]]; then
-    pac_log_failed 'Apt' "${package_name}" "Apt '${package_name}' installation failed. Apt not installed"
+    pac_log_failed $res 'Apt' "${package_name}" "Apt '${package_name}' installation failed. Apt not installed"
     return $res
   fi
 
   # Check if package exists in apt repository
   if ! apt-cache search --names-only "^${package}.*" | grep -F "${package}" &> /dev/null; then
-    pac_log_failed 'Apt' "${package_name}" "Apt '${package_name}' does not exists in the apt repository"
+    pac_log_failed $BASH_EZ_EX_PAC_NOTFOUND 'Apt' "${package_name}" "Apt '${package_name}' does not exists in the apt repository"
     return $BASH_EZ_EX_PAC_NOTFOUND
   fi
 
@@ -196,7 +196,7 @@ function apt_install() {
     pac_log_success 'Apt' "${package_name}"
   else
     res=$?
-    pac_log_failed 'Apt' "${package_name}"
+    pac_log_failed $res 'Apt' "${package_name}"
     return $res
   fi
 
@@ -321,7 +321,7 @@ function apt_purge() {
     if command -v "sudo" &> /dev/null; then
       sudo="sudo "
     else
-      pac_log_failed 'Apt' "${package_name}" "Apt '${package_name}' installation failed. 'sudo' not installed"
+      pac_log_failed $BASH_EX_MISUSE 'Apt' "${package_name}" "Apt '${package_name}' installation failed. 'sudo' not installed"
       return $BASH_EX_MISUSE
     fi
   fi
@@ -331,7 +331,7 @@ function apt_purge() {
   is_apt_installed
   res=$?
   if [[ $res -ne $BASH_EX_OK ]]; then
-    pac_log_failed 'Apt' "${package_name}" "Apt '${package_name}' installation failed. apt not installed"
+    pac_log_failed $res 'Apt' "${package_name}" "Apt '${package_name}' installation failed. apt not installed"
     return $res
   fi
 
@@ -346,7 +346,7 @@ function apt_purge() {
     pac_log_success 'Apt-purge' "${package_name}" "Apt purge '${package_name}' successful!"
   else
     res=$?
-    pac_log_failed 'Apt-purge' "${package_name}" "Apt purge '${package_name}' failed!"
+    pac_log_failed $res 'Apt-purge' "${package_name}" "Apt purge '${package_name}' failed!"
   fi
 
   return $res
