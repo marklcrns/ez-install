@@ -91,7 +91,6 @@ function generate_package() {
     get_user_input "Would you like to proceed (y/Y): " proceed
   done
 
-
   # Escape whitespaces
   local ez_gen_args=
   [[ -n "${author}" ]]          && ez_gen_args+=" -A ${author// /\\ }"
@@ -145,7 +144,6 @@ function get_user_input() {
     error "${BASH_SYS_MSG_USAGE_MISSARG}"
     return $BASH_SYS_EX_USAGE
   fi
-
 
   echo -ne "${1}"
   read ${2}
