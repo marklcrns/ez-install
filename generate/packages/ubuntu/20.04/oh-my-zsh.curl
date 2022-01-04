@@ -7,7 +7,7 @@
 # package-manager: curl
 # dependency: zsh
 # author: 
-# date: 2022-01-03
+# date: 2022-01-04
 # ---
 ################################################################################
 
@@ -19,11 +19,12 @@ source "${EZ_INSTALL_HOME}/install/init.sh"
 
 function _main() {
   local as_root=false
+  local execute=true
   handle_package_args ${@}
 
   # Package name defaults to filename
   local args=""
-  local package="'https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh | sh'"
+  local package="https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh"
   local package_name="oh-my-zsh"
   local executable_name="oh-my-zsh"
   local package_manager="curl"
@@ -79,13 +80,15 @@ function _main() {
   #   $3    output directory for curl, wget, and git (optional, default=$HOME/Downloads).
 
   local install_args=""
-  [[ -n "${args}" ]]            && install_args+="-a '${args}'"
-  [[ -n "${executable_name}" ]] && install_args+="-c '${executable_name}'"
-  [[ -n "${package_name}" ]]    && install_args+="-n '${package_name}'"
-  [[ -n "${package_manager}" ]] && install_args+="-m '${package_manager}'"
-  [[ -n "${destination}" ]]     && install_args+="-o '${destination}'"
+  [[ -n "${args}" ]]            && install_args+=" -a '${args}'"
+  [[ -n "${executable_name}" ]] && install_args+=" -c ${executable_name}"
+  [[ -n "${package_name}" ]]    && install_args+=" -n ${package_name}"
+  [[ -n "${package_manager}" ]] && install_args+=" -m ${package_manager}"
+  [[ -n "${destination}" ]]     && install_args+=" -o ${destination}"
 
-  install ${install_args} -S ${as_root} -u false -- "${package}"
+  echo "ARGS: ${install_args}"
+
+  install ${install_args} -e ${execute} -S ${as_root} -u false -- "${package}"
 
   # END INSTALLATION
 

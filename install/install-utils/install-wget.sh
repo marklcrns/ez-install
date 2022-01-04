@@ -21,6 +21,7 @@ include "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 
 # Specify destination directory
 function wget_install() {
+  local execute=false
   local as_root=false
   local args='-c --'
   local command_name=""
@@ -28,13 +29,16 @@ function wget_install() {
   local to="${DESTINATION:-.}"
 
   OPTIND=1
-  while getopts "a:c:o:n:S:" opt; do
+  while getopts "a:c:e:o:n:S:" opt; do
     case ${opt} in
       a)
         args="${OPTARG} --"
         ;;
       c)
         command_name="${OPTARG}"
+        ;;
+      e)
+        execute=${OPTARG}
         ;;
       o)
         to="${OPTARG}"
@@ -56,6 +60,7 @@ function wget_install() {
 
   local from="${@}"
   local sudo=""
+  [[ -z "${package_name}" ]] && package_name="${from}"
 
   if $as_root; then
     if command -v sudo &> /dev/null; then
@@ -84,7 +89,16 @@ function wget_install() {
   pac_pre_install "${package_name}" 'wget'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
-  if [[ -n "${to}" ]]; then
+  if $execute; then
+    # Execute installation
+    if execlog "wget ${args} '${from}' | sh"; then
+      pac_log_success 'Wget' "${package_name}" "Wget '${package_name}' successful"
+    else
+      res=$?
+      pac_log_failed $res 'Wget' "${package_name}" "Wget '${package_name}' failed!"
+      return $res
+    fi
+  else
     to=${to//\~/${HOME}}
     # Create destination directory
     if [[ ! -d "${to}" ]]; then
@@ -104,22 +118,11 @@ function wget_install() {
 
     # Execute installation
     # NOTE: DO NOT SURROUND $from to permit shell command piping
-    if execlog "${sudo}wget -O '${to}' ${args} ${from}"; then
+    if execlog "wget -O '${to}' ${args} '${from}'"; then
       pac_log_success 'Wget' "${package_name}" "Wget '${from}' -> '${to}' successful"
     else
       res=$?
       pac_log_failed $res 'Wget' "${package_name}" "Wget '${from}' -> '${to}' failed!"
-      return $res
-    fi
-  else
-    # TODO: Unreachable fallback
-    # Execute installation
-    # NOTE: DO NOT SURROUND $from to permit shell command piping
-    if execlog "${sudo}wget ${args} ${from}"; then
-      pac_log_success 'Wget' "${package_name}" "Wget '${package_name}' successful"
-    else
-      res=$?
-      pac_log_failed $res 'Wget' "${package_name}" "Wget '${package_name}' failed!"
       return $res
     fi
   fi

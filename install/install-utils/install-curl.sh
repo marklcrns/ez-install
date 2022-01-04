@@ -20,6 +20,7 @@ include "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 
 
 function curl_install() {
+  local execute=false
   local as_root=false
   local args='-sSL --'
   local command_name=""
@@ -27,13 +28,16 @@ function curl_install() {
   local to="${DESTINATION:-.}"
 
   OPTIND=1
-  while getopts "a:c:o:n:S:" opt; do
+  while getopts "a:c:e:o:n:S:" opt; do
     case ${opt} in
       a)
         args="${OPTARG} --"
         ;;
       c)
         command_name="${OPTARG}"
+        ;;
+      e)
+        execute=${OPTARG}
         ;;
       o)
         to="${OPTARG}"
@@ -85,7 +89,16 @@ function curl_install() {
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   # Resolve destination
-  if [[ -n "${to}" ]]; then
+  if $execute; then
+    # Execute installation
+    if execlog "curl ${args} '${from}' | sh"; then
+      pac_log_success 'Curl' "${package_name}" "Curl '${package_name}' successful"
+    else
+      res=$?
+      pac_log_failed $res 'Curl' "${package_name}" "Curl '${package_name}' failed!"
+      return $res
+    fi
+  else
     local filename="$(basename -- "${from}")"
     # NOTE: ~ does not expand when tested with -d
     to="${to//\~/${HOME}}/${filename}"
@@ -96,23 +109,11 @@ function curl_install() {
     fi
 
     # Execute installation
-    # NOTE: DO NOT SURROUND $from to permit shell command piping
-    if execlog "${sudo}curl --create-dirs -o '${to}' ${args} ${from}"; then
+    if execlog "curl --create-dirs -o '${to}' ${args} '${from}'"; then
       pac_log_success 'Curl' "${package_name}" "Curl '${from}' -> '${to}' successful"
     else
       res=$?
       pac_log_failed $res 'Curl' "${package_name}" "Curl '${from}' -> '${to}' failed!"
-      return $res
-    fi
-  else
-    # TODO: Unreachable fallback
-    # Execute installation
-    # NOTE: DO NOT SURROUND $from to permit shell command piping
-    if execlog "${sudo}curl ${args} ${from}"; then
-      pac_log_success 'Curl' "${package_name}" "Curl '${package_name}' successful"
-    else
-      res=$?
-      pac_log_failed $res 'Curl' "${package_name}" "Curl '${package_name}' failed!"
       return $res
     fi
   fi

@@ -25,19 +25,24 @@ done
 function install() {
   local args=""
   local command_name=""
+  local package_manager=""
   local package_name=""
   local destination=""
+  local execute=false
   local as_root=false
   local update=false
 
   OPTIND=1
-  while getopts "a:c:m:n:o:S:u:" opt; do
+  while getopts "a:c:e:m:n:o:S:u:" opt; do
     case ${opt} in
       a)
         args="${OPTARG}"
         ;;
       c)
         command_name="${OPTARG}"
+        ;;
+      e)
+        execute=${OPTARG}
         ;;
       m)
         package_manager="${OPTARG}"
@@ -66,6 +71,11 @@ function install() {
 
   local package="${1}"
   local file="${package}"
+  local install_args=""
+
+  [[ -n "${args}" ]]            && install_args+=" -a ${args}"
+  [[ -n "${executable_name}" ]] && install_args+=" -c ${executable_name}"
+  [[ -n "${package_name}" ]]    && install_args+=" -n ${package_name}"
 
   if [[ ${package_manager} == "curl" ]] || [[ ${package_manager} == "wget" ]] || [[ ${package_manager} == "git" ]]; then
     if [[ -z "${package_name}" ]]; then
@@ -73,88 +83,43 @@ function install() {
       return $BASH_SYS_EX_USAGE
     fi
     file="${package_name}"
+    [[ -n "${destination}" ]] && install_args+=" -o \"${destination}\""
   fi
 
   local res=0
 
+  echo "INSTALL ARGS: ${install_args}"
+
   case ${package_manager} in
     apt)
-      apt_install -a "${args}" \
-                  -c "${command_name}" \
-                  -n "${package_name}" \
-                  -S $as_root \
-                  -u $update \
-                  -- "${package}" \
+      apt_install ${install_args} -S $as_root -u $update -- "${package}"
       ;;
     apt-add)
-      apt_add_repo -a "${args}" \
-                   -c "${command_name}" \
-                   -n "${package_name}" \
-                   -S $as_root \
-                   -u $update \
-                   -- "${package}" \
+      apt_add_repo ${install_args} -S $as_root -u $update -- "${package}"
       ;;
     npm)
-      npm_install -a "${args}" \
-                  -c "${command_name}" \
-                  -n "${package_name}" \
-                  -S $as_root \
-                  -- "${package}" \
+      npm_install ${install_args} -S $as_root -- "${package}"
       ;;
     pip)
-      pip_install -a "${args}" \
-                  -c "${command_name}" \
-                  -n "${package_name}" \
-                  -S $as_root \
-                  -- "${package}" \
+      pip_install ${install_args} -S $as_root -- "${package}"
       ;;
     pip2)
-      pip_install -v 2 \
-                  -a "${args}" \
-                  -c "${command_name}" \
-                  -n "${package_name}" \
-                  -S $as_root \
-                  -- "${package}" \
+      pip_install ${install_args} -v 2 -S $as_root -- "${package}"
       ;;
     pip3)
-      pip_install -v 3 \
-                  -a "${args}" \
-                  -c "${command_name}" \
-                  -n "${package_name}" \
-                  -S $as_root \
-                  -- "${package}" \
+      pip_install ${install_args} -v 3 -S $as_root -- "${package}"
       ;;
     pkg)
-      pkg_install -a "${args}" \
-                  -c "${command_name}" \
-                  -n "${package_name}" \
-                  -S $as_root \
-                  -u $update \
-                  -- "${package}" \
+      pkg_install ${install_args} -S $as_root -u $update -- "${package}"
       ;;
     curl)
-      curl_install -a "${args}" \
-                   -c "${command_name}" \
-                   -n "${package_name}" \
-                   -o "${destination}" \
-                   -S $as_root \
-                   -- "${package}" \
+      curl_install ${install_args} -e $execute -S $as_root -- "${package}"
       ;;
     wget)
-      wget_install -a "${args}" \
-                   -c "${command_name}" \
-                   -n "${package_name}" \
-                   -o "${destination}" \
-                   -S $as_root \
-                   -- "${package}" \
+      wget_install ${install_args} -e $execute -S $as_root -- "${package}"
       ;;
     git)
-      git_clone -a "${args}" \
-                -c "${command_name}" \
-                -n "${package_name}" \
-                -o "${destination}" \
-                -S $as_root \
-                -- "${package}" \
+      git_clone ${install_args} -S $as_root -- "${package}"
       ;;
     local)
       # Do nothing but check if executable exists and trigger pre and post processes
@@ -169,3 +134,4 @@ function install() {
   res=$?
   return $res
 }
+
