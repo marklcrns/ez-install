@@ -127,7 +127,8 @@ function pac_jsonify() {
   eval "${global_pac_var_name}+='\"as_root\":$as_root'"
 
   if $recursive; then
-    local -a package_dependencies=( $(${EZ_INSTALL_HOME}/install/utils/metadata-parser "dependency" "${package_path}") )
+    local tmp="$(${EZ_INSTALL_HOME}/install/utils/metadata-parser "dependency" "${package_path}")"
+    local -a package_dependencies=( ${tmp//,/ } )
 
     # Handle dependencies recursively
     if [[ -n ${package_dependencies+x} ]]; then
@@ -270,7 +271,8 @@ function _validate_dependencies() {
     ! $DEBUG && printf "\n"
   fi
 
-  local -a _package_dependencies=( $(${EZ_INSTALL_HOME}/install/utils/metadata-parser "dependency" "${_package_path}") )
+  local _tmp="$(${EZ_INSTALL_HOME}/install/utils/metadata-parser "dependency" "${_package_path}")"
+  local -a _package_dependencies=( ${_tmp//,/ } )
   local _has_missing=false
 
   for dependency in "${_package_dependencies[@]}"; do

@@ -7,7 +7,7 @@
 # package-manager: git
 # dependency: 
 # author: 
-# date: 2022-01-02
+# date: 2022-01-03
 # ---
 ################################################################################
 
@@ -22,12 +22,12 @@ function _main() {
   handle_package_args ${@}
 
   # Package name defaults to filename
-  local args="--depth=1"
-  local package="https://github.com/junegunn/fzf.git"
+  local args="'--depth=1'"
+  local package="'https://github.com/junegunn/fzf.git'"
   local package_name="fzf"
   local executable_name="fzf"
   local package_manager="git"
-  local destination="~/fzf"
+  local destination="'~/fzf'"
   local res=0
 
   # Get system package manager

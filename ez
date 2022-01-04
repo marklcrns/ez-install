@@ -21,7 +21,7 @@ include "${EZ_INSTALL_HOME}/install/common.sh"
 
 ################################################## CONSTANT GLOBAL VARIABLES ###
 
-readonly EZ_VERSION="0.2-beta"
+readonly EZ_VERSION="0.3-beta"
 readonly LOG_SYSLOG=true
 readonly LOG_FILELOG=true
 readonly SCRIPT_ARGS="$@"
@@ -34,19 +34,73 @@ function usage() {
   cat << EOF
 ${SCRIPT_NAME}
 
-  Universal installer.
+  Universal BASH package installer purely written in bash scripts.
+
 
 USAGE:
 
-  ${SCRIPT_PATH} [ -hvVxy ]
+  $(basename -- ${SCRIPT_PATH}) [-h] [-V] [-jvxyRS] [-o destination] [-p package-dir] package1 package2 ...
+
 
 OPTIONS:
 
-  -V --version        version
-  -v --verbose        verbose output
-  -x --debug          debug mode (print all log levels)
-  -y --skip-confirm   skip confirmation
-  -h --help           help
+  --json          -j    Parse package data as json.
+  --destination   -o    Package output directory (for curl, wget, etc.)
+                        default=$HOME/Downloads
+  --package-dir   -p    Directory to search packages from.
+                        Global default=$PACKAGE_ROOT_DIR
+                        Local default=$LOCAL_PACKAGE_ROOT_DIR
+  --no-norecurse  -R    Prevent recursive package dependency installation.
+  --as-root       -S    Run package manager as root (sudo).
+
+  --verbose       -v    Verbose output. LOG_DEBUG_LEVEL=4
+  --debug         -x    Debug mode (print all log levels). LOG_DEBUG_LEVEL=7
+  --skip-confirm  -y    Skip confirmation
+  --help          -h    Print usage
+  --version       -V    Print ez version
+
+
+EXIT CODES:
+
+  Ez Special Exit Codes
+
+  BASH_EZ_EX__BASE            ${BASH_EZ_EX__BASE}    Ez special exit codes start
+  BASH_EZ_EX_PAC_NOTFOUND     ${BASH_EZ_EX_PAC_NOTFOUND}    Package not found
+  BASH_EZ_EX_PACMAN_NOTFOUND  ${BASH_EZ_EX_PACMAN_NOTFOUND}    Package manager not supported
+  BASH_EZ_EX_DEP_NOTFOUND     ${BASH_EZ_EX_DEP_NOTFOUND}    Dependency not found
+  BASH_EZ_EX_PAC_EXIST        ${BASH_EZ_EX_PAC_EXIST}    Package exist
+  BASH_EZ_EX__MAX             ${BASH_EZ_EX__MAX}    Ez special exit codes end
+
+  Bash Special Exit Codes
+
+  BASH_EX_OK                  ${BASH_EX_OK}      successful termination
+  BASH_EX_GENERAL             ${BASH_EX_GENERAL}      catchall for general errors
+  BASH_EX_MISUSE              ${BASH_EX_MISUSE}      misuse of shell builtins (e.g., missing arg or permission problem)
+  BASH_EX_EXECERR             ${BASH_EX_EXECERR}    command invoked cannot execute
+  BASH_EX_NOTFOUND            ${BASH_EX_NOTFOUND}    command not found
+  BASH_EX_INVALIDEXARG        ${BASH_EX_INVALIDEXARG}    invalid argument to 'exit'
+  BASH_EX_SIGFATAL_BASE       ${BASH_EX_SIGFATAL_BASE}    fatal error signal "n"
+  BASH_EX_TERMCTRLC           ${BASH_EX_TERMCTRLC}    terminated by Ctrl-c
+
+  SYSEXITS.H
+
+  BASH_SYS_EX__BASE           ${BASH_SYS_EX__BASE}     base value for error messages
+  BASH_SYS_EX_USAGE           ${BASH_SYS_EX_USAGE}     command line usage error
+  BASH_SYS_EX_DATAERR         ${BASH_SYS_EX_DATAERR}     data format error
+  BASH_SYS_EX_NOINPUT         ${BASH_SYS_EX_NOINPUT}     cannot open input
+  BASH_SYS_EX_NOUSER          ${BASH_SYS_EX_NOUSER}     addressee unknown
+  BASH_SYS_EX_NOHOST          ${BASH_SYS_EX_NOHOST}     host name unknown
+  BASH_SYS_EX_UNAVAILABLE     ${BASH_SYS_EX_UNAVAILABLE}     service unavailable
+  BASH_SYS_EX_SOFTWARE        ${BASH_SYS_EX_SOFTWARE}     internal software error
+  BASH_SYS_EX_OSERR           ${BASH_SYS_EX_OSERR}     system error (e.g., can't fork)
+  BASH_SYS_EX_OSFILE          ${BASH_SYS_EX_OSFILE}     critical OS file missing
+  BASH_SYS_EX_CANTCREAT       ${BASH_SYS_EX_CANTCREAT}     can't create (user) output file
+  BASH_SYS_EX_IOERR           ${BASH_SYS_EX_IOERR}     input/output error
+  BASH_SYS_EX_TEMPFAIL        ${BASH_SYS_EX_TEMPFAIL}     temp failure; user is invited to retry
+  BASH_SYS_EX_PROTOCOL        ${BASH_SYS_EX_PROTOCOL}     remote error in protocol
+  BASH_SYS_EX_NOPERM          ${BASH_SYS_EX_NOPERM}     permission denied
+  BASH_SYS_EX_CONFIG          ${BASH_SYS_EX_CONFIG}     configuration error
+  BASH_SYS_EX__MAX            ${BASH_SYS_EX__MAX}     maximum listed value
 
 EOF
 }
@@ -54,24 +108,25 @@ EOF
 
 function handle_args() {
   local arg=
-  for arg; do
+  for arg in ${@}; do
     local delim=""
     case "${arg}" in
       # translate --gnu-long-options to -g (short options)
-      --destination)    args="${args:-}-d ";;
-      --package-dir)    args="${args:-}-D ";;
       --json)           args="${args:-}-j ";;
-      --no-recursive)   args="${args:-}-R ";;
+      --destination)    args="${args:-}-o ";;
+      --package-dir)    args="${args:-}-p ";;
+      --no-recurse)     args="${args:-}-R ";;
       --as-root)        args="${args:-}-S ";;
       --verbose)        args="${args:-}-v ";;
+      --version)        args="${args:-}-V ";;
       --debug)          args="${args:-}-x ";;
       --skip-confirm)   args="${args:-}-y ";;
       --help)           args="${args:-}-h ";;
-      --version)        args="${args:-}-V ";;
-      #pass through anything else
+      # pass through anything else
       *)
         [[ "${arg:0:1}" == "-" ]] || delim="\""
-        args="${args:-}${delim}${arg}${delim} ";;
+        args="${args:-}${delim}${arg}${delim} "
+        ;;
     esac
   done
 
@@ -84,18 +139,19 @@ function handle_args() {
   [[ -z "${JSON+x}" ]]            && JSON=false
   [[ -z "${RECURSIVE+x}" ]]       && RECURSIVE=true
   [[ -z "${AS_ROOT+x}" ]]         && AS_ROOT=false
+  [[ -z "${DESTINATION+x}" ]]     && DESTINATION="${HOME}/Downloads"
 
   OPTIND=1
-  while getopts "d:D:jRSvxyhV" opt; do
+  while getopts "jo:p:RSvxyhV" opt; do
     case ${opt} in
-      d)
-        DESTINATION="${OPTARG}"
-        ;;
-      D)
-        PACKAGE_DIR="${OPTARG}"
-        ;;
       j)
         JSON=true
+        ;;
+      o)
+        DESTINATION="${OPTARG}"
+        ;;
+      p)
+        PACKAGE_DIR="${OPTARG}"
         ;;
       R)
         RECURSIVE=false
@@ -146,12 +202,25 @@ function handle_args() {
     fi
   fi
 
+  local res=0
+
+  if [[ ! -d "${DESTINATION}" ]]; then
+    if execlog "mkdir -p '${DESTINATION}'"; then
+      ok "'${DESTINATION}' directory created"
+    else
+      res=$?
+      error "'${DESTINATION}' creation failed"
+      exit $BASH_SYS_EX_CANTCREAT
+    fi
+  fi
+
   resolve_package_dir
 
   readonly SKIP_CONFIRM
   readonly VERBOSE
   readonly DEBUG
   readonly LOG_DEBUG_LEVEL
+  readonly JSON
   readonly RECURSIVE
   readonly AS_ROOT
   readonly DESTINATION
@@ -211,11 +280,6 @@ function _main () {
   confirm "You are about to install the package(s) above. Continue? (Y/y): " \
     || exit $BASH_EX_GENERAL
 
-  # if [[ ! -d "${DOWNLOADS_DIR}" ]]; then
-  #   mkdir -p "${DOWNLOADS_DIR}"
-  # fi
-  # cd ${DOWNLOADS_DIR}
-
   warning "Installation in progress... Do not interrupt!"
 
   pac_batch_json_install "${packages[@]}"
@@ -227,5 +291,25 @@ function _main () {
   return $BASH_EX_OK
 }
 
-_main
 
+res=0
+_main
+res=$?
+
+unset EZ_VERSION
+unset LOG_SYSLOG
+unset LOG_FILELOG
+unset SCRIPT_ARGS
+unset DOWNLOADS_DIR
+unset SKIP_CONFIRM
+unset VERBOSE
+unset DEBUG
+unset LOG_DEBUG_LEVEL
+unset JSON
+unset RECURSIVE
+unset AS_ROOT
+unset DESTINATION
+unset PACKAGE_DIR
+unset PACKAGES
+
+exit $res

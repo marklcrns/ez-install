@@ -7,7 +7,7 @@
 # package-manager: curl
 # dependency: 
 # author: 
-# date: 2022-01-02
+# date: 2022-01-03
 # ---
 ################################################################################
 
@@ -23,7 +23,7 @@ function _main() {
 
   # Package name defaults to filename
   local args=""
-  local package="https://rclone.org/install.sh | sudo bash"
+  local package="'https://rclone.org/install.sh | sudo bash'"
   local package_name="rclone"
   local executable_name="rclone"
   local package_manager="curl"

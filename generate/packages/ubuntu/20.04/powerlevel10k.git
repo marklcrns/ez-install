@@ -7,7 +7,7 @@
 # package-manager: git
 # dependency: oh-my-zsh
 # author: 
-# date: 2022-01-02
+# date: 2022-01-03
 # ---
 ################################################################################
 
@@ -22,12 +22,12 @@ function _main() {
   handle_package_args ${@}
 
   # Package name defaults to filename
-  local args="--depth=1"
-  local package="https://github.com/romkatv/powerlevel10k.git"
+  local args="'--depth=1'"
+  local package="'https://github.com/romkatv/powerlevel10k.git'"
   local package_name="powerlevel10k"
   local executable_name="powerlevel10k"
   local package_manager="git"
-  local destination="~/.oh-my-zsh/themes/powerlevel10k"
+  local destination="'~/.oh-my-zsh/themes/powerlevel10k'"
   local res=0
 
   # Get system package manager

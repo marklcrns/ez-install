@@ -9,12 +9,9 @@ source "${EZ_INSTALL_HOME}/common/include.sh"
 include "${EZ_INSTALL_HOME}/install/init.sh"
 include "${EZ_INSTALL_HOME}/install/utils/actions.sh"
 
-os_release
-
 VERBOSE=true
 DEBUG=true
 SCRIPT_DIR="${BASH_SOURCE%/*}"
-PACKAGE_DIR="${PACKAGE_ROOT_DIR}/${OS_DISTRIB_ID}/${OS_DISTRIB_RELEASE}"
 
 function _main() {
   local -a _essentials=(
@@ -121,7 +118,7 @@ function _main() {
   local -a _text_editor=(
     "-m apt-add -n neovim-unstable ppa:neovim-ppa/unstable"
     "-m apt -d neovim-unstable.apt-add -c nvim -n neovim-unstable neovim"
-    "-m npm -d 'nodejs neovim' neovim"
+    "-m npm -d nodejs,neovim neovim"
     "-m npm -d nodejs eslint"
     "-m npm -d nodejs stylelint"
     "-m npm -d nodejs prettier"
@@ -160,8 +157,8 @@ function _main() {
     "curl"
     "gnupg"
     "lsb-release"
-    "-m apt -d 'docker-ce-cli containerd.io' -c docker -n docker-stable -u true -- docker-ce"
-    "-m apt -d 'ca-certificates curl gnupg lsb-release' docker-ce-cli"
+    "-m apt -d docker-ce-cli,containerd.io -c docker -n docker-stable -u true -- docker-ce"
+    "-m apt -d ca-certificates,curl,gnupg,lsb-release docker-ce-cli"
     "containerd.io"
   )
 
@@ -196,18 +193,18 @@ function _main() {
     "-m local -d test3 test3-a"
     "-m local -d test3-a test3-a-1"
     "-m local -d test3-a test3-a-2"
-    "-m local -d 'test3-a-1 test3-a-2' test3-a-2-i"
+    "-m local -d test3-a-1,test3-a-2 test3-a-2-i"
     "-m local -d test3-a-2-i test3-a-2-ii"
     "-m local -d test3-a-2-ii test3-b"
     "-m local -d test3-b test3-b-1"
     "-m local -d test3-b test3-b-2"
     "-m local -d test3-b test3-b-3"
-    "-m local -d 'test3-b-1 test3-b-2 test3-b-3' test3-b-3-i"
+    "-m local -d test3-b-1,test3-b-2,test3-b-3 test3-b-3-i"
 
     "-m local test4"
     "-m local -d test4 test4-a"
     "-m local -d test4 test4-b"
-    "-m local -d 'test4-a test4-b' test4-b-1"
+    "-m local -d test4-a,test4-b test4-b-1"
   )
 
 
@@ -226,13 +223,13 @@ function _main() {
   )
 
   local template_args=
-  $VERBOSE && template_args+="-v "
-  $DEBUG && template_args+="-x "
+  $VERBOSE && template_args+="--verbose "
+  $DEBUG && template_args+="--debug "
 
   for package in "${packages[@]}"; do
-    ${SCRIPT_DIR}/generate-template -y ${template_args} "${package}"
+    ${SCRIPT_DIR}/ez-gen --skip-confirm --package-dir --global ${template_args} "${package}"
   done
-  finish "'${PACKAGE_DIR}' packages build finished"
+  finish "packages build finished"
 }
 
 res=0

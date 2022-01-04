@@ -5,9 +5,9 @@
 # package: docker-ce-cli
 # executable: docker-ce-cli
 # package-manager: apt
-# dependency: ca-certificates curl gnupg lsb-release
+# dependency: ca-certificates,curl,gnupg,lsb-release
 # author: 
-# date: 2022-01-02
+# date: 2022-01-03
 # ---
 ################################################################################
 

@@ -23,9 +23,9 @@ function git_clone() {
   local as_root=false
   local is_force=false
   local args='--'
-  local to=""
   local command_name=""
   local package_name=""
+  local to="${DESTINATION:-.}"
 
   OPTIND=1
   while getopts "fa:c:n:o:S:" opt; do
@@ -95,9 +95,9 @@ function git_clone() {
 
   # Resolve destination
   local repo_name="$(basename -- "${from}" '.git')"
-  [[ -z "${to}" ]] && to="./${repo_name}"
   # NOTE: ~ does not expand when tested with -d
   to=${to//\~/${HOME}}
+  [[ -d "${to}" ]] && to="${to}/${repo_name}"
 
   # Check destination directory validity
   if [[ ! -d "$(dirname -- "${to}")" ]]; then

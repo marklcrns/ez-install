@@ -19,35 +19,49 @@ function usage() {
 cat <<- EOF
 $(basename -- "${scriptpath}")
 
+  Package generator for ez, a universal BASH package installer.
+
+
 USAGE:
 
-./$(basename -- "${scriptpath}") [ -hvxy ] package
+  ./$(basename -- "${scriptpath}") [-h] [-vxy] package
+
 
 OPTIONS:
 
-  -d --dependency       package installation dependencies
-  -a --author           package author (optional)
-  -D --directory-path   package output directory
-  -p --package-manager  package manager installer
-  -v --verbose          verbose output
-  -x --debug            debug
-  -y --skip             skip confirmation
-  -h --help             show usage
+  --author           -a    Package author (optional)
+  --command-name     -c    Package installation dependencies
+  --dependency       -d    Package installation dependencies
+  --package-manager  -m    Package manager installer
+  --package-name     -n    Package filename
+  --destination      -o    Package output directory (for curl, wget, etc.)
+                           default=$HOME/Downloads
+  --package-dir      -p    Directory to generate packages to.
+                           default=$LOCAL_PACKAGE_DIR
+  --global           -G    Generate to global generate package directory.
+                           Overrides '--package-dir'.
+
+  --verbose          -v    Verbose output. LOG_DEBUG_LEVEL=4
+  --debug            -x    Debug mode (print all log levels). LOG_DEBUG_LEVEL=7
+  --skip-confirm     -y    Skip confirmation
+  --help             -h    Print usage
+
 EOF
 }
 
 function handle_args() {
   local arg=
-  for arg; do
+  for arg in ${@}; do
     local delim=""
     case "${arg}" in
       --author)           args="${args:-}-a ";;
-      --command_name)     args="${args:-}-c ";;
+      --command-name)     args="${args:-}-c ";;
       --dependency)       args="${args:-}-d ";;
-      --package-dir)      args="${args:-}-D ";;
       --package-manager)  args="${args:-}-m ";;
       --package-name)     args="${args:-}-n ";;
       --destination)      args="${args:-}-o ";;
+      --package-dir)      args="${args:-}-p ";;
+      --global)           args="${args:-}-G ";;
       --skip-confirm)     args="${args:-}-y ";;
       --verbose)          args="${args:-}-v ";;
       --debug)            args="${args:-}-x ";;
@@ -66,12 +80,20 @@ function handle_args() {
   [[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=3
   [[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=3
 
-  ARGS= AUTHOR= COMMAND_NAME= DEPENDENCIES= FILE=
-  PACKAGE_MANAGER= PACKAGE_NAME= DESTINATION=
+  ARGS=""
+  AUTHOR=""
+  COMMAND_NAME=""
+  DEPENDENCIES=""
+  FILE=""
+  PACKAGE_MANAGER=""
+  PACKAGE_NAME=""
+  DESTINATION=""
+  GEN_PACKAGE_DIR=""
+  IS_GLOBAL=false
   UPDATE=false
 
   OPTIND=1
-  while getopts "a:A:c:d:D:m:n:o:u:vxyh" opt; do
+  while getopts "a:A:c:d:m:n:o:p:u:Gvxyh" opt; do
     case ${opt} in
       a)
         ARGS="${OPTARG}"
@@ -85,9 +107,6 @@ function handle_args() {
       d)
         DEPENDENCIES="${OPTARG}"
         ;;
-      D)
-        PACKAGE_DIR="${OPTARG}"
-        ;;
       m)
         PACKAGE_MANAGER="$(echo "${OPTARG}" | awk '{print tolower($0)}')"
         ;;
@@ -97,11 +116,18 @@ function handle_args() {
       o)
         DESTINATION="${OPTARG}"
         ;;
+      p)
+        GEN_PACKAGE_DIR="${OPTARG}"
+        ;;
+      G)
+        IS_GLOBAL=true
+        ;;
       u)
         UPDATE=${OPTARG}
         ;;
       v)
         VERBOSE=true
+        LOG_DEBUG_LEVEL=4
         ;;
       x)
         DEBUG=true
@@ -135,6 +161,11 @@ function handle_args() {
   fi
 
   resolve_package_dir
+  if $IS_GLOBAL; then
+    GEN_PACKAGE_DIR="${PACKAGE_DIR}"
+  elif [[ -z "${GEN_PACKAGE_DIR}" ]]; then
+    GEN_PACKAGE_DIR="${LOCAL_PACKAGE_DIR}"
+  fi
 
   return $BASH_EX_OK
 }
@@ -233,19 +264,19 @@ ___EOF___
 function _main() {
   handle_args "${SCRIPT_ARGS}"
   if [[ -z "${PACKAGE_MANAGER}" ]]; then
-    local file_path="${PACKAGE_DIR}/${FILE}"
+    local file_path="${GEN_PACKAGE_DIR}/${FILE}"
   else
-    local file_path="${PACKAGE_DIR}/${FILE}.${PACKAGE_MANAGER}"
+    local file_path="${GEN_PACKAGE_DIR}/${FILE}.${PACKAGE_MANAGER}"
   fi
 
   local res=0
 
-  if [[ ! -d "${PACKAGE_DIR}" ]]; then
-    if execlog "mkdir -p '${PACKAGE_DIR}'"; then
-      ok "'${PACKAGE_DIR}' directory created"
+  if [[ ! -d "${GEN_PACKAGE_DIR}" ]]; then
+    if execlog "mkdir -p '${GEN_PACKAGE_DIR}'"; then
+      ok "'${GEN_PACKAGE_DIR}' directory created"
     else
       res=$?
-      error "'${PACKAGE_DIR}' creation failed"
+      error "'${GEN_PACKAGE_DIR}' creation failed"
       return $BASH_SYS_EX_CANTCREAT
     fi
   fi
@@ -269,6 +300,8 @@ unset PACKAGE
 unset PACKAGE_MANAGER
 unset PACKAGE_NAME
 unset DESTINATION
+unset GEN_PACKAGE_DIR
+unset IS_GLOBAL
 unset UPDATE
 
 exit $res

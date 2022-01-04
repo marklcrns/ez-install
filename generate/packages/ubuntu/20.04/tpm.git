@@ -7,7 +7,7 @@
 # package-manager: git
 # dependency: tmux
 # author: 
-# date: 2022-01-02
+# date: 2022-01-03
 # ---
 ################################################################################
 
@@ -22,12 +22,12 @@ function _main() {
   handle_package_args ${@}
 
   # Package name defaults to filename
-  local args="--depth=1"
-  local package="https://github.com/tmux-plugins/tpm"
+  local args="'--depth=1'"
+  local package="'https://github.com/tmux-plugins/tpm'"
   local package_name="tpm"
   local executable_name="tpm"
   local package_manager="git"
-  local destination="~/.tmux/plugins/tpm"
+  local destination="'~/.tmux/plugins/tpm'"
   local res=0
 
   # Get system package manager

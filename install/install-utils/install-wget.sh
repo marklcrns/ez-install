@@ -23,9 +23,9 @@ include "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 function wget_install() {
   local as_root=false
   local args='-c --'
-  local to=""
   local command_name=""
   local package_name=""
+  local to="${DESTINATION:-.}"
 
   OPTIND=1
   while getopts "a:c:o:n:S:" opt; do
@@ -112,6 +112,7 @@ function wget_install() {
       return $res
     fi
   else
+    # TODO: Unreachable fallback
     # Execute installation
     # NOTE: DO NOT SURROUND $from to permit shell command piping
     if execlog "${sudo}wget ${args} ${from}"; then

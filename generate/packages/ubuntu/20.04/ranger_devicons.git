@@ -7,7 +7,7 @@
 # package-manager: git
 # dependency: 
 # author: 
-# date: 2022-01-02
+# date: 2022-01-03
 # ---
 ################################################################################
 
@@ -22,12 +22,12 @@ function _main() {
   handle_package_args ${@}
 
   # Package name defaults to filename
-  local args="--depth=1"
-  local package="https://github.com/alexanderjeurissen/ranger_devicons"
+  local args="'--depth=1'"
+  local package="'https://github.com/alexanderjeurissen/ranger_devicons'"
   local package_name="ranger_devicons"
   local executable_name="ranger_devicons"
   local package_manager="git"
-  local destination="~/.config/ranger/plugins/ranger_devicons"
+  local destination="'~/.config/ranger/plugins/ranger_devicons'"
   local res=0
 
   # Get system package manager

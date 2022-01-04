@@ -7,7 +7,7 @@
 # package-manager: curl
 # dependency: 
 # author: 
-# date: 2022-01-02
+# date: 2022-01-03
 # ---
 ################################################################################
 
@@ -23,7 +23,7 @@ function _main() {
 
   # Package name defaults to filename
   local args=""
-  local package="https://sh.rustup.rs | sh"
+  local package="'https://sh.rustup.rs | sh'"
   local package_name="cargo"
   local executable_name="cargo"
   local package_manager="curl"

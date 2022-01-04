@@ -5,9 +5,9 @@
 # package: docker-stable
 # executable: docker
 # package-manager: apt
-# dependency: docker-ce-cli containerd.io
+# dependency: docker-ce-cli,containerd.io
 # author: 
-# date: 2022-01-02
+# date: 2022-01-03
 # ---
 ################################################################################
 

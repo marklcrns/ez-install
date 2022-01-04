@@ -29,13 +29,17 @@ function resolve_package_dir() {
   local distrib_id="${OS_DISTRIB_ID}"; to_lower distrib_id
   local distrib_release="${OS_DISTRIB_RELEASE}"
 
-  if [[ -z ${PACKAGE_ROOT_DIR+x} ]]; then
+  if [[ -z "${PACKAGE_ROOT_DIR+x}" ]]; then
     PACKAGE_ROOT_DIR="$(realpath -s "${EZ_INSTALL_HOME}/generate/packages")"
   fi
-  if [[ -z ${PACKAGE_DIR+x} ]]; then
+  if [[ -z "${LOCAL_PACKAGE_ROOT_DIR+x}" ]]; then
+    PACKAGE_ROOT_DIR="${HOME}/.ez-install.d/packages"
+  fi
+
+  if [[ -n "${PACKAGE_ROOT_DIR+x}" ]]; then
     PACKAGE_DIR="${PACKAGE_ROOT_DIR}/${distrib_id}/${distrib_release}"
   fi
-  if [[ -n ${LOCAL_PACKAGE_ROOT_DIR+x} ]]; then
+  if [[ -n "${LOCAL_PACKAGE_ROOT_DIR+x}" ]]; then
     LOCAL_PACKAGE_DIR="${LOCAL_PACKAGE_ROOT_DIR}/${distrib_id}/${distrib_release}"
   fi
 }

@@ -7,7 +7,7 @@
 # package-manager: git
 # dependency: oh-my-zsh
 # author: 
-# date: 2022-01-02
+# date: 2022-01-03
 # ---
 ################################################################################
 
@@ -22,12 +22,12 @@ function _main() {
   handle_package_args ${@}
 
   # Package name defaults to filename
-  local args="--depth=1"
-  local package="https://github.com/zsh-users/zsh-autosuggestions"
+  local args="'--depth=1'"
+  local package="'https://github.com/zsh-users/zsh-autosuggestions'"
   local package_name="zsh-autosuggestions"
   local executable_name="zsh-autosuggestions"
   local package_manager="git"
-  local destination="${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions"
+  local destination="'~/.oh-my-zsh/custom/plugins/zsh-autosuggestions'"
   local res=0
 
   # Get system package manager

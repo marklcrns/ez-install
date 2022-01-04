@@ -5,9 +5,9 @@
 # package: neovim
 # executable: neovim
 # package-manager: npm
-# dependency: nodejs neovim
+# dependency: nodejs,neovim
 # author: 
-# date: 2022-01-02
+# date: 2022-01-03
 # ---
 ################################################################################
 
