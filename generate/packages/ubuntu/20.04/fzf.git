@@ -23,12 +23,12 @@ function _main() {
   handle_package_args ${@}
 
   # Package name defaults to filename
-  local args="'--depth=1'"
-  local package="'https://github.com/junegunn/fzf.git'"
+  local args="--depth=1"
+  local package="https://github.com/junegunn/fzf.git"
   local package_name="fzf"
   local executable_name="fzf"
   local package_manager="git"
-  local destination="'~/fzf'"
+  local destination="~/fzf"
   local res=0
 
   # Get system package manager
@@ -85,8 +85,6 @@ function _main() {
   [[ -n "${package_name}" ]]    && install_args+=" -n ${package_name}"
   [[ -n "${package_manager}" ]] && install_args+=" -m ${package_manager}"
   [[ -n "${destination}" ]]     && install_args+=" -o ${destination}"
-
-  echo "ARGS: ${install_args}"
 
   install ${install_args} -e ${execute} -S ${as_root} -u false -- "${package}"
 

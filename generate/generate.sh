@@ -19,24 +19,28 @@ include "${EZ_INSTALL_HOME}/install/const.sh"
 include "${EZ_INSTALL_HOME}/install/utils/actions.sh"
 
 
-function generate() {
+function batch_generate_package() {
+  if [[ -z "${@+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  local packages=( "${@}" )
+
+  for package in ${packages[@]}; do
+    generate_package "${package}"
+  done
+}
+
+
+function generate_package() {
   if [[ -z "${1+x}" ]]; then
     error "${BASH_SYS_MSG_USAGE_MISSARG}"
     return $BASH_SYS_EX_USAGE
   fi
 
-  local package="${1}"
+  local package="${1##*#}"
   local ez_gen="${EZ_INSTALL_HOME}/generate/ez-gen"
-  local supported_manager=(
-    'apt' 'apt-add'
-    'pkg'
-    'npm'
-    'pip' 'pip2' 'pip3'
-    'curl'
-    'wget'
-    'git'
-    'local'
-  )
 
   local author=""
   local dependencies=""
@@ -44,41 +48,90 @@ function generate() {
   local package_name=""
   local package_manager=""
   local output_dir=""
+  local update=false
+  local execute=false
   local args=""
   local res=0
+  local proceed=""
 
   echo -e "Generating for '${package}' package..."
-  get_user_input "  Author (optional): " author
-  get_user_input "  Dependencies (optional, use ',' separator): " dependencies
-  get_user_input "  Executable name (optional): " executable_name
-  get_user_input "  Package name (optional): " package_name
-  get_user_input "  Package manager: " package_manager
-  get_user_input "  Output directory (optional): " output_dir
-  get_user_input "  Package manager args (optional): " args
 
-  echo "author: ${author}"
-  echo "dependencies: ${dependencies}"
-  echo "executable name: ${executable_name}"
-  echo "package name: ${package_name}"
-  echo "package manager: ${package_manager}"
-  echo "output directory: ${output_dir}"
-  echo "args: ${args}"
+  while ! [[ "${proceed}" =~ ^[Yy]$ ]]; do
+    echo -e "\n  Everything is optional. Press [enter] to skip.\n"
+    get_user_input "  Author: " author
+    get_user_input "  Dependencies (use ',' separator): " dependencies
+    get_user_input "  Executable name: " executable_name
+    get_user_input "  Package name: " package_name
+    get_user_input "  Package manager: " package_manager
 
+    while ! is_package_manager_supported package_manager; do
+      echo "package manager: ${package_manager}"
+      get_user_input "  Package manager: " package_manager
+    done
+
+    if [[ ${package_manager} == "curl" ]] \
+      || [[ ${package_manager} == "wget" ]] \
+      || [[ ${package_manager} == "git" ]]; then
+      get_user_input "  Output directory: " output_dir
+      if [[ ${package_manager} == "curl" ]] \
+        || [[ ${package_manager} == "wget" ]]; then
+        get_user_input "  Execute (default=false): " execute
+      fi
+    fi
+
+    if [[ ${package_manager} == "apt" ]] \
+      || [[ ${package_manager} == "apt-add" ]] \
+      || [[ ${package_manager} == "pkg" ]]; then
+      get_user_input "  Update (default=false): " execute
+    fi
+
+    get_user_input "  Package manager args: " args
+
+    echo ""
+    get_user_input "Would you like to proceed (y/Y): " proceed
+  done
+
+
+  # Escape whitespaces
   local ez_gen_args=
-  [[ -n "${author}" ]]          && ez_gen_args+="-A '${author}'"
-  [[ -n "${dependencies}" ]]    && ez_gen_args+="-d '${dependencies}'"
-  [[ -n "${executable_name}" ]] && ez_gen_args+="-c '${executable_name}'"
-  [[ -n "${package_name}" ]]    && ez_gen_args+="-n '${package_name}'"
-  [[ -n "${package_manager}" ]] && ez_gen_args+="-m '${package_manager}'"
-  [[ -n "${output_dir}" ]]      && ez_gen_args+="-o '${output_dir}'"
-  [[ -n "${args}" ]]            && ez_gen_args+="-a '${args}'"
-  [[ ${VERBOSE+x} ]]            && ez_gen_args+="--verbose "
-  [[ ${DEBUG+x} ]]              && ez_gen_args+="--debug "
+  [[ -n "${author}" ]]          && ez_gen_args+=" -A ${author// /\\ }"
+  [[ -n "${dependencies}" ]]    && ez_gen_args+=" -d ${dependencies// /\\ }"
+  [[ -n "${executable_name}" ]] && ez_gen_args+=" -c ${executable_name// /\\ }"
+  [[ -n "${package_name}" ]]    && ez_gen_args+=" -n ${package_name// /\\ }"
+  [[ -n "${package_manager}" ]] && ez_gen_args+=" -m ${package_manager// /\\ }"
+  [[ -n "${output_dir}" ]]      && ez_gen_args+=" -o ${output_dir// /\\ }"
+  [[ -n "${args}" ]]            && ez_gen_args+=" -a ${args// /\\ }"
+  [[ ${update} ]]               && ez_gen_args+=" -u"
+  [[ ${execute} ]]              && ez_gen_args+=" -e"
+  [[ ${VERBOSE+x} ]]            && ez_gen_args+=" -v"
+  [[ ${DEBUG+x} ]]              && ez_gen_args+=" -x"
 
   $ez_gen -y ${ez_gen_args} -- "${package}"
 
   res=$?
   return $res
+}
+
+
+function is_package_manager_supported() {
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  eval "local _package_manager=\${$1}"
+
+  [[ -z "${_package_manager}" ]] && return $BASH_EX_OK
+
+  local _pacman=""
+  for _pacman in ${EZ_SUPPORTED_PACKAGE_MANAGER}; do
+    if [ "${_package_manager}" = "${_pacman}" ]; then
+      return $BASH_EX_OK
+    fi
+  done
+
+  error "${BASH_EZ_MSG_PACMAN_NOTFOUND}"
+  return $BASH_EZ_EX_PACMAN_NOTFOUND
 }
 
 

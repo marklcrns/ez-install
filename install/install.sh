@@ -88,8 +88,6 @@ function install() {
 
   local res=0
 
-  echo "INSTALL ARGS: ${install_args}"
-
   case ${package_manager} in
     apt)
       apt_install ${install_args} -S $as_root -u $update -- "${package}"

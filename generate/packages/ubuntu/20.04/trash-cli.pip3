@@ -86,8 +86,6 @@ function _main() {
   [[ -n "${package_manager}" ]] && install_args+=" -m ${package_manager}"
   [[ -n "${destination}" ]]     && install_args+=" -o ${destination}"
 
-  echo "ARGS: ${install_args}"
-
   install ${install_args} -e ${execute} -S ${as_root} -u false -- "${package}"
 
   # END INSTALLATION

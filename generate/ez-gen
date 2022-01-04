@@ -32,7 +32,7 @@ $(basename -- "${scriptpath}")
 
 USAGE:
 
-  ./$(basename -- "${scriptpath}") [-h] [-vxy] package
+  ./$(basename -- "${scriptpath}") [-h] [-euvxy] package
 
 
 OPTIONS:
@@ -49,6 +49,9 @@ OPTIONS:
   --global           -G    Generate to global generate package directory.
                            Overrides '--package-dir'.
 
+  --execute          -e    Pipe package with \`| sh\` to execute. (for curl, wget).
+  --update           -u    Update package manager repository before installation
+                           (for apt, pkg, etc.).
   --verbose          -v    Verbose output. LOG_DEBUG_LEVEL=4.
   --debug            -x    Debug mode (print all log levels). LOG_DEBUG_LEVEL=7.
   --skip-confirm     -y    Skip confirmation.
@@ -72,12 +75,17 @@ function handle_args() {
       --package-dir)      args="${args:-}-p ";;
       --global)           args="${args:-}-G ";;
       --skip-confirm)     args="${args:-}-y ";;
+      --update)           args="${args:-}-u ";;
       --verbose)          args="${args:-}-v ";;
       --debug)            args="${args:-}-x ";;
       --help)             args="${args:-}-h ";;
       *)
-        [[ "${arg:0:1}" == "-" ]] || delim="\""
-        args="${args:-}${delim}${arg}${delim} ";;
+        # Don't work with OPTARG with spaces
+        # [[ "${arg:0:1}" == "-" ]] || delim="\""
+        # args="${args:-}${delim}${arg}${delim} ";;
+
+        # Do not surround with " to allow OPTARG with '\ '
+        args="${args:-} ${arg}";;
     esac
   done
 
@@ -300,8 +308,6 @@ function _main() {
   [[ -n "\${package_manager}" ]] && install_args+=" -m \${package_manager}"
   [[ -n "\${destination}" ]]     && install_args+=" -o \${destination}"
 
-  echo "ARGS: \${install_args}"
-
   install \${install_args} -e \${execute} -S \${as_root} -u ${UPDATE} -- "\${package}"
 
   # END INSTALLATION
@@ -331,14 +337,17 @@ ___EOF___
 ############################################################# MAIN EXECUTION ###
 
 function _main() {
+  local res=0
+
   handle_args "${SCRIPT_ARGS}"
+  res=$?
+  [[ $res -ne $BASH_EX_OK ]] && return $res
+
   if [[ -z "${PACKAGE_MANAGER}" ]]; then
     local file_path="${GEN_PACKAGE_DIR}/${FILE}"
   else
     local file_path="${GEN_PACKAGE_DIR}/${FILE}.${PACKAGE_MANAGER}"
   fi
-
-  local res=0
 
   if [[ ! -d "${GEN_PACKAGE_DIR}" ]]; then
     if execlog "mkdir -p '${GEN_PACKAGE_DIR}'"; then
