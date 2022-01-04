@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+source "${BASH_SOURCE%/*}/../.ez-installrc"
+source "${BASH_SOURCE%/*}/../common/include.sh"
+
+include "${BASH_SOURCE%/*}/../generate/generate.sh"
+
+_main() {
+  generate 'git'
+}
+
+_main
+

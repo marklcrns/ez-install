@@ -78,14 +78,14 @@ function _main() {
   #   $2    package to install.
   #   $3    output directory for curl, wget, and git (optional, default=$HOME/Downloads).
 
-  install -a "${args}" \
-          -c "${executable_name}" \
-          -n "${package_name}" \
-          -u false \
-          -S "${as_root}" -- \
-          "${package_manager}" \
-          "${package}" \
-          "${destination}"
+  local install_args=""
+  [[ -n "${args}" ]]            && install_args+="-a '${args}'"
+  [[ -n "${executable_name}" ]] && install_args+="-c '${executable_name}'"
+  [[ -n "${package_name}" ]]    && install_args+="-n '${package_name}'"
+  [[ -n "${package_manager}" ]] && install_args+="-m '${package_manager}'"
+  [[ -n "${destination}" ]]     && install_args+="-o '${destination}'"
+
+  install ${install_args} -S ${as_root} -u false -- "${package}"
 
   # END INSTALLATION
 

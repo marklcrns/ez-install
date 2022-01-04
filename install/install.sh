@@ -14,10 +14,11 @@ fi
 
 source "${EZ_INSTALL_HOME}/common/include.sh"
 
+include "${EZ_INSTALL_HOME}/common/string.sh"
 include "${EZ_INSTALL_HOME}/install/const.sh"
 include "${EZ_INSTALL_HOME}/install/utils/actions.sh"
-for install_script in ${EZ_INSTALL_HOME}/install/install-utils/install-*.sh; do
-  include "${install_script}"
+for script in ${EZ_INSTALL_HOME}/install/install-utils/install-*.sh; do
+  include "${script}"
 done
 
 
@@ -25,11 +26,12 @@ function install() {
   local args=""
   local command_name=""
   local package_name=""
+  local destination=""
   local as_root=false
   local update=false
 
   OPTIND=1
-  while getopts "a:c:n:S:u:" opt; do
+  while getopts "a:c:m:n:o:S:u:" opt; do
     case ${opt} in
       a)
         args="${OPTARG}"
@@ -37,8 +39,15 @@ function install() {
       c)
         command_name="${OPTARG}"
         ;;
+      m)
+        package_manager="${OPTARG}"
+        to_lower package_manager
+        ;;
       n)
         package_name="${OPTARG}"
+        ;;
+      o)
+        destination="${OPTARG}"
         ;;
       S)
         as_root=${OPTARG}
@@ -50,24 +59,13 @@ function install() {
   done
   shift "$((OPTIND-1))"
 
-  local package_manager=""
-  local file=""
-  local package=""
-  local destination=""
-
   if [[ -z "${1+x}" ]]; then
     error "${BASH_SYS_MSG_USAGE_MISSARG}"
     return $BASH_SYS_EX_USAGE
   fi
-  if [[ -z "${2+x}" ]]; then
-    error "${BASH_SYS_MSG_USAGE_MISSARG}"
-    return $BASH_SYS_EX_USAGE
-  fi
 
-  package_manager="$(echo "${1}" | awk '{print tolower($0)}')"
-  file="${2}"
-  package="${file}"
-  destination="${3:-}"
+  local package="${1}"
+  local file="${package}"
 
   if [[ ${package_manager} == "curl" ]] || [[ ${package_manager} == "wget" ]] || [[ ${package_manager} == "git" ]]; then
     if [[ -z "${package_name}" ]]; then

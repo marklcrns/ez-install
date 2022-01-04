@@ -6,12 +6,20 @@ set -o nounset
 source "$(dirname -- $(realpath -- "${BASH_SOURCE[0]}"))/../.ez-installrc"
 source "${EZ_INSTALL_HOME}/common/include.sh"
 
+###################################################### EXTERNAL DEPENDENCIES ###
+
 include "${EZ_INSTALL_HOME}/common/common.sh"
 include "${EZ_INSTALL_HOME}/install/common.sh"
 include "${EZ_INSTALL_HOME}/install/const.sh"
 include "${EZ_INSTALL_HOME}/install/utils/actions.sh"
 
-SCRIPT_ARGS="${@}"
+################################################## CONSTANT GLOBAL VARIABLES ###
+
+readonly LOG_SYSLOG=true
+readonly LOG_FILELOG=true
+readonly SCRIPT_ARGS="${@}"
+
+############################################################### FLAG OPTIONS ###
 
 function usage() {
   local scriptpath="$(realpath -- "${0}")"
@@ -30,7 +38,7 @@ USAGE:
 OPTIONS:
 
   --author           -a    Package author.
-  --command-name     -c    Package installation dependencies.
+  --command-name     -c    Package executable name.
   --dependency       -d    Package installation dependencies.
   --package-manager  -m    Package manager installer.
   --package-name     -n    Package filename.
@@ -170,8 +178,9 @@ function handle_args() {
   return $BASH_EX_OK
 }
 
+######################################################## FUNCTION DEFINITION ###
 
-function _check_package() {
+function check_package() {
   local package="${1:-}"
   local prompt="${2:-Do you wish to continue? (Y/y): }"
 
@@ -190,7 +199,7 @@ function generate_template() {
   local file_path="${1:-}"
 
   local res=0
-  _check_package "${file_path}"
+  check_package "${file_path}"
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
 cat > "${file_path}" <<- ___EOF___
@@ -274,14 +283,14 @@ function _main() {
   #   \$2    package to install.
   #   \$3    output directory for curl, wget, and git (optional, default=\$HOME/Downloads).
 
-  install -a "\${args}" \\
-          -c "\${executable_name}" \\
-          -n "\${package_name}" \\
-          -u ${UPDATE} \\
-          -S "\${as_root}" -- \\
-          "\${package_manager}" \\
-          "\${package}" \\
-          "\${destination}"
+  local install_args=""
+  [[ -n "\${args}" ]]            && install_args+="-a '\${args}'"
+  [[ -n "\${executable_name}" ]] && install_args+="-c '\${executable_name}'"
+  [[ -n "\${package_name}" ]]    && install_args+="-n '\${package_name}'"
+  [[ -n "\${package_manager}" ]] && install_args+="-m '\${package_manager}'"
+  [[ -n "\${destination}" ]]     && install_args+="-o '\${destination}'"
+
+  install \${install_args} -S \${as_root} -u ${UPDATE} -- "\${package}"
 
   # END INSTALLATION
 
@@ -306,6 +315,8 @@ ___EOF___
   fi
 }
 
+
+############################################################# MAIN EXECUTION ###
 
 function _main() {
   handle_args "${SCRIPT_ARGS}"

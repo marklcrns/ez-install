@@ -24,7 +24,7 @@ include "${EZ_INSTALL_HOME}/install/common.sh"
 readonly EZ_VERSION="0.3-beta"
 readonly LOG_SYSLOG=true
 readonly LOG_FILELOG=true
-readonly SCRIPT_ARGS="$@"
+readonly SCRIPT_ARGS="${@}"
 readonly DOWNLOADS_DIR="${HOME}/Downloads"
 
 ############################################################### FLAG OPTIONS ###
@@ -244,6 +244,7 @@ function _ctrl_c() {
   error "${SCRIPT_PATH} Interrupted!"
   exit $BASH_EX_TERMCTRLC
 }
+
 
 function _main () {
   script_vars
