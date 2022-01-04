@@ -10,7 +10,7 @@ git repositories, personal configurations, environment setup, etc.
 Firstly, clone the repo.
 
 ```sh
-git clone --recursive --depth=1 https://github.com/marklcrns/ez-install ~/.ez-install
+git clone --recurse-submodules --depth=1 https://github.com/marklcrns/ez-install ~/.ez-install
 ```
 
 Then, create a soft symlink of the `ez` into `${INSTALL_DIR}`, preferably one

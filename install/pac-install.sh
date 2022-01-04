@@ -272,8 +272,11 @@ function pac_pre_install() {
   fetch_package package_pre_path
   if [[ $? -eq $BASH_EX_OK ]]; then
     info "Executing ${package_pre-path}..."
+    # Do not exit on unbound variables
+    set -u
     source "${package_pre_path}"
     res=$?
+    set +u
     if [[ $res -ne $BASH_EX_OK ]]; then
       capitalize package_manager
       pac_log_failed $res "${package_manager}" "${package}" "${package_manager} '${package}' global pre installation failed"
@@ -288,8 +291,11 @@ function pac_pre_install() {
     fetch_package package_pre_path
     if [[ $? -eq $BASH_EX_OK ]]; then
       info "Executing ${package_pre-path}..."
+      # Do not exit on unbound variables
+      set -u
       source "${package_pre_path}"
       res=$?
+      set +u
       if [[ $res -ne $BASH_EX_OK ]]; then
         capitalize package_manager
         pac_log_failed $res "${package_manager}" "${package}" "${package_manager} '${package}' local pre installation failed"
@@ -317,8 +323,11 @@ function pac_post_install() {
   fetch_package package_post_path
   if [[ $? -eq $BASH_EX_OK ]]; then
     info "Executing ${package_pre-path}..."
+    # Do not exit on unbound variables
+    set -u
     source "${package_post_path}"
     res=$?
+    set +u
     if [[ $res -ne $BASH_EX_OK ]]; then
       capitalize package_manager
       pac_log_failed $res "${package_manager}" "${package}" "${package_manager} '${package}' global post installation failed"
@@ -333,8 +342,11 @@ function pac_post_install() {
     fetch_package package_post_path
     if [[ $? -eq $BASH_EX_OK ]]; then
       info "Executing ${package_pre-path}..."
+      # Do not exit on unbound variables
+      set -u
       source "${package_post_path}"
       res=$?
+      set +u
       if [[ $res -ne $BASH_EX_OK ]]; then
         capitalize package_manager
         pac_log_failed $res "${package_manager}" "${package}" "${package_manager} '${package}' local post installation failed"
