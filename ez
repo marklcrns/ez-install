@@ -22,7 +22,7 @@ include "${EZ_INSTALL_HOME}/generate/generate.sh"
 
 ################################################## CONSTANT GLOBAL VARIABLES ###
 
-readonly EZ_VERSION="0.3-beta"
+readonly EZ_VERSION="0.3 BETA"
 readonly EZ_SUPPORTED_PACKAGE_MANAGER='apt apt-add npm pip pip2 pip3 pkg curl wget git local'
 readonly LOG_SYSLOG=true
 readonly LOG_FILELOG=true
