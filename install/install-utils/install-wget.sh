@@ -22,23 +22,26 @@ include "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 # Specify destination directory
 function wget_install() {
   local execute=false
+  local forced=false
   local as_root=false
-  local args='-c --'
+  local args=""
   local command_name=""
   local package_name=""
-  local to="${DESTINATION:-.}"
 
   OPTIND=1
-  while getopts "a:c:e:o:n:S:" opt; do
+  while getopts "a:c:e:f:o:n:S:" opt; do
     case ${opt} in
       a)
-        args="${OPTARG} --"
+        args="${OPTARG}"
         ;;
       c)
         command_name="${OPTARG}"
         ;;
       e)
         execute=${OPTARG}
+        ;;
+      f)
+        forced=${OPTARG}
         ;;
       o)
         to="${OPTARG}"
@@ -60,7 +63,12 @@ function wget_install() {
 
   local from="${@}"
   local sudo=""
+  ! ${VERBOSE:-false}        && args+=' -q'
   [[ -z "${package_name}" ]] && package_name="${from}"
+  [[ -z "${to}" ]]           && to="${DESTINATION:-.}/$(basename -- "${from}")"
+
+  # NOTE: ~ does not expand when test -d, i.e., [[ -d ${to} ]]
+  to=${to//\~/${HOME}}
 
   if $as_root; then
     if command -v sudo &> /dev/null; then
@@ -91,7 +99,7 @@ function wget_install() {
 
   if $execute; then
     # Execute installation
-    if execlog "wget ${args} '${from}' | ${sudo}bash"; then
+    if execlog "wget -O - ${args} -- '${from}' | ${sudo}bash"; then
       pac_log_success 'Wget' "${package_name}" "Wget '${package_name}' successful"
     else
       res=$?
@@ -99,26 +107,20 @@ function wget_install() {
       return $res
     fi
   else
-    to=${to//\~/${HOME}}
     # Create destination directory
     if [[ ! -d "${to}" ]]; then
       warning "Creating destination directory '${to}'"
       execlog "mkdir -p ${to}"
     fi
 
-    # Resolve destination
-    local filename="$(basename -- "${from}")"
-    # NOTE: ~ does not expand when tested with -d
-    to="${to}/${filename}"
-
-    if [[ -f "${to}" ]]; then
-      pac_log_skip "Wget" "${package_name}"
+    if [[ -f "${to}" ]] && ! $forced; then
+      pac_log_skip "Wget" "${package_name}" "Wget '${package_name}' ${to} already exist"
       return $BASH_EX_OK
     fi
 
     # Execute installation
     # NOTE: DO NOT SURROUND $from to permit shell command piping
-    if execlog "wget -O '${to}' ${args} '${from}'"; then
+    if execlog "wget -O '${to}' ${args} -- '${from}'"; then
       pac_log_success 'Wget' "${package_name}" "Wget '${from}' -> '${to}' successful"
     else
       res=$?

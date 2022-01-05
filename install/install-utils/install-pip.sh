@@ -22,7 +22,7 @@ include "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 function pip_install() {
   local as_root=false
   local is_global=false
-  local args='--'
+  local args=""
   local command_name=""
   local package_name=""
   local pip_version=""
@@ -31,7 +31,7 @@ function pip_install() {
   while getopts "a:c:gn:S:v:" opt; do
     case ${opt} in
       a)
-        args="${OPTARG} --"
+        args="${OPTARG}"
         ;;
       c)
         command_name="${OPTARG}"
@@ -59,6 +59,7 @@ function pip_install() {
 
   local package="${@%.*}"
   local sudo=""
+  ! ${VERBOSE:-false}        && args+=' -q'
   [[ -z "${package_name}" ]] && package_name="${package}"
 
   if $as_root; then
@@ -98,7 +99,7 @@ function pip_install() {
 
   # Execute installation
   if $is_global; then
-    if execlog "${sudo}pip${pip_version} install -g ${args} ${package}"; then
+    if execlog "${sudo}pip${pip_version} install -g ${args} -- ${package}"; then
       pac_log_success "Pip${pip_version}" "${package_name}"
     else
       res=$?
@@ -106,7 +107,7 @@ function pip_install() {
       return $res
     fi
   else
-    if execlog "${sudo}pip${pip_version} install ${args} ${package}"; then
+    if execlog "${sudo}pip${pip_version} install ${args} -- ${package}"; then
       pac_log_success "Pip${pip_version}" "${package_name}"
     else
       res=$?

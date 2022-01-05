@@ -21,23 +21,26 @@ include "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 
 function curl_install() {
   local execute=false
+  local forced=false
   local as_root=false
-  local args='-sSL --'
+  local args=""
   local command_name=""
   local package_name=""
-  local to="${DESTINATION:-.}"
 
   OPTIND=1
-  while getopts "a:c:e:o:n:S:" opt; do
+  while getopts "a:c:e:f:o:n:S:" opt; do
     case ${opt} in
       a)
-        args="${OPTARG} --"
+        args="${OPTARG}"
         ;;
       c)
         command_name="${OPTARG}"
         ;;
       e)
         execute=${OPTARG}
+        ;;
+      f)
+        forced=${OPTARG}
         ;;
       o)
         to="${OPTARG}"
@@ -59,7 +62,13 @@ function curl_install() {
 
   local from="${@}"
   local sudo=""
+  [[ -z "${args}" ]]         && args='-fSL'
+  ! ${VERBOSE:-false}        && args+=' -s'
   [[ -z "${package_name}" ]] && package_name="${from}"
+  [[ -z "${to}" ]]           && to="${DESTINATION:-.}/$(basename -- "${from}")"
+
+  # NOTE: ~ does not expand when test -d, i.e., [[ -d ${to} ]]
+  to=${to//\~/${HOME}}
 
   if $as_root; then
     if command -v sudo &> /dev/null; then
@@ -91,7 +100,7 @@ function curl_install() {
   # Resolve destination
   if $execute; then
     # Execute installation
-    if execlog "curl ${args} '${from}' | ${sudo}bash"; then
+    if execlog "curl ${args} -- '${from}' | ${sudo}bash"; then
       pac_log_success 'Curl' "${package_name}" "Curl '${package_name}' successful"
     else
       res=$?
@@ -99,17 +108,14 @@ function curl_install() {
       return $res
     fi
   else
-    local filename="$(basename -- "${from}")"
-    # NOTE: ~ does not expand when tested with -d
-    to="${to//\~/${HOME}}/${filename}"
-
-    if [[ -f "${to}" ]]; then
-      pac_log_skip "Curl" "${package_name}"
+    # Replace existing if forced
+    if [[ -f "${to}" ]] && ! $forced; then
+      pac_log_skip "Curl" "${package_name}" "Curl '${package_name}' ${to} already exist"
       return $BASH_EX_OK
     fi
 
     # Execute installation
-    if execlog "curl --create-dirs -o '${to}' ${args} '${from}'"; then
+    if execlog "curl --create-dirs -o '${to}' ${args} -- '${from}'"; then
       pac_log_success 'Curl' "${package_name}" "Curl '${from}' -> '${to}' successful"
     else
       res=$?

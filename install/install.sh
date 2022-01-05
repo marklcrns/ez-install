@@ -165,7 +165,7 @@ function install() {
       ;;
     local)
       # Do nothing but check if executable exists and trigger pre and post processes
-      local_install -c "${command_name}" -- "${package}"
+      local_install -c "${command_name}" -n "${package_name}" -- "${package}"
       ;;
     *)
       error "${BASH_EZ_MSG_PACMAN_NOTFOUND}"

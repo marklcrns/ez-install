@@ -20,27 +20,27 @@ include "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 
 
 function git_clone() {
+  local forced=false
   local as_root=false
-  local is_force=false
-  local args='--'
+  local args=""
   local command_name=""
   local package_name=""
   local to=""
 
   OPTIND=1
-  while getopts "fa:c:n:o:S:" opt; do
+  while getopts "a:c:f:n:o:S:" opt; do
     case ${opt} in
-      f)
-        is_force=true
-        ;;
       a)
-        args="${OPTARG} --"
+        args="${OPTARG}"
         ;;
       c)
         command_name="${OPTARG}"
         ;;
       n)
         package_name="${OPTARG}"
+        ;;
+      f)
+        forced=${OPTARG}
         ;;
       o)
         to="${OPTARG}"
@@ -58,8 +58,12 @@ function git_clone() {
   fi
 
   local from="${@}"
+  ! ${VERBOSE:-false}        && args+=' -q'  # TODO: Useless, always quite
   [[ -z "${package_name}" ]] && package_name="${from}"
-  [[ -z "${to}" ]]           && to="${DESTINATION:-.}"
+  [[ -z "${to}" ]]           && to="${DESTINATION:-.}/$(basename -- "${from}" '.git')"
+
+  # NOTE: ~ does not expand when test -d, i.e., [[ -d ${to} ]]
+  to=${to//\~/${HOME}}
 
   if $as_root; then
     if ! command -v sudo &> /dev/null; then
@@ -94,20 +98,12 @@ function git_clone() {
     return $res
   fi
 
-  # Resolve destination
-  local repo_name="$(basename -- "${from}" '.git')"
-  # NOTE: ~ does not expand when tested with -d
-  to=${to//\~/${HOME}}
-  if [[ -d "${to}" ]] && [[ "$(basename -- "${to}")" != "${repo_name}" ]]; then
-    to="${to}/${repo_name}"
-  fi
-
   pac_pre_install "${package_name}" 'apt-add'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   # Replace existing repo destination dir if force
   if [[ -d "${to}" ]]; then
-    if ${is_force}; then
+    if ${forced}; then
       is_git_repo "${to}"
       res=$?
       if [[ $res -ne $BASH_EX_OK ]] ; then
@@ -160,7 +156,7 @@ function clone_repo() {
   while getopts "fa:o:n:S:" opt; do
     case ${opt} in
       f)
-        is_force=true
+        forced=true
         ;;
       a)
         args="${OPTARG}"
@@ -192,8 +188,8 @@ function clone_repo() {
 
   # NOTE: do not set stderr to `local` inline to prevent overwritting exit code from subshell
   info "Cloning '${from}' -> '${to}'"
-  stderr="$(${sudo}git clone ${args} "${from}" "${to}" 2>&1 > /dev/null; exit $?)"; res=$?
-  info "Execute: git clone ${args} ${from} ${to}"
+  stderr="$(${sudo}git clone ${args} -- "${from}" "${to}" 2>&1 > /dev/null; exit $?)"; res=$?
+  info "Execute: git clone ${args} -- ${from} ${to}"
 
   [[ $res -eq $BASH_EX_OK ]] || [[ -z "${stderr}" ]] && return $res
 

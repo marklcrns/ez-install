@@ -22,7 +22,7 @@ include "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 function pkg_install() {
   local as_root=false
   local is_update=false
-  local args='--'
+  local args=""
   local command_name=""
   local package_name=""
 
@@ -30,7 +30,7 @@ function pkg_install() {
   while getopts "a:c:n:S:u" opt; do
     case ${opt} in
       a)
-        args="${OPTARG} --"
+        args="${OPTARG}"
         ;;
       c)
         command_name="${OPTARG}"
@@ -55,6 +55,7 @@ function pkg_install() {
 
   local package="${@%.*}"
   local sudo=""
+  ! ${VERBOSE:-false}        && args+=' -q'
   [[ -z "${package_name}" ]] && package_name="${package}"
 
   if $as_root; then
@@ -82,7 +83,7 @@ function pkg_install() {
   fi
 
   if $is_update; then
-    pkg_update -S $as_root
+    pkg_update -a "${args}" -S $as_root
     res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
   fi
 
@@ -90,7 +91,7 @@ function pkg_install() {
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   # Execute installation
-  if execlog "${sudo}pkg install -y ${args} '${package}'"; then
+  if execlog "${sudo}pkg install -y ${args} -- '${package}'"; then
     pac_log_success 'Pkg' "${package_name}"
   else
     res=$?
@@ -107,10 +108,14 @@ function pkg_install() {
 
 function pkg_update() {
   local as_root=false
+  local args=""
 
   OPTIND=1
-  while getopts "S:" opt; do
+  while getopts "a:S:" opt; do
     case ${opt} in
+      a)
+        args="${OPTARG}"
+        ;;
       S)
         as_root=${OPTARG}
         ;;
@@ -130,7 +135,7 @@ function pkg_update() {
 
   local res=
 
-  if execlog "${sudo}pkg upgrade -y"; then
+  if execlog "${sudo}pkg upgrade -y ${args}"; then
     ok 'Pkg upgrade successful!'
   else
     res=$?

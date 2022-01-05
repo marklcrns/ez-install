@@ -24,7 +24,7 @@ include "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 function apt_add_repo() {
   local as_root=false
   local is_update=false
-  local args='--'
+  local args=""
   local command_name=""
   local package_name=""
 
@@ -32,7 +32,7 @@ function apt_add_repo() {
   while getopts "a:c:n:S:u:" opt; do
     case ${opt} in
       a)
-        args="${OPTARG} --"
+        args="${OPTARG}"
         ;;
       c)
         command_name="${OPTARG}"
@@ -58,6 +58,7 @@ function apt_add_repo() {
   local repo="${@}"
   local apt_repo_dir='/etc/apt/'
   local sudo=""
+  ! ${VERBOSE:-false}        && args+=' -q'
   [[ -z "${package_name}" ]] && package_name="${repo}"
 
   strip_substr 'ppa:' repo
@@ -95,7 +96,7 @@ function apt_add_repo() {
 
   # Execute installation
   is_wsl && set_nameserver "8.8.8.8"
-  if execlog "apt-add-repository -y ${args} '${repo}' &> /dev/null"; then
+  if execlog "apt-add-repository -y ${args} -- '${repo}' &> /dev/null"; then
     pac_log_success 'Apt-add' "${package_name}"
     return $BASH_EX_OK
   else
@@ -116,7 +117,7 @@ function apt_add_repo() {
 function apt_install() {
   local as_root=false
   local is_update=false
-  local args='--'
+  local args=""
   local command_name=""
   local package_name=""
 
@@ -124,7 +125,7 @@ function apt_install() {
   while getopts "a:c:n:S:u:" opt; do
     case ${opt} in
       a)
-        args="${OPTARG} --"
+        args="${OPTARG}"
         ;;
       c)
         command_name="${OPTARG}"
@@ -149,6 +150,7 @@ function apt_install() {
 
   local package="${@%.*}"
   local sudo=""
+  ! ${VERBOSE:-false}        && args+=' -q'
   [[ -z "${package_name}" ]] && package_name="${package}"
 
   if $as_root; then
@@ -192,7 +194,7 @@ function apt_install() {
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   # Execute installation
-  if execlog "${sudo}apt install -y ${args} '${package}'"; then
+  if execlog "${sudo}apt install -y ${args} -- '${package}'"; then
     pac_log_success 'Apt' "${package_name}"
   else
     res=$?
@@ -247,10 +249,14 @@ function apt_update() {
 
 function apt_upgrade() {
   local as_root=false
+  local args=""
 
   OPTIND=1
   while getopts "S:" opt; do
     case ${opt} in
+      a)
+        args="${OPTARG}"
+        ;;
       S)
         as_root=${OPTARG}
         ;;
@@ -271,7 +277,7 @@ function apt_upgrade() {
   local res=0
 
   is_wsl && set_nameserver '8.8.8.8'
-  if execlog "${sudo}apt update -y && apt upgrade -y"; then
+  if execlog "${sudo}apt update -y ${args} && apt upgrade -y ${args}"; then
     ok 'Apt upgrade successful!'
   else
     res=$?
@@ -285,7 +291,7 @@ function apt_upgrade() {
 
 function apt_purge() {
   local as_root=false
-  local args='--'
+  local args=""
   local command_name=""
   local package_name=""
 
@@ -293,7 +299,7 @@ function apt_purge() {
   while getopts "a:c:n:u:S:" opt; do
     case ${opt} in
       a)
-        args="${OPTARG} --"
+        args="${OPTARG}"
         ;;
       c)
         command_name="${OPTARG}"
@@ -315,6 +321,7 @@ function apt_purge() {
 
   local package="${@%.*}"
   local sudo=""
+  ! ${VERBOSE:-false}        && args+=' -q'
   [[ -z "${package_name}" ]] && package_name="${package}"
 
   if $as_root; then
@@ -342,7 +349,7 @@ function apt_purge() {
   fi
 
   # Execute installation
-  if execlog "${sudo}apt purge --auto-remove -y ${args} '${package}'"; then
+  if execlog "${sudo}apt purge --auto-remove -y ${args} -- '${package}'"; then
     pac_log_success 'Apt-purge' "${package_name}" "Apt purge '${package_name}' successful!"
   else
     res=$?

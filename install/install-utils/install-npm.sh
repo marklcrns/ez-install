@@ -22,7 +22,7 @@ include "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 function npm_install() {
   local as_root=false
   local is_local=false
-  local args='--'
+  local args=""
   local command_name=""
   local package_name=""
 
@@ -30,7 +30,7 @@ function npm_install() {
   while getopts "a:c:n:lS:" opt; do
     case ${opt} in
       a)
-        args="${OPTARG} --"
+        args="${OPTARG}"
         ;;
       c)
         command_name="${OPTARG}"
@@ -53,8 +53,9 @@ function npm_install() {
     return $BASH_SYS_EX_USAGE
   fi
 
-  local package="${@%.*}"
+  local package="${@}"
   local sudo=""
+  ! ${VERBOSE:-false}        && args+=' --silent'
   [[ -z "${package_name}" ]] && package_name="${package}"
 
   if $as_root; then
@@ -100,7 +101,7 @@ function npm_install() {
 
   # Execute installation
   if $is_local; then
-    if execlog "${sudo}npm install ${args} '${package}'"; then
+    if execlog "${sudo}npm install ${args} -- '${package}'"; then
       pac_log_success 'Npm' "${package_name}" "Npm '${package_name}' local package installation successful"
       return $BASH_EX_OK
     else
@@ -109,7 +110,7 @@ function npm_install() {
       return $res
     fi
   else
-    if execlog "${sudo}npm install -g ${args} '${package}'"; then
+    if execlog "${sudo}npm install -g ${args} -- '${package}'"; then
       pac_log_success 'Npm' "${package_name}" "Npm '${package_name}' global package installation successful"
       return $BASH_EX_OK
     else
