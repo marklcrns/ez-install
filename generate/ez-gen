@@ -301,14 +301,16 @@ function _main() {
   #   \$2    package to install.
   #   \$3    output directory for curl, wget, and git (optional, default=\$HOME/Downloads).
 
-  local install_args=""
-  [[ -n "\${args}" ]]            && install_args+=" -a \${args}"
-  [[ -n "\${executable_name}" ]] && install_args+=" -c \${executable_name}"
-  [[ -n "\${package_name}" ]]    && install_args+=" -n \${package_name}"
-  [[ -n "\${package_manager}" ]] && install_args+=" -m \${package_manager}"
-  [[ -n "\${destination}" ]]     && install_args+=" -o \${destination}"
-
-  install \${install_args} -e \${execute} -S \${as_root} -u ${UPDATE} -- "\${package}"
+  install -a "\${args}" \\
+          -c "\${executable_name}" \\
+          -n "\${package_name}" \\
+          -m "\${package_manager}" \\
+          -o "\${destination}" \\
+          -e \${execute} \\
+          -S \${as_root} \\
+          -u ${UPDATE} \\
+          -- \\
+          "\${package}"
 
   # END INSTALLATION
 

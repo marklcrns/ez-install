@@ -25,7 +25,7 @@ function git_clone() {
   local args='--'
   local command_name=""
   local package_name=""
-  local to="${DESTINATION:-.}"
+  local to=""
 
   OPTIND=1
   while getopts "fa:c:n:o:S:" opt; do
@@ -59,6 +59,7 @@ function git_clone() {
 
   local from="${@}"
   [[ -z "${package_name}" ]] && package_name="${from}"
+  [[ -z "${to}" ]]           && to="${DESTINATION:-.}"
 
   if $as_root; then
     if ! command -v sudo &> /dev/null; then
@@ -97,12 +98,8 @@ function git_clone() {
   local repo_name="$(basename -- "${from}" '.git')"
   # NOTE: ~ does not expand when tested with -d
   to=${to//\~/${HOME}}
-  [[ -d "${to}" ]] && to="${to}/${repo_name}"
-
-  # Check destination directory validity
-  if [[ ! -d "$(dirname -- "${to}")" ]]; then
-    pac_log_failed $BASH_SYS_EX_CANTCREAT 'Git' "${package_name}" "Git clone '${from}' -> '${to}' failed! Invalid destination path"
-    return $BASH_SYS_EX_CANTCREAT
+  if [[ -d "${to}" ]] && [[ "$(basename -- "${to}")" != "${repo_name}" ]]; then
+    to="${to}/${repo_name}"
   fi
 
   pac_pre_install "${package_name}" 'apt-add'
