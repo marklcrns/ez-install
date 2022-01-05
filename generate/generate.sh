@@ -40,30 +40,50 @@ function generate_package() {
   fi
 
   local package="${1##*#}"
-  local ez_gen="${EZ_INSTALL_HOME}/generate/ez-gen"
+  local package_name="${package%.*}"
+  local package_manager="$([[ "${package##*.}" != "${package}" ]] && echo "${package##*.}" || echo 'null')"
+
+  local matches=(
+    $(find "${LOCAL_PACKAGE_DIR}" -type f \
+      ! -name "${package_name}*.pre" \
+      ! -name "${package_name}*.post" \
+      ! -name "${package_name}.${package_manager}.*" \
+      -name "${package_name}*.*")
+    )
+
+  if [[ -n "${matches+x}" ]]; then
+    echo -e "Existing package(s) found in:\n"
+    local i=
+    for i in "${!matches[@]}"; do
+      printf "$(($i+1))) ${matches[$i]}\n"
+    done
+
+    echo ""
+
+    local continue=""
+    while ! [[ "${continue}" =~ ^[Yy]$ ]]; do
+      get_user_input "${COLOR_YELLOW}Continue? Will overwrite existing package. (Y/y):${COLOR_NC} " continue
+    done
+  fi
 
   local author=""
   local dependencies=""
   local executable_name=""
-  local package_name=""
-  local package_manager=""
   local output_dir=""
   local update=false
   local execute=false
   local args=""
   local res=0
-  local proceed=""
+  local ez_gen="${EZ_INSTALL_HOME}/generate/ez-gen"
 
   echo -e "Generating for '${package}' package..."
 
+  local proceed=""
   while ! [[ "${proceed}" =~ ^[Yy]$ ]]; do
     echo -e "\n  Everything is optional. Press [enter] to skip.\n"
     get_user_input "  Author: " author
     get_user_input "  Dependencies (use ',' separator): " dependencies
     get_user_input "  Executable name: " executable_name
-    get_user_input "  Package name: " package_name
-    get_user_input "  Package manager: " package_manager
-
     while ! is_package_manager_supported package_manager; do
       echo "package manager: ${package_manager}"
       get_user_input "  Package manager: " package_manager
@@ -88,7 +108,12 @@ function generate_package() {
     get_user_input "  Package manager args: " args
 
     echo ""
-    get_user_input "Would you like to proceed (y/Y): " proceed
+
+    continue=""
+    while ! [[ "${continue}" =~ ^[Yy]$ ]]; do
+      get_user_input "${COLOR_YELLOW}Would you like to proceed? (Y/y):${COLOR_NC} " continue
+    done
+    proceed="${continue}"
   done
 
   # Escape whitespaces
@@ -102,8 +127,8 @@ function generate_package() {
   [[ -n "${args}" ]]            && ez_gen_args+=" -a ${args// /\\ }"
   [[ ${update} ]]               && ez_gen_args+=" -u"
   [[ ${execute} ]]              && ez_gen_args+=" -e"
-  [[ ${VERBOSE+x} ]]            && ez_gen_args+=" -v"
-  [[ ${DEBUG+x} ]]              && ez_gen_args+=" -x"
+  ${VERBOSE:-false}             && ez_gen_args+=" -v"
+  ${DEBUG:-false}               && ez_gen_args+=" -x"
 
   $ez_gen -y ${ez_gen_args} -- "${package}"
 

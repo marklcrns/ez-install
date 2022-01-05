@@ -91,7 +91,7 @@ function ok() {
 
   local message="${1}"
 
-  if ${VERBOSE}; then
+  if ${VERBOSE} && ${DEBUG}; then
     log 'notice' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}(): ${message}"
   else
     log 'notice' "${message}"
@@ -119,7 +119,7 @@ function skip() {
 
   local message="${1}"
 
-  if ${VERBOSE}; then
+  if ${VERBOSE} && ${DEBUG}; then
     log 'notice' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}(): ${message}"
   else
     log 'notice' "${message}"
@@ -147,7 +147,7 @@ function finish() {
 
   local message="${1}"
 
-  if ${VERBOSE}; then
+  if ${VERBOSE} && ${DEBUG}; then
     log 'warn' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}(): ${message}"
   else
     log 'warn' "${message}"
@@ -175,7 +175,7 @@ function warning() {
 
   local message="${1}"
 
-  if ${VERBOSE}; then
+  if ${VERBOSE} && ${DEBUG}; then
     log 'warn' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}(): ${message}"
   else
     log 'warn' "${message}"
@@ -202,7 +202,7 @@ function abort() {
 
   local message="${1}"
 
-  if ${VERBOSE}; then
+  if ${VERBOSE} && ${DEBUG}; then
     log 'warn' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}(): ${message}"
   else
     log 'warn' "${message}"
@@ -231,7 +231,7 @@ function error() {
   local message="${1}"
   local exit_code=${2:-$BASH_EX_GENERAL}
 
-  if ${VERBOSE}; then
+  if ${VERBOSE} && ${DEBUG}; then
     log 'error' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}(): ${message}"
   else
     log 'error' "${message}"
@@ -261,7 +261,7 @@ function execlog() {
   local command="${1}"
   strip_ansi_code command
 
-  if ${VERBOSE}; then
+  if ${VERBOSE} && ${DEBUG}; then
     log 'debug' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}(): ${command}"
     eval "${command}"
   else

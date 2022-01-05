@@ -106,7 +106,7 @@ function select_package() {
 
   local select=""
 
-  if [[ -n "${matches+x}" ]]; then
+  if [[ -n "${matches[@]}" ]]; then
     if [[ "${#matches[@]}" -eq 1 ]]; then
       select="${matches[0]}"
       info "Defaulting: ${select}"
@@ -154,7 +154,7 @@ function has_alternate_package() {
       -name "${package}*.*")
     )
 
-  if [[ -n "${matches+x}" ]]; then
+  if [[ -n "${matches[@]}" ]]; then
     info "Alternate package found for '${package}'"
     return $BASH_EX_OK
   fi

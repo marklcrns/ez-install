@@ -224,18 +224,6 @@ function handle_args() {
 
   resolve_package_dir
 
-  readonly SKIP_CONFIRM
-  readonly VERBOSE
-  readonly DEBUG
-  readonly LOG_DEBUG_LEVEL
-  readonly GENERATE
-  readonly JSON
-  readonly RECURSIVE
-  readonly AS_ROOT
-  readonly DESTINATION
-  readonly PACKAGE_DIR
-  readonly PACKAGES
-
   return $BASH_EX_OK
 }
 

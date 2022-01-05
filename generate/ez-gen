@@ -95,7 +95,6 @@ function handle_args() {
   [[ -z "${VERBOSE+x}" ]]         && VERBOSE=false
   [[ -z "${DEBUG+x}" ]]           && DEBUG=false
   [[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=3
-  [[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=3
 
   ARGS=""
   AUTHOR=""
@@ -329,7 +328,7 @@ return \$res
 ___EOF___
 
   if eval "chmod +x '${file_path}'"; then
-    ok "${file_path} package created!"
+    finish "${file_path} package created!"
   else
     error "${file_path} package creation failed!"
   fi
@@ -363,6 +362,7 @@ function _main() {
 
   generate_template "${file_path}"
   res=$?
+
   return $res
 }
 
