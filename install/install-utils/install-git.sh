@@ -99,11 +99,12 @@ function git_clone() {
   to=${to//\~/${HOME}}
   [[ -d "${to}" ]] && to="${to}/${repo_name}"
 
-  # Check destination directory validity
-  if [[ ! -d "$(dirname -- "${to}")" ]]; then
-    pac_log_failed $BASH_SYS_EX_CANTCREAT 'Git' "${package_name}" "Git clone '${from}' -> '${to}' failed! Invalid destination path"
-    return $BASH_SYS_EX_CANTCREAT
-  fi
+  # TODO: Replace with more realistic check
+  # # Check destination directory validity
+  # if [[ ! -d "$(dirname -- "${to}")" ]]; then
+  #   pac_log_failed $BASH_SYS_EX_CANTCREAT 'Git' "${package_name}" "Git clone '${from}' -> '${to}' failed! Invalid destination path"
+  #   return $BASH_SYS_EX_CANTCREAT
+  # fi
 
   pac_pre_install "${package_name}" 'apt-add'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
