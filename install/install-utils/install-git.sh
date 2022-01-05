@@ -99,12 +99,11 @@ function git_clone() {
   to=${to//\~/${HOME}}
   [[ -d "${to}" ]] && to="${to}/${repo_name}"
 
-  # TODO: Replace with more realistic check
-  # # Check destination directory validity
-  # if [[ ! -d "$(dirname -- "${to}")" ]]; then
-  #   pac_log_failed $BASH_SYS_EX_CANTCREAT 'Git' "${package_name}" "Git clone '${from}' -> '${to}' failed! Invalid destination path"
-  #   return $BASH_SYS_EX_CANTCREAT
-  # fi
+  # Check destination directory validity
+  if [[ ! -d "$(dirname -- "${to}")" ]]; then
+    pac_log_failed $BASH_SYS_EX_CANTCREAT 'Git' "${package_name}" "Git clone '${from}' -> '${to}' failed! Invalid destination path"
+    return $BASH_SYS_EX_CANTCREAT
+  fi
 
   pac_pre_install "${package_name}" 'apt-add'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
@@ -133,7 +132,7 @@ function git_clone() {
   fi
 
   # Execute cloning
-  clone_repo -a "${args}" -o "${to}" -S $as_root -- "${from}"
+  clone_repo -a "${args}" -n "${package_name}" -o "${to}" -S $as_root -- "${from}"
   res=$?
   if [[ $res -ne $BASH_EX_OK ]]; then
     if [[ $res -eq $BASH_SYS_EX_SOFTWARE ]]; then
@@ -157,6 +156,7 @@ function clone_repo() {
   local as_root=false
   local retry=${retry:-${GIT_AUTH_MAX_RETRY:-5}}
   local args=""
+  local package_name=""
   local to=""
 
   OPTIND=1
@@ -167,6 +167,9 @@ function clone_repo() {
         ;;
       a)
         args="${OPTARG}"
+        ;;
+      n)
+        package_name="${OPTARG}"
         ;;
       o)
         to="${OPTARG}"
@@ -201,7 +204,7 @@ function clone_repo() {
     if [[ "${retry}" -ne $BASH_EX_OK ]]; then
       warning "Git authentication failed. Try again (${retry} remaining)\n"
       ((--retry))
-      clone_repo -a "${args}" -o "${to}" -S $as_root -- "${from}"
+      clone_repo -a "${args}" -n "${package_name}" -o "${to}" -S $as_root -- "${from}"
       res=$?
       return $res
     else
@@ -209,10 +212,8 @@ function clone_repo() {
       return $BASH_SYS_EX_SOFTWARE
     fi
   else
-    pac_log_failed $res 'Git' "${from}" "${stderr}"
-    return $res
+    pac_log_failed $res 'Git' "${package_name}" "${stderr}"
   fi
-
   return $res
 }
 

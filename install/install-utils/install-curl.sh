@@ -91,7 +91,7 @@ function curl_install() {
   # Resolve destination
   if $execute; then
     # Execute installation
-    if execlog "curl ${args} '${from}' | bash"; then
+    if execlog "curl ${args} '${from}' | ${sudo}bash"; then
       pac_log_success 'Curl' "${package_name}" "Curl '${package_name}' successful"
     else
       res=$?

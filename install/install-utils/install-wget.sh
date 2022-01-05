@@ -91,7 +91,7 @@ function wget_install() {
 
   if $execute; then
     # Execute installation
-    if execlog "wget ${args} '${from}' | bash"; then
+    if execlog "wget ${args} '${from}' | ${sudo}bash"; then
       pac_log_success 'Wget' "${package_name}" "Wget '${package_name}' successful"
     else
       res=$?

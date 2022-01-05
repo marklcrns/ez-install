@@ -83,7 +83,7 @@ function install() {
       return $BASH_SYS_EX_USAGE
     fi
     file="${package_name}"
-    [[ -n "${destination}" ]] && install_args+=" -o \"${destination}\""
+    [[ -n "${destination}" ]] && install_args+=" -o ${destination}"
   fi
 
   local res=0
