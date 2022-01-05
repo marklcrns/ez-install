@@ -80,7 +80,7 @@ function _main() {
   #   $3    output directory for curl, wget, and git (optional, default=$HOME/Downloads).
 
   local install_args=""
-  [[ -n "${args}" ]]            && install_args+=" -a '${args}'"
+  [[ -n "${args}" ]]            && install_args+=" -a ${args}"
   [[ -n "${executable_name}" ]] && install_args+=" -c ${executable_name}"
   [[ -n "${package_name}" ]]    && install_args+=" -n ${package_name}"
   [[ -n "${package_manager}" ]] && install_args+=" -m ${package_manager}"
