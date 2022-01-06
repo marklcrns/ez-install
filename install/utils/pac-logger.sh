@@ -26,6 +26,15 @@ include "${EZ_INSTALL_HOME}/install/utils/actions.sh"
 
 
 function pac_log_success() {
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+  if [[ -z "${2+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
   local manager="${1}"
   local package="${2}"
   local message="${3:-}"
@@ -37,13 +46,31 @@ function pac_log_success() {
   fi
 
   local log="'${package}' SUCCESSFUL"
+
+  [[ "${manager}" != 'N/A' ]] && log="${manager} ${log}"
   if ! has_pac_log_duplicate "${log}" "${SUCCESSFUL_PACKAGES[@]}"; then
-    SUCCESSFUL_PACKAGES=( "${SUCCESSFUL_PACKAGES[@]}" "${manager} ${log}" )
+    SUCCESSFUL_PACKAGES=( "${SUCCESSFUL_PACKAGES[@]}" "${log}" )
   fi
 }
 
 
 function pac_log_skip() {
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+  if [[ -z "${2+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  local exit_code=$1
+  local has_exit_code=false
+  if [[ $exit_code =~ ^[0-9]+$ ]]; then
+    has_exit_code=true
+    shift
+  fi
+
   local manager="${1}"
   local package="${2}"
   local message="${3:-}"
@@ -54,18 +81,35 @@ function pac_log_skip() {
     skip -d 2 "${manager} '${package}' package already installed"
   fi
 
-  local log="'${package}' SKIPPED"
+  local log=""
+  if $has_exit_code; then
+    log="'${package}' SKIPPED"
+  else
+    log="'${package}' SKIPPED ($exit_code)"
+  fi
+
+  [[ "${manager}" != 'N/A' ]] && log="${manager} ${log}"
   if ! has_pac_log_duplicate "${log}" "${SKIPPED_PACKAGES[@]}"; then
-    SKIPPED_PACKAGES=( "${SKIPPED_PACKAGES[@]}" "${manager} ${log}" )
+    SKIPPED_PACKAGES=( "${SKIPPED_PACKAGES[@]}" "${log}" )
   fi
 }
 
 
 function pac_log_failed() {
-  local exit_code=
-  if [[ $1 -eq $1 ]]; then
-    exit_code=$1
-    shift 1
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+  if [[ -z "${2+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  local exit_code=$1
+  local has_exit_code=false
+  if [[ $exit_code =~ ^[0-9]+$ ]]; then
+    has_exit_code=true
+    shift
   fi
 
   local manager="${1}"
@@ -79,23 +123,28 @@ function pac_log_failed() {
   fi
 
   local log=""
-  if [[ -z $exit_code ]]; then
+  if $has_exit_code; then
     log="'${package}' FAILED"
   else
     log="'${package}' FAILED ($exit_code)"
   fi
 
+  [[ "${manager}" != 'N/A' ]] && log="${manager} ${log}"
   if ! has_pac_log_duplicate "${log}" "${FAILED_PACKAGES[@]}"; then
-    FAILED_PACKAGES=( "${FAILED_PACKAGES[@]}" "${manager} ${log}" )
+    FAILED_PACKAGES=( "${FAILED_PACKAGES[@]}" "${log}" )
   fi
 }
 
 
 function has_pac_log_duplicate() {
-  local new_log=${1:-}
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  local new_log="${1}"
   shift 1
   local log=( "${@}" )
-
 
   local i=
   for ((i = 0; i < ${#log[@]}; ++i)); do
