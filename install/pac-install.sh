@@ -50,7 +50,7 @@ function pac_batch_json_install() {
       else
         root_package_manager="N/A"
       fi
-      pac_log_failed $res "${root_package_manager}" "${root_package_name%.*}" "'${root_package_name}' installation failed"
+      pac_log_skip "${root_package_manager}" "${root_package_name%.*}"
     fi
 
     prog_bar "$(("${i}*100/${width}"))"
