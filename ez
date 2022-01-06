@@ -23,11 +23,7 @@ include "${EZ_INSTALL_HOME}/generate/generate.sh"
 ################################################## CONSTANT GLOBAL VARIABLES ###
 
 readonly EZ_VERSION="0.3 BETA"
-readonly EZ_SUPPORTED_PACKAGE_MANAGER='apt apt-add npm pip pip2 pip3 pkg curl wget git local'
-readonly LOG_SYSLOG=true
-readonly LOG_FILELOG=true
 readonly SCRIPT_ARGS="${@}"
-readonly DOWNLOADS_DIR="${HOME}/Downloads"
 
 ############################################################### FLAG OPTIONS ###
 
@@ -46,17 +42,17 @@ USAGE:
 
 OPTIONS:
 
+  --package-dir   -D    Directory to search packages from.
+                        Global default=$PACKAGE_ROOT_DIR.
+                        Local default=$LOCAL_PACKAGE_ROOT_DIR.
   --generate      -g    Generate package(s) locally instead.
   --json          -j    Parse package data as json.
   --destination   -o    Package output directory (for curl, wget, etc.).
                         default=$HOME/Downloads.
-  --package-dir   -p    Directory to search packages from.
-                        Global default=$PACKAGE_ROOT_DIR.
-                        Local default=$LOCAL_PACKAGE_ROOT_DIR.
   --no-norecurse  -R    Prevent recursive package dependency installation.
   --as-root       -S    Run package manager as root (sudo).
 
-  --verbose       -v    Verbose output. LOG_DEBUG_LEVEL=4.
+  --quiet         -q    Suppress standard output. LOG_DEBUG_LEVEL=3.
   --debug         -x    Debug mode (print all log levels). LOG_DEBUG_LEVEL=7.
   --skip-confirm  -y    Skip confirmation.
   --help          -h    Print usage.
@@ -115,13 +111,13 @@ function handle_args() {
     local delim=""
     case "${arg}" in
       # translate --gnu-long-options to -g (short options)
+      --package-dir)    args="${args:-}-D ";;
       --generate)       args="${args:-}-g ";;
       --json)           args="${args:-}-j ";;
       --destination)    args="${args:-}-o ";;
-      --package-dir)    args="${args:-}-p ";;
+      --quiet)          args="${args:-}-q ";;
       --no-recurse)     args="${args:-}-R ";;
       --as-root)        args="${args:-}-S ";;
-      --verbose)        args="${args:-}-v ";;
       --version)        args="${args:-}-V ";;
       --debug)          args="${args:-}-x ";;
       --skip-confirm)   args="${args:-}-y ";;
@@ -137,9 +133,9 @@ function handle_args() {
   eval set -- ${args:-}
 
   [[ -z "${SKIP_CONFIRM+x}" ]]    && SKIP_CONFIRM=false
-  [[ -z "${VERBOSE+x}" ]]         && VERBOSE=false
+  [[ -z "${VERBOSE+x}" ]]         && VERBOSE=true
   [[ -z "${DEBUG+x}" ]]           && DEBUG=false
-  [[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=3
+  [[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=4
   [[ -z "${GENERATE+x}" ]]        && GENERATE=false
   [[ -z "${JSON+x}" ]]            && JSON=false
   [[ -z "${RECURSIVE+x}" ]]       && RECURSIVE=true
@@ -147,29 +143,29 @@ function handle_args() {
   [[ -z "${DESTINATION+x}" ]]     && DESTINATION="${HOME}/Downloads"
 
   OPTIND=1
-  while getopts "gjo:p:RSvxyhV" opt; do
+  while getopts "D:o:gjqRSxyhV" opt; do
     case ${opt} in
+      D)
+        PACKAGE_DIR="${OPTARG}"
+        ;;
+      o)
+        DESTINATION="${OPTARG}"
+        ;;
       g)
         GENERATE=true
         ;;
       j)
         JSON=true
         ;;
-      o)
-        DESTINATION="${OPTARG}"
-        ;;
-      p)
-        PACKAGE_DIR="${OPTARG}"
+      q)
+        VERBOSE=false
+        LOG_DEBUG_LEVEL=3
         ;;
       R)
         RECURSIVE=false
         ;;
       S)
         AS_ROOT=true
-        ;;
-      v)
-        VERBOSE=true
-        LOG_DEBUG_LEVEL=4
         ;;
       x)
         DEBUG=true
@@ -265,16 +261,9 @@ function _main () {
     fi
 
     if $DEBUG && $VERBOSE || $JSON; then
-      local jq="${EZ_INSTALL_HOME}/lib/parser/jq"
-
-      if [[ ! -e "${jq}" ]]; then
-        error "Missing ${jq} dependency"
-        return $BASH_EZ_EX_DEP_NOTFOUND
-      fi
-
       # echo "${packages[@]}"
       for package in ${packages[@]}; do
-        echo "${package}" | ${jq} -r ".package"
+        echo "${package}" | ${EZ_DEP_JQ} -r ".package"
       done
     fi
 

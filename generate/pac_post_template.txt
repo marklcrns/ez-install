@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+# '${FILE}' Post Installation
+
+source \"\${EZ_INSTALL_HOME}/install/init.sh\"
+
+function _main() {
+  local as_root=${AS_ROOT}
+  handle_package_args \${@}
+
+  local package=\"${PACKAGE}\"
+  local package_manager=\"${PACKAGE_MANAGER}\"
+
+  # TODO: Start post process here
+}
+
+res=0
+_main
+res=\$?
+
+return \$res
+# Sourced by \`pac-install()\`, DO NOT USE \`exit\`. USE \`return\` INSTEAD

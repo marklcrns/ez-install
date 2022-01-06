@@ -29,12 +29,6 @@ function pac_batch_json_install() {
 
   local packages=( "${@}" )
   local width="${#packages[@]}"
-  local jq="${EZ_INSTALL_HOME}/lib/parser/jq"
-
-  if [[ ! -e "${jq}" ]]; then
-    error "Missing ${jq} dependency"
-    return $BASH_EZ_EX_DEP_NOTFOUND
-  fi
 
   local root_package=""
   local root_package_name=""
@@ -43,8 +37,8 @@ function pac_batch_json_install() {
   local res=0
   local i=1
   for package in ${packages[@]}; do
-    root_package="$(echo "${package}" | ${jq} -crM ".package")"
-    root_package_name="$(echo "${root_package}" | ${jq} -crM ".name")"
+    root_package="$(echo "${package}" | ${EZ_DEP_JQ} -crM ".package")"
+    root_package_name="$(echo "${root_package}" | ${EZ_DEP_JQ} -crM ".name")"
     pac_json_install "${root_package}"
     res=$?
 
@@ -73,38 +67,32 @@ function pac_json_install() {
   fi
 
   local package="${1}"
-  local jq="${EZ_INSTALL_HOME}/lib/parser/jq"
-
-  if [[ ! -e "${jq}" ]]; then
-    error "Missing ${jq} dependency"
-    return $BASH_EZ_EX_DEP_NOTFOUND
-  fi
 
   if [[ "${package}" != "null" ]]; then
-    local package_name="$(echo ${package} | ${jq} -crM ".name")"
-    local package_dir="$(dirname -- "$(echo ${package} | ${jq} -crM ".path")")"
-    local as_root=$(echo ${package} | ${jq} -crM ".as_root")
+    local package_name="$(echo ${package} | ${EZ_DEP_JQ} -crM ".name")"
+    local package_dir="$(dirname -- "$(echo ${package} | ${EZ_DEP_JQ} -crM ".path")")"
+    local as_root=$(echo ${package} | ${EZ_DEP_JQ} -crM ".as_root")
 
     local res=
     local sub_package=
     local dependencies=
-    local dependencies_ct="$(echo ${package} | ${jq} -crM ".dependencies | length")"
+    local dependencies_ct="$(echo ${package} | ${EZ_DEP_JQ} -crM ".dependencies | length")"
 
     if [[ ${dependencies_ct} -gt 1 ]]; then
       # Recursive dependency install
       for ((i=0; i<${dependencies_ct}; ++i)); do
-        dependencies="$(echo ${package} | ${jq} -crM ".dependencies[${i}]")"
+        dependencies="$(echo ${package} | ${EZ_DEP_JQ} -crM ".dependencies[${i}]")"
         if [[ -n "${dependencies}" ]]; then
-          sub_package="$(echo "${dependencies}" | ${jq} -crM ".package")"
+          sub_package="$(echo "${dependencies}" | ${EZ_DEP_JQ} -crM ".package")"
           pac_json_install ${sub_package}
           res=$?
           [[ $res -ne $BASH_EX_OK ]] && return $res # Abort immediately
         fi
       done
     else
-      dependencies="$(echo ${package} | ${jq} -crM ".dependencies")"
+      dependencies="$(echo ${package} | ${EZ_DEP_JQ} -crM ".dependencies")"
       if [[ -n "${dependencies}" ]]; then
-        sub_package="$(echo "${dependencies}" | ${jq} -crM ".package")"
+        sub_package="$(echo "${dependencies}" | ${EZ_DEP_JQ} -crM ".package")"
         pac_json_install ${sub_package}
         res=$?
         [[ $res -ne $BASH_EX_OK ]] && return $res # Abort immediately

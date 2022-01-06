@@ -16,11 +16,7 @@ include "${EZ_INSTALL_HOME}/install/install.sh"
 include "${EZ_INSTALL_HOME}/install/pac-install.sh"
 include "${EZ_INSTALL_HOME}/common/sys.sh"
 
-[[ -z "${RUN_AS_SU+x}" ]]       && RUN_AS_SU=false
-[[ -z "${SKIP_CONFIRM+x}" ]]    && SKIP_CONFIRM=false
-[[ -z "${VERBOSE+x}" ]]         && VERBOSE=false
-[[ -z "${DEBUG+x}" ]]           && DEBUG=false
-[[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=3
+[[ -z "${RUN_AS_SU+x}" ]] && RUN_AS_SU=false
 
 function handle_package_args() {
   OPTIND=1

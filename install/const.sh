@@ -16,7 +16,14 @@ fi
 source "${EZ_INSTALL_HOME}/common/include.sh"
 
 include "${EZ_INSTALL_HOME}/common/const.sh"
+include "${EZ_INSTALL_HOME}/install/utils/actions.sh"
 
+
+# General
+
+readonly EZ_SUPPORTED_PACKAGE_MANAGER='apt apt-add npm pip pip2 pip3 pkg curl wget git local'
+
+# Exit Codes
 
 readonly BASH_EZ_EX__BASE=101             # Ez special exit codes start
 readonly BASH_EZ_EX_PAC_NOTFOUND=101      # Package not found
@@ -25,8 +32,34 @@ readonly BASH_EZ_EX_DEP_NOTFOUND=103      # Dependency not found
 readonly BASH_EZ_EX_PAC_EXIST=104         # Package exist
 readonly BASH_EZ_EX__MAX=104              # Ez special exit codes end
 
+# Exit Messages
+
 readonly BASH_EZ_MSG_PAC_NOTFOUND='Package not found'
 readonly BASH_EZ_MSG_PACMAN_NOTFOUND='Package manager not found'
 readonly BASH_SYS_MSG_USAGE_MISSARG='Missing argument'
 readonly BASH_SYS_MSG_USAGE_INVREFVAR='Invalid reference to variable'
+
+# Dependencies
+
+if [[ ! -e "${EZ_INSTALL_HOME}/lib/parser/jq" ]]; then
+  error "Missing '${EZ_INSTALL_HOME}/lib/parser/jq' dependency"
+  return $BASH_EZ_EX_DEP_NOTFOUND
+else
+  readonly EZ_DEP_JQ="${EZ_INSTALL_HOME}/lib/parser/jq"
+fi
+
+if [[ ! -e "${EZ_INSTALL_HOME}/install/utils/metadata-parser" ]]; then
+  error "Missing '${EZ_INSTALL_HOME}/install/utils/metadata-parser' dependency"
+  return $BASH_EZ_EX_DEP_NOTFOUND
+else
+  readonly EZ_DEP_METADATA_PARSER="${EZ_INSTALL_HOME}/install/utils/metadata-parser"
+fi
+
+if [[ ! -e "${EZ_INSTALL_HOME}/generate/ez-gen" ]]; then
+  error "Missing '${EZ_INSTALL_HOME}/generate/ez-gen' dependency"
+  return $BASH_EZ_EX_DEP_NOTFOUND
+else
+  readonly EZ_DEP_EZ_GEN="${EZ_INSTALL_HOME}/generate/ez-gen"
+fi
+
 

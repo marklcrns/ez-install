@@ -11,8 +11,7 @@ fi
   && readonly UTILS_PAC_RESOLVER_SH_INCLUDED=1 \
   || return 0
 
-[[ -z "${DEBUG+x}" ]] && DEBUG=false
-
+source "$(dirname -- $(realpath -- "${BASH_SOURCE[0]}"))/../../.ez-installrc"
 source "${EZ_INSTALL_HOME}/common/include.sh"
 
 include "${EZ_INSTALL_HOME}/common/colors.sh"
@@ -127,7 +126,7 @@ function pac_jsonify() {
   eval "${global_pac_var_name}+='\"as_root\":$as_root'"
 
   if $recursive; then
-    local tmp="$(${EZ_INSTALL_HOME}/install/utils/metadata-parser "dependency" "${package_path}")"
+    local tmp="$(${EZ_DEP_METADATA_PARSER} "dependency" "${package_path}")"
     local -a package_dependencies=( ${tmp//,/ } )
 
     # Handle dependencies recursively
@@ -271,7 +270,7 @@ function _validate_dependencies() {
     ! $DEBUG && printf "\n"
   fi
 
-  local _tmp="$(${EZ_INSTALL_HOME}/install/utils/metadata-parser "dependency" "${_package_path}")"
+  local _tmp="$(${EZ_DEP_METADATA_PARSER} "dependency" "${_package_path}")"
   local -a _package_dependencies=( ${_tmp//,/ } )
   local _has_missing=false
 

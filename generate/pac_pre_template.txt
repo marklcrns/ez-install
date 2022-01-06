@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+# '${PACKAGE}' Pre Installation
+
+source \"\${EZ_INSTALL_HOME}/install/init.sh\"
+
+function _main() {
+  local as_root=${AS_ROOT}
+  handle_package_args \${@}
+
+  local package=\"${FILE}\"
+  local package_manager=\"${PACKAGE_MANAGER}\"
+
+  # TODO: Start pre process here
+}
+
+res=0
+_main \"\${@}\"
+res=\$?
+
+return \$res
+# Sourced by \`pac-install()\`, DO NOT USE \`exit\`. USE \`return\` INSTEAD

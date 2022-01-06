@@ -12,10 +12,12 @@ fi
   || return 0
 
 
+source "$(dirname -- $(realpath -- "${BASH_SOURCE[0]}"))/../.ez-installrc"
 source "${EZ_INSTALL_HOME}/common/include.sh"
 
 include "${EZ_INSTALL_HOME}/common/colors.sh"
 include "${EZ_INSTALL_HOME}/install/const.sh"
+include "${EZ_INSTALL_HOME}/install/common.sh"
 include "${EZ_INSTALL_HOME}/install/utils/actions.sh"
 
 
@@ -43,6 +45,8 @@ function generate_package() {
   local package_name="${package%.*}"
   local package_manager="$([[ "${package##*.}" != "${package}" ]] && echo "${package##*.}" || echo 'null')"
 
+  resolve_package_dir
+
   local matches=(
     $(find "${LOCAL_PACKAGE_DIR}" -type f \
       ! -name "${package_name}*.pre" \
@@ -62,7 +66,7 @@ function generate_package() {
 
     local continue=""
     while ! [[ "${continue}" =~ ^[Yy]$ ]]; do
-      get_user_input "${COLOR_YELLOW}Continue? Will overwrite existing package. (Y/y):${COLOR_NC} " continue
+      get_user_input "${COLOR_YELLOW}Might overwrite existing package. Continue? (Y/y):${COLOR_NC} " continue
     done
   fi
 
@@ -74,7 +78,6 @@ function generate_package() {
   local execute=false
   local args=""
   local res=0
-  local ez_gen="${EZ_INSTALL_HOME}/generate/ez-gen"
 
   echo -e "Generating for '${package}' package..."
 
@@ -84,6 +87,7 @@ function generate_package() {
     get_user_input "  Author: " author
     get_user_input "  Dependencies (use ',' separator): " dependencies
     get_user_input "  Executable name: " executable_name
+    get_user_input "  Package manager: " package_manager
     while ! is_package_manager_supported package_manager; do
       echo "package manager: ${package_manager}"
       get_user_input "  Package manager: " package_manager
@@ -127,10 +131,178 @@ function generate_package() {
   [[ -n "${args}" ]]            && ez_gen_args+=" -a ${args// /\\ }"
   [[ ${update} ]]               && ez_gen_args+=" -u"
   [[ ${execute} ]]              && ez_gen_args+=" -e"
-  ${VERBOSE:-false}             && ez_gen_args+=" -v"
-  ${DEBUG:-false}               && ez_gen_args+=" -x"
+  ! ${VERBOSE}                  && ez_gen_args+=" -q"
+  ${DEBUG}                      && ez_gen_args+=" -x"
 
-  $ez_gen -y ${ez_gen_args} -- "${package}"
+  ${EZ_DEP_EZ_GEN} -y ${ez_gen_args} -- "${package}"
+
+  res=$?
+  return $res
+}
+
+
+function generate_package_pre() {
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  local package="${1##*#}"
+  local package_name="${package%.*}"
+  local package_manager="$([[ "${package##*.}" != "${package}" ]] && echo "${package##*.}" || echo 'null')"
+
+  resolve_package_dir
+
+  local matches=(
+  $(find "${LOCAL_PACKAGE_DIR}" -type f \
+    ! -name "${package_name}*.post" \
+    ! -name "${package_name}.${package_manager}.*" \
+    -name "${package_name}*.pre")
+  )
+
+  local continue=""
+  local res=0
+
+  if [[ -n "${matches+x}" ]]; then
+    echo -e "Existing package(s) found in:\n"
+    local i=
+    for i in "${!matches[@]}"; do
+      printf "$(($i+1))) ${matches[$i]}\n"
+    done
+
+    echo ""
+    while ! [[ "${continue}" =~ ^[Yy]$ ]]; do
+      get_user_input "${COLOR_YELLOW}Might overwrite existing package. Continue? (Y/y):${COLOR_NC} " continue
+    done
+  fi
+
+  echo -e "Generating for '${package}.pre' package..."
+
+  local proceed=""
+  while ! [[ "${proceed}" =~ ^[Yy]$ ]]; do
+    echo -e "\n  Everything is optional. Press [enter] to skip.\n"
+    get_user_input "  Package manager: " package_manager
+    while ! is_package_manager_supported package_manager; do
+      echo "package manager: ${package_manager}"
+      get_user_input "  Package manager: " package_manager
+    done
+
+    if [[ ${package_manager} == "curl" ]] \
+      || [[ ${package_manager} == "wget" ]] \
+      || [[ ${package_manager} == "git" ]]; then
+      get_user_input "  Output directory: " output_dir
+      if [[ ${package_manager} == "curl" ]] \
+        || [[ ${package_manager} == "wget" ]]; then
+        get_user_input "  Execute (default=false): " execute
+      fi
+    fi
+
+    if [[ ${package_manager} == "apt" ]] \
+      || [[ ${package_manager} == "apt-add" ]] \
+      || [[ ${package_manager} == "pkg" ]]; then
+      get_user_input "  Update (default=false): " execute
+    fi
+
+    echo ""
+    continue=""
+    while ! [[ "${continue}" =~ ^[Yy]$ ]]; do
+      get_user_input "${COLOR_YELLOW}Would you like to proceed? (Y/y):${COLOR_NC} " continue
+    done
+    proceed="${continue}"
+  done
+
+  # Escape whitespaces
+  local ez_gen_args=
+  [[ -n "${package_name}" ]]    && ez_gen_args+=" -n ${package_name// /\\ }"
+  [[ -n "${package_manager}" ]] && ez_gen_args+=" -m ${package_manager// /\\ }"
+  ! ${VERBOSE}                  && ez_gen_args+=" -q"
+  ${DEBUG}                      && ez_gen_args+=" -x"
+
+  ${EZ_DEP_EZ_GEN} -yS -p ${ez_gen_args} -- "${package}"
+
+  res=$?
+  return $res
+}
+
+
+function generate_package_post() {
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  local package="${1##*#}"
+  local package_name="${package%.*}"
+  local package_manager="$([[ "${package##*.}" != "${package}" ]] && echo "${package##*.}" || echo 'null')"
+
+  resolve_package_dir
+
+  local matches=(
+  $(find "${LOCAL_PACKAGE_DIR}" -type f \
+    ! -name "${package_name}*.pre" \
+    ! -name "${package_name}.${package_manager}.*" \
+    -name "${package_name}*.post")
+  )
+
+  local continue=""
+  local res=0
+
+  if [[ -n "${matches+x}" ]]; then
+    echo -e "Existing package(s) found in:\n"
+    local i=
+    for i in "${!matches[@]}"; do
+      printf "$(($i+1))) ${matches[$i]}\n"
+    done
+
+    echo ""
+    while ! [[ "${continue}" =~ ^[Yy]$ ]]; do
+      get_user_input "${COLOR_YELLOW}Might overwrite existing package. Continue? (Y/y):${COLOR_NC} " continue
+    done
+  fi
+
+  echo -e "Generating for '${package}.post' package..."
+
+  local proceed=""
+  while ! [[ "${proceed}" =~ ^[Yy]$ ]]; do
+    echo -e "\n  Everything is optional. Press [enter] to skip.\n"
+    get_user_input "  Package manager: " package_manager
+    while ! is_package_manager_supported package_manager; do
+      echo "package manager: ${package_manager}"
+      get_user_input "  Package manager: " package_manager
+    done
+
+    if [[ ${package_manager} == "curl" ]] \
+      || [[ ${package_manager} == "wget" ]] \
+      || [[ ${package_manager} == "git" ]]; then
+      get_user_input "  Output directory: " output_dir
+      if [[ ${package_manager} == "curl" ]] \
+        || [[ ${package_manager} == "wget" ]]; then
+        get_user_input "  Execute (default=false): " execute
+      fi
+    fi
+
+    if [[ ${package_manager} == "apt" ]] \
+      || [[ ${package_manager} == "apt-add" ]] \
+      || [[ ${package_manager} == "pkg" ]]; then
+      get_user_input "  Update (default=false): " execute
+    fi
+
+    echo ""
+    continue=""
+    while ! [[ "${continue}" =~ ^[Yy]$ ]]; do
+      get_user_input "${COLOR_YELLOW}Would you like to proceed? (Y/y):${COLOR_NC} " continue
+    done
+    proceed="${continue}"
+  done
+
+  # Escape whitespaces
+  local ez_gen_args=
+  [[ -n "${package_name}" ]]    && ez_gen_args+=" -n ${package_name// /\\ }"
+  [[ -n "${package_manager}" ]] && ez_gen_args+=" -m ${package_manager// /\\ }"
+  ! ${VERBOSE}                  && ez_gen_args+=" -q"
+  ${DEBUG}                      && ez_gen_args+=" -x"
+
+  ${EZ_DEP_EZ_GEN} -yS -P ${ez_gen_args} -- "${package}"
 
   res=$?
   return $res
@@ -158,18 +330,3 @@ function is_package_manager_supported() {
   return $BASH_EZ_EX_PACMAN_NOTFOUND
 }
 
-
-function get_user_input() {
-  if [[ -z "${1+x}" ]]; then
-    error "${BASH_SYS_MSG_USAGE_MISSARG}"
-    return $BASH_SYS_EX_USAGE
-  fi
-
-  if [[ -z "${2+x}" ]]; then
-    error "${BASH_SYS_MSG_USAGE_MISSARG}"
-    return $BASH_SYS_EX_USAGE
-  fi
-
-  echo -ne "${1}"
-  read ${2}
-}

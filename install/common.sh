@@ -195,6 +195,22 @@ function parse_inline_opts() {
 }
 
 
+function get_user_input() {
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  if [[ -z "${2+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  echo -ne "${1}"
+  read ${2}
+}
+
+
 function get_sys_package_manager() {
   if [[ -z "${1+x}" ]]; then
     error "${BASH_SYS_MSG_USAGE_MISSARG}"

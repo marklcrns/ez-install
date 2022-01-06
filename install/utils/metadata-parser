@@ -12,8 +12,6 @@ include "${EZ_INSTALL_HOME}/install/const.sh"
 include "${EZ_INSTALL_HOME}/install/utils/actions.sh"
 
 
-[[ -z "${VERBOSE+x}" ]] && VERBOSE=true
-
 if [[ -z "${1+x}" ]]; then
   error "${BASH_SYS_MSG_USAGE_MISSARG}"
   exit $BASH_SYS_EX_USAGE

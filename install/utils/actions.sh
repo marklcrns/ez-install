@@ -35,14 +35,13 @@ fi
   || return 0
 
 
+source "$(dirname -- $(realpath -- "${BASH_SOURCE[0]}"))/../../.ez-installrc"
 source "${EZ_INSTALL_HOME}/common/include.sh"
 
 include "${EZ_INSTALL_HOME}/common/log.sh"
 include "${EZ_INSTALL_HOME}/common/string.sh"
 include "${EZ_INSTALL_HOME}/install/const.sh"
 
-
-[[ -z "${VERBOSE+x}" ]] && VERBOSE=false
 
 # Logs INFO message on VERBOSE.
 function info() {

@@ -3,10 +3,17 @@
 source "${BASH_SOURCE%/*}/../.ez-installrc"
 source "${BASH_SOURCE%/*}/../common/include.sh"
 
+include "${BASH_SOURCE%/*}/../install/const.sh"
+include "${BASH_SOURCE%/*}/../install/common.sh"
 include "${BASH_SOURCE%/*}/../generate/generate.sh"
 
+VERBOSE=true
+DEBUG=true
+LOG_DEBUG_LEVEL=7
+
 _main() {
-  generate 'git'
+  # generate_package 'new_test'
+  generate_package_pre 'test.apt'
 }
 
 _main

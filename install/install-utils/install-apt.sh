@@ -96,7 +96,7 @@ function apt_add_repo() {
 
   # Execute installation
   is_wsl && set_nameserver "8.8.8.8"
-  if execlog "apt-add-repository -y ${args} -- '${repo}' &> /dev/null"; then
+  if execlog "${sudo}apt-add-repository -y ${args} -- '${repo}' &> /dev/null"; then
     pac_log_success 'Apt-add' "${package_name}"
     return $BASH_EX_OK
   else
