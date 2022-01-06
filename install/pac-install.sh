@@ -48,9 +48,11 @@ function pac_batch_json_install() {
         root_package_manager="${root_package_name##*.}"
         capitalize root_package_manager
       else
-        root_package_manager="N/A"
+        root_package_manager='N/A'
       fi
-      pac_log_skip "${root_package_manager}" "${root_package_name%.*}"
+      if [[ $res -eq $BASH_EZ_EX_DEP_FAILED ]]; then
+        pac_log_skip $res "${root_package_manager}" "${root_package_name%.*}" "'${root_package_name}' dependency failed"
+      fi
     fi
 
     prog_bar "$(("${i}*100/${width}"))"
@@ -86,7 +88,7 @@ function pac_json_install() {
           sub_package="$(echo "${dependencies}" | ${EZ_DEP_JQ} -crM ".package")"
           pac_json_install ${sub_package}
           res=$?
-          [[ $res -ne $BASH_EX_OK ]] && return $res # Abort immediately
+          [[ $res -ne $BASH_EX_OK ]] && return $BASH_EZ_EX_DEP_FAILED # Abort immediately
         fi
       done
     else
@@ -95,7 +97,7 @@ function pac_json_install() {
         sub_package="$(echo "${dependencies}" | ${EZ_DEP_JQ} -crM ".package")"
         pac_json_install ${sub_package}
         res=$?
-        [[ $res -ne $BASH_EX_OK ]] && return $res # Abort immediately
+        [[ $res -ne $BASH_EX_OK ]] && return $BASH_EZ_EX_DEP_FAILED # Abort immediately
       fi
     fi
     pac_install -S $as_root -- "${package_name}" "${package_dir}"

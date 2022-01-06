@@ -103,7 +103,7 @@ function apt_add_repo() {
   else
     res=$?
     pac_log_failed $res 'Apt-add' "${package_name}"
-    execlog "${sudo}apt-add-repository -r -- '${repo}'${redirect}"
+    execlog "${sudo}apt-add-repository -ry -- '${repo}'${redirect}"
     return $res
   fi
   is_wsl && restore_nameserver

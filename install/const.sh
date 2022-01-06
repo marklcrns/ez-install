@@ -29,8 +29,9 @@ readonly BASH_EZ_EX__BASE=101             # Ez special exit codes start
 readonly BASH_EZ_EX_PAC_NOTFOUND=101      # Package not found
 readonly BASH_EZ_EX_PACMAN_NOTFOUND=102   # Package manager not supported
 readonly BASH_EZ_EX_DEP_NOTFOUND=103      # Dependency not found
-readonly BASH_EZ_EX_PAC_EXIST=104         # Package exist
-readonly BASH_EZ_EX__MAX=104              # Ez special exit codes end
+readonly BASH_EZ_EX_DEP_FAILED=104        # Package dependency failure
+readonly BASH_EZ_EX_PAC_EXIST=105         # Package exist
+readonly BASH_EZ_EX__MAX=105              # Ez special exit codes end
 
 # Exit Messages
 
@@ -61,5 +62,4 @@ if [[ ! -e "${EZ_INSTALL_HOME}/generate/ez-gen" ]]; then
 else
   readonly EZ_DEP_EZ_GEN="${EZ_INSTALL_HOME}/generate/ez-gen"
 fi
-
 

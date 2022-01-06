@@ -28,6 +28,7 @@ readonly SCRIPT_ARGS="${@}"
 ############################################################### FLAG OPTIONS ###
 
 
+# TODO: Separate manual from usage. Also, auto generate exit codes.
 function usage() {
   cat << EOF
 ${SCRIPT_NAME}
@@ -67,6 +68,7 @@ EXIT CODES:
   BASH_EZ_EX_PAC_NOTFOUND     ${BASH_EZ_EX_PAC_NOTFOUND}    Package not found.
   BASH_EZ_EX_PACMAN_NOTFOUND  ${BASH_EZ_EX_PACMAN_NOTFOUND}    Package manager not supported.
   BASH_EZ_EX_DEP_NOTFOUND     ${BASH_EZ_EX_DEP_NOTFOUND}    Dependency not found.
+  BASH_EZ_EX_DEP_FAILED       ${BASH_EZ_EX_DEP_FAILED}    Package dependency failure.
   BASH_EZ_EX_PAC_EXIST        ${BASH_EZ_EX_PAC_EXIST}    Package exist.
   BASH_EZ_EX__MAX             ${BASH_EZ_EX__MAX}    Ez special exit codes end.
 
@@ -287,10 +289,6 @@ res=0
 _main
 res=$?
 
-unset EZ_VERSION
-unset LOG_SYSLOG
-unset LOG_FILELOG
-unset SCRIPT_ARGS
 unset DOWNLOADS_DIR
 unset SKIP_CONFIRM
 unset VERBOSE
