@@ -58,10 +58,11 @@ function apt_add_repo() {
   local repo="${@}"
   local apt_repo_dir='/etc/apt/'
   local sudo=""
-  ! ${VERBOSE:-false}        && args+=' -q'
+  local redirect=""
+  ! ${VERBOSE:-false}        && redirect=' &> /dev/null'
   [[ -z "${package_name}" ]] && package_name="${repo}"
 
-  strip_substr 'ppa:' repo
+  # strip_substr 'ppa:' repo
 
   if $as_root; then
     if command -v sudo &> /dev/null; then
@@ -81,7 +82,7 @@ function apt_add_repo() {
     return $res
   fi
 
-  if find ${apt_repo_dir} -name "*.list" | xargs cat | grep -h "^[[:space:]]*deb.*${repo}" &> /dev/null; then
+  if find ${apt_repo_dir} -name "*.list" | xargs cat | grep -h "^[[:space:]]*deb.*${repo//ppa:/}" &> /dev/null; then
     pac_log_skip 'Apt-add' "${package_name}"
     return $BASH_EX_OK
   fi
@@ -96,13 +97,13 @@ function apt_add_repo() {
 
   # Execute installation
   is_wsl && set_nameserver "8.8.8.8"
-  if execlog "${sudo}apt-add-repository -y ${args} -- '${repo}' &> /dev/null"; then
+  if execlog "${sudo}apt-add-repository -y ${args} -- '${repo}'${redirect}"; then
     pac_log_success 'Apt-add' "${package_name}"
     return $BASH_EX_OK
   else
     res=$?
     pac_log_failed $res 'Apt-add' "${package_name}"
-    execlog "${sudo}apt-add-repository -r -- '${repo}'"
+    execlog "${sudo}apt-add-repository -r -- '${repo}'${redirect}"
     return $res
   fi
   is_wsl && restore_nameserver
