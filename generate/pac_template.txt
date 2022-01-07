@@ -36,37 +36,20 @@ function _main() {
 
   # START INSTALLATION
 
-  # install()
-  #
-  # Pro tip: keep this package as is and add additional commands in the package's
-  #          '.pre' and '.post' scripts
-  #
-  # Pre installation:
-  #
-  #   install() will automatically try to source ${FILE%.*}.pre first then ${FILE%.*}.<package-manager>.pre
-  #   from either \$LOCAL_PACKAGE_DIR and \$PACKAGE_DIR before package installation.
-  #   \$LOCAL_PACKAGE_DIR preferred. Best place to download dependencies or executing
-  #   pre installation commands.
-  #
-  # Post installation:
-  #
-  #   install() will automatically try to source ${FILE%.*}.post first then ${FILE%.*}.<package-manager>.post
-  #   from either \$LOCAL_PACKAGE_DIR and \$PACKAGE_DIR after package installation.
-  #   \$LOCAL_PACKAGE_DIR priority. Best place for cleaning up files or executing
-  #   post installation commands.
+  # function install()
   #
   # Flags (optional):
   #
-  #   -a    args for package manager.
-  #   -c    executable name if applicable (default=this).
-  #   -n    name of the package to install by the package manager (default=this).
-  #   -u    pull updates from package manager repository before installation (e.g., apt update).
-  #   -S    run package installation with root (sudo) privileges (default=false).
+  #   -a    Args for package manager.
+  #   -c    Executable name if applicable (default=this).
+  #   -n    Name of the package to install by the package manager (default=this).
+  #   -u    Pull updates from package manager repository before installation (e.g., apt update).
+  #   -S    Run package installation with root (sudo) privileges (default=false).
   #
   # Arguments:
   #
-  #   \$1    installing package manager.
-  #         Currently supported:
+  #   \$1   Installing package manager.
+  #         Supported:
   #           - apt, apt-add
   #           - pkg
   #           - npm
@@ -76,8 +59,25 @@ function _main() {
   #           - git
   #           - local (independent local installation only for reporting and triggering
   #             pre and post installation processes).
-  #   \$2    package to install.
-  #   \$3    output directory for curl, wget, and git (optional, default=\$HOME/Downloads).
+  #   \$2    Package to install.
+  #   \$3    Output directory for curl, wget, and git (optional, default=\$HOME/Downloads).
+  #
+  # Pre installation:
+  #
+  #   install() will automatically try to source ${FILE%.*}.pre first then ${FILE%.*}.${PACKAGE_MANAGER:-<package_manager>}.pre
+  #   from either \$LOCAL_PACKAGE_DIR and \$PACKAGE_DIR before package installation.
+  #   \$LOCAL_PACKAGE_DIR preferred. Best place to download dependencies or executing
+  #   pre installation commands.
+  #
+  # Post installation:
+  #
+  #   install() will automatically try to source ${FILE%.*}.post first then${FILE%.*}.${PACKAGE_MANAGER:-<package_manager>}.post
+  #   from either \$LOCAL_PACKAGE_DIR and \$PACKAGE_DIR after package installation.
+  #   \$LOCAL_PACKAGE_DIR priority. Best place for cleaning up files or executing
+  #   post installation commands.
+  #
+  # Pro tip: keep this package as is and add additional commands in the package's
+  #          '.pre' and '.post' scripts
 
   install -a \"\${args}\" \\
           -c \"\${executable_name}\" \\

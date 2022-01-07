@@ -11,6 +11,39 @@ function _main() {
   local package=\"${FILE}\"
   local package_manager=\"${PACKAGE_MANAGER}\"
 
+  # function install()
+  #
+  # Flags (optional):
+  #
+  #   -a    Args for package manager.
+  #   -c    Executable name if applicable (default=this).
+  #   -n    Name of the package to install by the package manager (default=this).
+  #   -u    Pull updates from package manager repository before installation (e.g., apt update).
+  #   -S    Run package installation with root (sudo) privileges (default=false).
+  #
+  # Arguments:
+  #
+  #   \$1   Installing package manager.
+  #         Supported:
+  #           - apt, apt-add
+  #           - pkg
+  #           - npm
+  #           - pip (executes default pip version), pip2, pip3
+  #           - curl
+  #           - wget
+  #           - git
+  #           - local (independent local installation only for reporting and triggering
+  #             pre and post installation processes).
+  #   \$2    Package to install.
+  #   \$3    Output directory for curl, wget, and git (optional, default=\$HOME/Downloads).
+  #
+  # Pre installation:
+  #
+  #   install() will automatically try to source ${FILE%.*}.pre first then ${FILE%.*}.${PACKAGE_MANAGER:-<package_manager>}.pre
+  #   from either \$LOCAL_PACKAGE_DIR and \$PACKAGE_DIR before package installation.
+  #   \$LOCAL_PACKAGE_DIR preferred. Best place to download dependencies or executing
+  #   pre installation commands.
+
   # TODO: Start pre process here
 }
 

@@ -206,8 +206,8 @@ function get_user_input() {
     return $BASH_SYS_EX_USAGE
   fi
 
-  echo -ne "${1}"
-  read ${2}
+  echo -ne "${2}"
+  read ${1}
 }
 
 

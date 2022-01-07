@@ -12,8 +12,9 @@ DEBUG=true
 LOG_DEBUG_LEVEL=7
 
 _main() {
-  # generate_package 'new_test'
+  generate_package 'test.apt'
   generate_package_pre 'test.apt'
+  generate_package_post 'test.apt'
 }
 
 _main
