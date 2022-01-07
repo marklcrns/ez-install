@@ -15,6 +15,7 @@ source "${EZ_INSTALL_HOME}/common/include.sh"
 
 include "${EZ_INSTALL_HOME}/common/colors.sh"
 
+# TODO: fix 100% overflow
 prog_bar() {
   local w=50 p="${1}"; shift
   # create a string of spaces, then change them to dots

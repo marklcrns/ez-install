@@ -83,9 +83,9 @@ function pac_log_skip() {
 
   local log=""
   if $has_exit_code; then
-    log="'${package}' SKIPPED"
-  else
     log="'${package}' SKIPPED ($exit_code)"
+  else
+    log="'${package}' SKIPPED"
   fi
 
   [[ "${manager}" != 'N/A' ]] && log="${manager} ${log}"
@@ -124,9 +124,9 @@ function pac_log_failed() {
 
   local log=""
   if $has_exit_code; then
-    log="'${package}' FAILED"
-  else
     log="'${package}' FAILED ($exit_code)"
+  else
+    log="'${package}' FAILED"
   fi
 
   [[ "${manager}" != 'N/A' ]] && log="${manager} ${log}"
