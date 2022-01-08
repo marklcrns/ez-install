@@ -98,7 +98,7 @@ function git_clone() {
     return $res
   fi
 
-  pac_pre_install "${package_name}" 'apt-add'
+  pac_pre_install "${package_name}" 'git'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   # Replace existing repo destination dir if force
@@ -136,7 +136,7 @@ function git_clone() {
     return $res
   fi
 
-  pac_post_install "${package_name}" 'apt-add'
+  pac_post_install "${package_name}" 'git'
   res=$?
   if [[ $res -eq $BASH_EX_OK ]]; then
     pac_log_success 'Git' "${package_name}" "Git clone '${from}' -> '${to}' successful"
