@@ -271,7 +271,7 @@ function execlog() {
   # Ref: https://stackoverflow.com/a/17382707
   # NOTE: Redirecting the output of the command as shown in stackoverflow always
   # wait for the watcher to finish regardless if the command finishes or not
-  ( ${command} ) & pid=$!
+  ( eval "${command}" ) & pid=$!
   ( sleep $timeout && kill -TERM $pid ) 2>/dev/null & watcher=$!
   wait $pid 2>/dev/null || res=$?
   pkill -U $watcher

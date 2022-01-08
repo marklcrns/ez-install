@@ -94,8 +94,12 @@ function select_package() {
   local selected_var_name="${2}"
   local excluded=${3:-}
 
+  local package_dirs=
+  [[ -d "${PACKAGE_DIR}" ]] && package_dirs=( ${package_dirs} "${PACKAGE_DIR}" )
+  [[ -d "${LOCAL_PACKAGE_DIR}" ]] && package_dirs=( ${package_dirs} "${LOCAL_PACKAGE_DIR}" )
+
   local matches=(
-    $(find "${LOCAL_PACKAGE_DIR}" "${PACKAGE_DIR}" -type f \
+    $(find ${package_dirs} -type f \
       ! -name "${excluded}" \
       ! -name "${package}*.pre" \
       ! -name "${package}*.post" \
@@ -146,8 +150,13 @@ function has_alternate_package() {
 
   local package="${1%.*}"
   local package_ext="$([[ "${1##*.}" != "${package}" ]] && echo "${1##*.}")"
+
+  local package_dirs=
+  [[ -d "${PACKAGE_DIR}" ]] && package_dirs=( ${package_dirs} "${PACKAGE_DIR}" )
+  [[ -d "${LOCAL_PACKAGE_DIR}" ]] && package_dirs=( ${package_dirs} "${LOCAL_PACKAGE_DIR}" )
+
   local matches=(
-    $(find "${LOCAL_PACKAGE_DIR}" "${PACKAGE_DIR}" -type f \
+    $(find ${package_dirs} -type f \
       ! -name "${package}*.pre" \
       ! -name "${package}*.post" \
       ! -name "${package}.${package_ext}.*" \
