@@ -46,6 +46,16 @@ ez build-essential git-lfs nvim
 ez "$(cat packages.txt)"
 ```
 
+### Reporting
+
+| Report         | Description                                             |
+|----------------|---------------------------------------------------------|
+| SUCCESS        | Successful installation                                 |
+| SKIPPED (exit) | Already installed or failed dependency with exit code   |
+| FAILED (exit)  | Failed installation with exit code                      |
+
+For full list of exit codes, run `ez -h`.
+
 ## Config
 
 All custom packages, by default, are located in `~/.ez-install.d` and local rc
