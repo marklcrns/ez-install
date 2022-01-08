@@ -66,7 +66,7 @@ function _main() {
   #
   #   install() will automatically try to source ${FILE%.*}.pre first then ${FILE%.*}.${PACKAGE_MANAGER:-<package_manager>}.pre
   #   from either \$LOCAL_PACKAGE_DIR and \$PACKAGE_DIR before package installation.
-  #   \$LOCAL_PACKAGE_DIR preferred. Best place to download dependencies or executing
+  #   \$LOCAL_PACKAGE_DIR priority. Best place to download dependencies or executing
   #   pre installation commands.
   #
   # Post installation:
