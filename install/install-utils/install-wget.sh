@@ -89,7 +89,7 @@ function wget_install() {
   fi
 
   # Replace existing if forced
-  if [[ -f "${to}" ]] && ! $forced; then
+  if [[ -e "${to}" ]] && ! $forced; then
     pac_log_skip "Wget" "${package_name}" "Wget '${package_name}' ${to} already exist"
     return $BASH_EX_OK
   fi

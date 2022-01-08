@@ -93,7 +93,7 @@ function curl_install() {
   fi
 
   # Replace existing if forced
-  if [[ -f "${to}" ]] && ! $forced; then
+  if [[ -e "${to}" ]] && ! $forced; then
     pac_log_skip "Curl" "${package_name}" "Curl '${package_name}' ${to} already exist"
     return $BASH_EX_OK
   fi
