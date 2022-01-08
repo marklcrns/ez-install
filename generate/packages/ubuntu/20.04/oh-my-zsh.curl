@@ -28,7 +28,7 @@ function _main() {
   local package_name="oh-my-zsh"
   local executable_name="oh-my-zsh"
   local package_manager="curl"
-  local destination=""
+  local destination="~/.oh-my-zsh"
   local res=0
 
   # Get system package manager

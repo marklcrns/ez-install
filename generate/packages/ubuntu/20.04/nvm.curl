@@ -28,7 +28,7 @@ function _main() {
   local package_name="nvm"
   local executable_name="nvm"
   local package_manager="curl"
-  local destination=""
+  local destination="~/.nvm"
   local res=0
 
   # Get system package manager

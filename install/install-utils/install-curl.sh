@@ -92,12 +92,17 @@ function curl_install() {
     return $BASH_EX_OK
   fi
 
+  # Replace existing if forced
+  if [[ -f "${to}" ]] && ! $forced; then
+    pac_log_skip "Curl" "${package_name}" "Curl '${package_name}' ${to} already exist"
+    return $BASH_EX_OK
+  fi
+
   local res=0
 
   pac_pre_install "${package_name}" 'curl'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
-  # Resolve destination
   if $execute; then
     # Execute installation
     if execlog "curl ${args} -- '${from}' | ${sudo}bash"; then
@@ -108,12 +113,6 @@ function curl_install() {
       return $res
     fi
   else
-    # Replace existing if forced
-    if [[ -f "${to}" ]] && ! $forced; then
-      pac_log_skip "Curl" "${package_name}" "Curl '${package_name}' ${to} already exist"
-      return $BASH_EX_OK
-    fi
-
     # Execute installation
     if execlog "curl --create-dirs -o '${to}' ${args} -- '${from}'"; then
       pac_log_success 'Curl' "${package_name}" "Curl '${from}' -> '${to}' successful"

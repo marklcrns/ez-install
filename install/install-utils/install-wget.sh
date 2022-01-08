@@ -88,6 +88,12 @@ function wget_install() {
     return $res
   fi
 
+  # Replace existing if forced
+  if [[ -f "${to}" ]] && ! $forced; then
+    pac_log_skip "Wget" "${package_name}" "Wget '${package_name}' ${to} already exist"
+    return $BASH_EX_OK
+  fi
+
   # Check if already installed
   if [[ -n ${command_name} ]] && command -v ${command_name} &> /dev/null; then
     pac_log_skip "Wget" "${package_name}"
@@ -111,11 +117,6 @@ function wget_install() {
     if [[ ! -d "${to}" ]]; then
       warning "Creating destination directory '${to}'"
       execlog "mkdir -p ${to}"
-    fi
-
-    if [[ -f "${to}" ]] && ! $forced; then
-      pac_log_skip "Wget" "${package_name}" "Wget '${package_name}' ${to} already exist"
-      return $BASH_EX_OK
     fi
 
     # Execute installation
