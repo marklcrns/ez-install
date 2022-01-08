@@ -64,6 +64,23 @@ OPTIONS:
     --help          -h    Print usage.
     --version       -V    Print ez version.
 
+IN-LINE OPTIONS:
+
+  #root      Give package installatin root privileges.
+  #noroot    Give no package installation root privileges.
+  #dep       Install package recursively.
+  #nodep     Do not install package dependencies.
+
+  In-line options `#opt` supercede the flag options only for the specific
+  package.
+
+  e.g., `$SCRIPT_NAME -S package1#noroot package2 package3` will try to install
+  all packages with root privileges except `package1`
+
+  e.g., `$SCRIPT_NAME package1#root package2#nodep package3#root,nodep` will try
+  to install `package1` as root, `package2` without its dependencies, and
+  `package3` as root and without its dependencies.
+
 EOF
 }
 
