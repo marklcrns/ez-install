@@ -35,7 +35,7 @@ function pac_batch_json_install() {
   local root_package_manager=""
 
   local res=0
-  local i=1
+  local i=0
   for package in ${packages[@]}; do
     root_package="$(echo "${package}" | ${EZ_DEP_JQ} -crM ".package")"
     root_package_name="$(echo "${root_package}" | ${EZ_DEP_JQ} -crM ".name")"
@@ -60,6 +60,8 @@ function pac_batch_json_install() {
       fi
     fi
   done
+  prog_bar "$(("${i}*100/${width}"))"
+  echo ""
 }
 
 

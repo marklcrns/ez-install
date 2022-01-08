@@ -8,7 +8,7 @@
 
 [[ -z "${LOG_SYSLOG+x}" ]]    && LOG_SYSLOG=true
 [[ -z "${LOG_FILELOG+x}" ]]   && LOG_FILELOG=true
-[[ -z "${TIMEOUT+x}" ]]       && TIMEOUT=30s
+[[ -z "${TIMEOUT+x}" ]]       && TIMEOUT=60s
 [[ -z "${DOWNLOADS_DIR+x}" ]] && DOWNLOADS_DIR="${HOME}/Downloads"
 
 [[ -z "${SKIP_CONFIRM+x}" ]]    && SKIP_CONFIRM=false

@@ -262,26 +262,20 @@ function execlog() {
   local output=""
   local res=0
 
-  # Ref: https://stackoverflow.com/a/17382707
-  output=$(
-    (
-      ( eval "${command}" ) & pid=$!
-      ( sleep $timeout && kill -HUP $pid ) 2>/dev/null & watcher=$!
-      if wait $pid 2>/dev/null; then
-        pkill -HUP -P $watcher
-      else
-        return $BASH_EX_TIMEOUT
-      fi
-    ) 2>&1
-  )
-  res=$?
-
   if ${VERBOSE} && ${DEBUG}; then
     log 'debug' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}(): ${command}"
-    echo "${output}"
   else
     log 'debug' "${command}"
   fi
+
+  # Ref: https://stackoverflow.com/a/17382707
+  # NOTE: Redirecting the output of the command as shown in stackoverflow always
+  # wait for the watcher to finish regardless if the command finishes or not
+  ( ${command} ) & pid=$!
+  ( sleep 1 && kill $pid; return $BASH_EX_TIMEOUT ) 2>/dev/null & watcher=$!
+  wait $pid 2>/dev/null || res=$?
+  pkill -U $watcher
+
   return $res
 }
 
