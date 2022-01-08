@@ -257,16 +257,27 @@ function execlog() {
     return $BASH_SYS_EX_USAGE
   fi
 
-  local command="${1}"
-  strip_ansi_code command
+  local command="${1}"; strip_ansi_code command
+  local timeout=${TIMEOUT:-120}
+  local output=""
+  local res=0
+
+  # Ref: https://stackoverflow.com/a/17382707
+  output=$(
+    (
+      ( eval "${command}" ) & pid=$!
+      ( sleep $timeout && kill -HUP $pid ) 2>/dev/null & watcher=$!
+      wait $pid 2>/dev/null && pkill -HUP -P $watcher
+    ) 2>&1
+  )
+  res=$?
 
   if ${VERBOSE} && ${DEBUG}; then
     log 'debug' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}(): ${command}"
-    eval "${command}"
+    echo "${output}"
   else
     log 'debug' "${command}"
-    eval "${command}" >/dev/null 2>&1
   fi
-  return $?
+  return $res
 }
 

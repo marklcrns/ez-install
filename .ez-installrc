@@ -8,6 +8,7 @@
 
 readonly LOG_SYSLOG=true
 readonly LOG_FILELOG=true
+readonly TIMEOUT=120
 
 [[ -z "${SKIP_CONFIRM+x}" ]]    && SKIP_CONFIRM=false
 [[ -z "${VERBOSE+x}" ]]         && VERBOSE=true
