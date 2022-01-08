@@ -313,13 +313,12 @@ function _main () {
     fi
 
     if $DEBUG && $VERBOSE || $JSON; then
-      # echo "${packages[@]}"
       for package in ${packages[@]}; do
         echo "${package}" | ${EZ_DEP_JQ} -r ".package"
       done
     fi
 
-    confirm "You are about to install the package(s) above. Continue? (Y/y): " \
+    confirm "\nYou are about to install the package(s) above. Continue? (Y/y): " \
       || exit $BASH_EX_GENERAL
 
     warning "Installation in progress... Do not interrupt!"

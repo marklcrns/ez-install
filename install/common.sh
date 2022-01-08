@@ -113,7 +113,7 @@ function select_package() {
   if [[ -n "${matches[@]}" ]]; then
     if [[ "${#matches[@]}" -eq 1 ]]; then
       select="${matches[0]}"
-      info "Defaulting: ${select}"
+      warning "Defaulting: ${package} -> $(basename -- "${select}")"
     else
       printf "\nMultiple '${package}' package detected\n\n"
       local i=
