@@ -31,35 +31,45 @@ readonly SCRIPT_ARGS="${@}"
 # TODO: Separate manual from usage. Also, auto generate exit codes.
 function usage() {
   cat << EOF
-${SCRIPT_NAME}
+${SCRIPT_NAME} ${EZ_VERSION}
 
-  Universal BASH package installer purely written in bash scripts.
+NAME:
 
+  ez - Universal Bash package installer purely written in bash scripts.
 
 USAGE:
 
-  $(basename -- ${SCRIPT_PATH}) [-h] [-V] [-jvxyRS] [-o destination] [-p package-dir] package1 package2 ...
-
+  $SCRIPT_NAME [options] package1 package2 ...
 
 OPTIONS:
 
-  --package-dir   -D    Directory to search packages from.
-                        Global default=$PACKAGE_ROOT_DIR.
-                        Local default=$LOCAL_PACKAGE_ROOT_DIR.
-  --generate      -g    Generate package(s) locally instead.
-  --json          -j    Parse package data as json.
-  --destination   -o    Package output directory (for curl, wget, etc.).
-                        default=$HOME/Downloads.
-  --no-norecurse  -R    Prevent recursive package dependency installation.
-  --as-root       -S    Run package manager as root (sudo).
+  Flag option with arguments
 
-  --quiet         -q    Suppress standard output. LOG_DEBUG_LEVEL=3.
-  --debug         -x    Debug mode (print all log levels). LOG_DEBUG_LEVEL=7.
-  --skip-confirm  -y    Skip confirmation.
-  --help          -h    Print usage.
-  --version       -V    Print ez version.
+    --package-dir   -D    Directory to search packages from.
+                          Global default=\$PACKAGE_ROOT_DIR.
+                          Local default=\$LOCAL_PACKAGE_ROOT_DIR.
+    --destination   -o    Package output directory (for curl, wget, etc.).
+                          default=\$HOME/Downloads.
+
+  Flag option switches
+
+    --generate      -g    Generate package(s) instead of install.
+    --json          -j    Parse package data as json.
+    --no-norecurse  -R    Prevent recursive package dependency installation.
+    --as-root       -S    Run package manager as root (sudo).
+
+    --quiet         -q    Suppress standard output. LOG_DEBUG_LEVEL=3.
+    --debug         -x    Debug mode (print all log levels). LOG_DEBUG_LEVEL=7.
+    --skip-confirm  -y    Skip confirmation.
+    --help          -h    Print usage.
+    --version       -V    Print ez version.
+
+EOF
+}
 
 
+function manual () {
+  cat << EOF
 EXIT CODES:
 
   Ez Special Exit Codes
@@ -148,7 +158,7 @@ function handle_args() {
   while getopts "D:o:gjqRSxyhV" opt; do
     case ${opt} in
       D)
-        PACKAGE_DIR="${OPTARG}"
+        LOCAL_PACKAGE_ROOT_DIR="${OPTARG}"
         ;;
       o)
         DESTINATION="${OPTARG}"
@@ -177,24 +187,28 @@ function handle_args() {
         SKIP_CONFIRM=true
         ;;
       h)
-        usage; exit $BASH_EX_OK
+        usage; manual; exit $BASH_EX_OK
         ;;
       V)
         echo "${SCRIPT_NAME} ${VERSION}"; exit $BASH_EX_OK
         ;;
+      *)
+        usage
+        error "Invalid flag option(s)"
+        exit $BASH_SYS_EX_USAGE
     esac
   done
   shift "$((OPTIND-1))"
 
   if [[ -p /dev/stdin ]]; then
+    usage
     error "Piped arguments not supported"
-    usage;
     exit $BASH_SYS_EX_USAGE
   fi
 
   if [[ ! -t 0 && ! -p /dev/stdin ]]; then
+    usage
     error "Stdin redirection not supported"
-    usage;
     exit $BASH_SYS_EX_USAGE
   fi
 
@@ -203,6 +217,7 @@ function handle_args() {
     if [[ -n "${@+x}" ]]; then
       IFS=" " read -a PACKAGES <<< "${@}"
     else
+      usage
       error "No package(s) provided"
       exit $BASH_SYS_EX_USAGE
     fi
@@ -235,8 +250,12 @@ function _ctrl_c() {
 
 
 function _main () {
+  local res=0
+
   script_vars
   handle_args "${SCRIPT_ARGS}"
+  res=$?
+  [[ $res -ne $BASH_EX_OK ]] && return $res
 
   # Set up trap
   if "${DEBUG}"; then
@@ -250,8 +269,6 @@ function _main () {
     batch_generate_package ${packages[@]}
   else
     ! ${DEBUG} && echo -e "About to install the following packages:\n"
-
-    local res=0
 
     # TODO: Fully support json configs
     if ! $JSON; then

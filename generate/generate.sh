@@ -21,14 +21,14 @@ include "${EZ_INSTALL_HOME}/install/common.sh"
 include "${EZ_INSTALL_HOME}/install/utils/actions.sh"
 
 
-function batch_generate_package() {
+function i_batch_generate_template_main() {
   local package_dir=""
 
   OPTIND=1
   while getopts "D:" opt; do
     case ${opt} in
       D)
-        package_dir="${OPTARG}"
+        package_root_dir="${OPTARG}"
         ;;
     esac
   done
@@ -40,24 +40,24 @@ function batch_generate_package() {
   fi
 
   resolve_package_dir
+  [[ -z "${package_root_dir}" ]] && package_root_dir="${LOCAL_PACKAGE_ROOT_DIR}"
 
   local packages=( "${@}" )
-  [[ -z "${package_dir}" ]] && package_dir="${LOCAL_PACKAGE_DIR}"
 
   for package in ${packages[@]}; do
-    generate_package -D "${package_dir}" -- "${package}"
+    generate_package -D "${package_root_dir}" -- "${package}"
   done
 }
 
 
-function generate_package() {
+function i_generate_template_main() {
   local package_dir=""
 
   OPTIND=1
   while getopts "D:" opt; do
     case ${opt} in
       D)
-        package_dir="${OPTARG}"
+        package_root_dir="${OPTARG}"
         ;;
     esac
   done
@@ -70,10 +70,18 @@ function generate_package() {
 
   resolve_package_dir
 
+  if [[ -z "${package_root_dir}" ]]; then
+    package_root_dir=${LOCAL_PACKAGE_ROOT_DIR}
+    package_dir="${LOCAL_PACKAGE_DIR}"
+  else
+    local distrib_id="${OS_DISTRIB_ID}"; to_lower distrib_id
+    local distrib_release="${OS_DISTRIB_RELEASE}"
+    package_dir="${package_root_dir}/${distrib_id}/${distrib_release}"
+  fi
+
   local package="${1##*#}"
   local package_name="${package%.*}"
   local package_manager="$([[ "${package##*.}" != "${package}" ]] && echo "${package##*.}")"
-  [[ -z "${package_dir}" ]] && package_dir="${LOCAL_PACKAGE_DIR}"
 
   local author=""
   local dependencies=""
@@ -86,7 +94,7 @@ function generate_package() {
   local res=0
   local matches=()
 
-  echo -e "Generating for '${package}' package..."
+  echo -e "\nGenerating main package installer..."
   echo -e "\n${indent}${COLOR_HI_BLACK}All optional. Press [enter] to skip.${COLOR_NC}\n"
 
   while true; do
@@ -170,21 +178,21 @@ function generate_package() {
   ! ${VERBOSE}                  && ez_gen_args+=" -q"
   ${DEBUG}                      && ez_gen_args+=" -x"
 
-  ${EZ_DEP_EZ_GEN} -D "${package_dir}" -y ${ez_gen_args} -- "${package}"
+  ${EZ_DEP_EZ_GEN} -D "${package_root_dir}" -y ${ez_gen_args} -- "${package}"
 
   res=$?
   return $res
 }
 
 
-function generate_package_pre() {
+function i_generate_template_pre() {
   local package_dir=""
 
   OPTIND=1
   while getopts "D:" opt; do
     case ${opt} in
       D)
-        package_dir="${OPTARG}"
+        package_root_dir="${OPTARG}"
         ;;
     esac
   done
@@ -197,10 +205,18 @@ function generate_package_pre() {
 
   resolve_package_dir
 
+  if [[ -z "${package_root_dir}" ]]; then
+    package_root_dir=${LOCAL_PACKAGE_ROOT_DIR}
+    package_dir="${LOCAL_PACKAGE_DIR}"
+  else
+    local distrib_id="${OS_DISTRIB_ID}"; to_lower distrib_id
+    local distrib_release="${OS_DISTRIB_RELEASE}"
+    package_dir="${package_root_dir}/${distrib_id}/${distrib_release}"
+  fi
+
   local package="${1##*#}"
   local package_name="${package%.*}"
-  local package_manager="$([[ "${package##*.}" != "${package}" ]] && echo "${package##*.}" || echo 'null')"
-  [[ -z "${package_dir}" ]] && package_dir="${LOCAL_PACKAGE_DIR}"
+  local package_manager="$([[ "${package##*.}" != "${package}" ]] && echo "${package##*.}")"
 
   local update=false
   local execute=false
@@ -209,7 +225,7 @@ function generate_package_pre() {
   local res=0
   local matches=()
 
-  echo -e "Generating for '${package}.pre' package..."
+  echo -e "\nGenerating .pre package installer..."
   echo -e "\n${indent}${COLOR_HI_BLACK}All optional. Press [enter] to skip.${COLOR_NC}\n"
 
   while true; do
@@ -257,21 +273,21 @@ function generate_package_pre() {
   ! ${VERBOSE}                  && ez_gen_args+=" -q"
   ${DEBUG}                      && ez_gen_args+=" -x"
 
-  ${EZ_DEP_EZ_GEN} -D "${package_dir}" -pyS ${ez_gen_args} -- "${package}"
+  ${EZ_DEP_EZ_GEN} -D "${package_root_dir}" -pyS ${ez_gen_args} -- "${package}"
 
   res=$?
   return $res
 }
 
 
-function generate_package_post() {
+function i_generate_template_post() {
   local package_dir=""
 
   OPTIND=1
   while getopts "D:" opt; do
     case ${opt} in
       D)
-        package_dir="${OPTARG}"
+        package_root_dir="${OPTARG}"
         ;;
     esac
   done
@@ -284,10 +300,18 @@ function generate_package_post() {
 
   resolve_package_dir
 
+  if [[ -z "${package_root_dir}" ]]; then
+    package_root_dir=${LOCAL_PACKAGE_ROOT_DIR}
+    package_dir="${LOCAL_PACKAGE_DIR}"
+  else
+    local distrib_id="${OS_DISTRIB_ID}"; to_lower distrib_id
+    local distrib_release="${OS_DISTRIB_RELEASE}"
+    package_dir="${package_root_dir}/${distrib_id}/${distrib_release}"
+  fi
+
   local package="${1##*#}"
   local package_name="${package%.*}"
-  local package_manager="$([[ "${package##*.}" != "${package}" ]] && echo "${package##*.}" || echo 'null')"
-  [[ -z "${package_dir}" ]] && package_dir="${LOCAL_PACKAGE_DIR}"
+  local package_manager="$([[ "${package##*.}" != "${package}" ]] && echo "${package##*.}")"
 
   local update=false
   local execute=false
@@ -296,7 +320,7 @@ function generate_package_post() {
   local res=0
   local matches=()
 
-  echo -e "Generating for '${package}.post' package..."
+  echo -e "\nGenerating .post package installer..."
   echo -e "\n${indent}${COLOR_HI_BLACK}All optional. Press [enter] to skip.${COLOR_NC}\n"
 
   while true; do
@@ -344,14 +368,14 @@ function generate_package_post() {
   ! ${VERBOSE}                  && ez_gen_args+=" -q"
   ${DEBUG}                      && ez_gen_args+=" -x"
 
-  ${EZ_DEP_EZ_GEN} -D "${package_dir}" -PyS ${ez_gen_args} -- "${package}"
+  ${EZ_DEP_EZ_GEN} -D "${package_root_dir}" -PyS ${ez_gen_args} -- "${package}"
 
   res=$?
   return $res
 }
 
 
-prompt_input() {
+function prompt_input() {
   if [[ -z "${1+x}" ]]; then
     error "${BASH_SYS_MSG_USAGE_MISSARG}"
     return $BASH_SYS_EX_USAGE
@@ -432,7 +456,7 @@ function prompt_boolean() {
 }
 
 
-prompt_confirm() {
+function prompt_confirm() {
   if [[ -z "${1+x}" ]]; then
     error "${BASH_SYS_MSG_USAGE_MISSARG}"
     return $BASH_SYS_EX_USAGE
