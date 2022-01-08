@@ -258,7 +258,7 @@ function execlog() {
   fi
 
   local command="${1}"; strip_ansi_code command
-  local timeout=${TIMEOUT:-60s}
+  local timeout=${TIMEOUT:-5m}
   local output=""
   local res=0
 
