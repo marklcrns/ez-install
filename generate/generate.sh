@@ -390,7 +390,7 @@ function prompt_input() {
   else
     echo -e "${_message}${_input}"
   fi
-  eval "${_input_var_name}=${_input}"
+  eval "${_input_var_name}='${_input}'"
 }
 
 
@@ -412,7 +412,7 @@ function prompt_package_manager() {
   else
     echo -e "${_message}${_package_manager}"
   fi
-  eval "${_package_manager_var_name}=${_package_manager}"
+  eval "${_package_manager_var_name}='${_package_manager}'"
 }
 
 
@@ -431,7 +431,7 @@ function prompt_dir() {
   else
     echo -e "${_message}${_dir}"
   fi
-  eval "${_dir_var_name}=${_dir}"
+  eval "${_dir_var_name}='${_dir}'"
 }
 
 
