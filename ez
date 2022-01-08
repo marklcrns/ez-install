@@ -104,6 +104,7 @@ EXIT CODES:
   BASH_EX_OK                  ${BASH_EX_OK}      successful termination.
   BASH_EX_GENERAL             ${BASH_EX_GENERAL}      catchall for general errors.
   BASH_EX_MISUSE              ${BASH_EX_MISUSE}      misuse of shell builtins (e.g., missing arg or permission problem).
+  BASH_EX_TIMEOUT             ${BASH_EX_TIMEOUT}      command timout (unresponsive)
   BASH_EX_EXECERR             ${BASH_EX_EXECERR}    command invoked cannot execute.
   BASH_EX_NOTFOUND            ${BASH_EX_NOTFOUND}    command not found.
   BASH_EX_INVALIDEXARG        ${BASH_EX_INVALIDEXARG}    invalid argument to 'exit'.

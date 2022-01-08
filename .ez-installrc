@@ -6,15 +6,15 @@
   || return 0
 
 
-readonly LOG_SYSLOG=true
-readonly LOG_FILELOG=true
-readonly TIMEOUT=120
+[[ -z "${LOG_SYSLOG+x}" ]]    && LOG_SYSLOG=true
+[[ -z "${LOG_FILELOG+x}" ]]   && LOG_FILELOG=true
+[[ -z "${TIMEOUT+x}" ]]       && TIMEOUT=30s
+[[ -z "${DOWNLOADS_DIR+x}" ]] && DOWNLOADS_DIR="${HOME}/Downloads"
 
 [[ -z "${SKIP_CONFIRM+x}" ]]    && SKIP_CONFIRM=false
 [[ -z "${VERBOSE+x}" ]]         && VERBOSE=true
 [[ -z "${DEBUG+x}" ]]           && DEBUG=false
 [[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=4
-[[ -z "${DOWNLOADS_DIR+x}" ]]   && DOWNLOADS_DIR="${HOME}/Downloads"
 
 [[ ! -d "${EZ_INSTALL_HOME:-}" ]]        && export EZ_INSTALL_HOME="$(realpath ${BASH_SOURCE%/*})"
 [[ ! -d "${PACKAGE_ROOT_DIR:-}" ]]       && PACKAGE_ROOT_DIR="$(realpath "${BASH_SOURCE%/*}/generate/packages")"

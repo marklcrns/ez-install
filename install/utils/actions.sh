@@ -258,7 +258,7 @@ function execlog() {
   fi
 
   local command="${1}"; strip_ansi_code command
-  local timeout=${TIMEOUT:-120}
+  local timeout=${TIMEOUT:-60s}
   local output=""
   local res=0
 
@@ -267,7 +267,11 @@ function execlog() {
     (
       ( eval "${command}" ) & pid=$!
       ( sleep $timeout && kill -HUP $pid ) 2>/dev/null & watcher=$!
-      wait $pid 2>/dev/null && pkill -HUP -P $watcher
+      if wait $pid 2>/dev/null; then
+        pkill -HUP -P $watcher
+      else
+        return $BASH_EX_TIMEOUT
+      fi
     ) 2>&1
   )
   res=$?
