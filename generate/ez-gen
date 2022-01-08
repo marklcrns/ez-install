@@ -426,7 +426,7 @@ function _main() {
       generate_template_main "${file_path}"
       res=$?
     fi
-    finish "Package generated to ${file_path}"
+    finish "Package(s) generated in to ${GEN_PACKAGE_DIR}"
   fi
   return $res
 }

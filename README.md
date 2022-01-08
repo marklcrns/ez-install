@@ -105,9 +105,11 @@ ez-gen -m apt -d git git-lfs
 Will generate
 `$LOCAL_PACKAGE_ROOT_DIR/<OS_DISTRIB_ID>/<OS_DISTRIB_RELEASE>/git-lfs.apt`.
 
-As of this time, `git-lfs` installation, with `apt` at least, requires another
-step after the installation which is `git lfs install`. Also, the `-d` flag and
-its optarg `git` attaches it as a dependency of `git-lfs`.
+As of the time of writting, `git-lfs` installation, with `apt` at least,
+requires another step after the package installation, that is `git lfs install`.
+
+> Also, the `-d` flag and its optarg `git` attaches it as a dependency of
+> `git-lfs`.
 
 A viable solution is running a pre or post installation process. A built-in
 feature runs `<package>.<package-manager>.pre` before the main package
@@ -125,7 +127,7 @@ and the `-S` flag to skip the main package installation since its already
 existing.
 
 Then open
-`$LOCAL_PACKAGE_ROOT_DIR/<OS_DISTRIB_ID>/<OS_DISTRIB_RELEASE>/git-lfs.apt.post`.
+`$LOCAL_PACKAGE_ROOT_DIR/<OS_DISTRIB_ID>/<OS_DISTRIB_RELEASE>/git-lfs.apt.post`
 and add `git lfs install` inside the `_main()` function.
 
 Finally, run `ez git-lfs` and it will try to install `git` first, including its

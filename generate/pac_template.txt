@@ -71,7 +71,7 @@ function _main() {
   #
   # Post installation:
   #
-  #   install() will automatically try to source ${FILE%.*}.post first then${FILE%.*}.${PACKAGE_MANAGER:-<package_manager>}.post
+  #   install() will automatically try to source ${FILE%.*}.post first then ${FILE%.*}.${PACKAGE_MANAGER:-<package_manager>}.post
   #   from either \$LOCAL_PACKAGE_DIR and \$PACKAGE_DIR after package installation.
   #   \$LOCAL_PACKAGE_DIR priority. Best place for cleaning up files or executing
   #   post installation commands.
