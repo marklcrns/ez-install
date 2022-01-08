@@ -306,7 +306,8 @@ function _main () {
       validate_packages ${packages[@]}
       res=$?; [[ ${res} -ne $BASH_EX_OK ]] && return $res
 
-      echo "Jsonifying..."
+
+      $DEBUG && $VERBOSE && echo "Jsonifying..."
       pac_array_jsonify -R $RECURSIVE -S $AS_ROOT -- packages
     fi
 

@@ -42,6 +42,10 @@ function pac_batch_json_install() {
     pac_json_install "${root_package}"
     res=$?
 
+    prog_bar "$(("${i}*100/${width}"))"
+    echo "- ${root_package_name}"
+    ((++i))
+
     # Report root package failure
     if [[ $res -ne $BASH_EX_OK ]]; then
       if [[ "${root_package_name##*.}" != "${root_package_name}" ]]; then
@@ -54,10 +58,6 @@ function pac_batch_json_install() {
         pac_log_skip $res "${root_package_manager}" "${root_package_name%.*}" "'${root_package_name}' dependency failed"
       fi
     fi
-
-    prog_bar "$(("${i}*100/${width}"))"
-    echo "- ${root_package_name}"
-    ((++i))
   done
 }
 
