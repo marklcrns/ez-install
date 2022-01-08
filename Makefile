@@ -2,7 +2,16 @@ INSTALL_DIR := /usr/local/bin
 EZ_HOME := ~/.ez-install
 
 
+install: $(INSTALL_DIR) $(INSTALL_DIR)/ez $(INSTALL_DIR)/ez-gen
+
 $(INSTALL_DIR)/ez:
-	sudo mkdir -p ${INSTALL_DIR}
 	sudo ln -sf $(EZ_HOME)/ez $@
 
+$(INSTALL_DIR)/ez-gen:
+	sudo ln -sf $(EZ_HOME)/generate/ez-gen $@
+
+${INSTALL_DIR}:
+	sudo mkdir -p ${INSTALL_DIR}
+
+clean:
+	sudo rm -f $(INSTALL_DIR)/ez $(INSTALL_DIR)/ez-gen
