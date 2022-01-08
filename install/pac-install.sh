@@ -39,12 +39,13 @@ function pac_batch_json_install() {
   for package in ${packages[@]}; do
     root_package="$(echo "${package}" | ${EZ_DEP_JQ} -crM ".package")"
     root_package_name="$(echo "${root_package}" | ${EZ_DEP_JQ} -crM ".name")"
-    pac_json_install "${root_package}"
-    res=$?
 
     prog_bar "$(("${i}*100/${width}"))"
     echo "- ${root_package_name}"
     ((++i))
+
+    pac_json_install "${root_package}"
+    res=$?
 
     # Report root package failure
     if [[ $res -ne $BASH_EX_OK ]]; then
