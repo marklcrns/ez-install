@@ -263,7 +263,7 @@ functions](#package-manager-specific-functions).
 | `-c "<optarg>"` | Command/Executable name.                                                                                             |
 | `-m "<optarg>"` | Package manager to use. See [supported package managers](#supported-package-managers).                               |
 | `-n "<optarg>"` | Name of the package (used in `$LOCAL_PACKAGE_DIR` and `$PACKAGE_DIR` package search).                                |
-| `-o "<optarg>"` | Output filepath.                                                                                                     |
+| `-o "<optarg>"` | Output filepath. default=`$HOME/Downloads/outfile`                                                                   |
 | `-e <optarg>`   | Shell execute package. For curl and wget only. e.g., `bash -c "$(curl <url>)"`. default=false.                       |
 | `-S <optarg>`   | Boolean if run package as root (with `sudo` for supported distributions). default=false.                             |
 | `-u <optarg>`   | Boolean if update package manager repository before installation. e.g., `apt update` or `pkg update`. default=false. |
@@ -335,7 +335,7 @@ functions](#package-manager-specific-functions).
 | `-a "<optarg>"`     | `curl` CLI arguments.                                                                        |
 | `-c "<optarg>"`     | Command/Executable name.                                                                     |
 | `-n "<optarg>"`     | Name of the package (used in package search).                                                |
-| `-o "<optarg>"`     | Output filepath.                                                                             |
+| `-o "<optarg>"`     | Output filepath. default=`$HOME/Downloads/outfile`                                           |
 | `-e <optarg>`       | Boolean if shell execute package. i.e., `bash -c "$(curl <url>)"`. default=false             |
 | `-f <optarg>`       | Boolean if forced installation if output filepath already exist. default=false               |
 | `-S <optarg>`       | Boolean if execute package as root (with `sudo` for supported distributions). default=false. |
@@ -348,11 +348,23 @@ functions](#package-manager-specific-functions).
 | `-a "<optarg>"`     | `wget` CLI arguments.                                                                        |
 | `-c "<optarg>"`     | Command/Executable name.                                                                     |
 | `-n "<optarg>"`     | Name of the package (used in package search).                                                |
-| `-o "<optarg>"`     | Output filepath.                                                                             |
+| `-o "<optarg>"`     | Output filepath. default=`$HOME/Downloads/outfile`                                           |
 | `-e <optarg>`       | Boolean if shell execute package. i.e., `bash -c "$(wget -O - <url>)"`. default=false        |
 | `-f <optarg>`       | Boolean if forced installation if output filepath already exist. default=false               |
 | `-S <optarg>`       | Boolean if execute package as root (with `sudo` for supported distributions). default=false. |
 | `<url>`             | Package url to install. First and only required argument.                                    |
+
+`git_clone [options] <url>` -- function for installing `git` packages
+
+| `git_clone` Args | Description                                                                                  |
+|-------------------|----------------------------------------------------------------------------------------------|
+| `-a "<optarg>"`   | `git` CLI arguments.                                                                         |
+| `-c "<optarg>"`   | Command/Executable name.                                                                     |
+| `-n "<optarg>"`   | Name of the package (used in package search).                                                |
+| `-o "<optarg>"`   | Output filepath. default=`$HOME/Downloads/outfile`                                           |
+| `-f <optarg>`     | Boolean if forced installation if output filepath already exist. default=false               |
+| `-S <optarg>`     | Boolean if execute package as root (with `sudo` for supported distributions). default=false. |
+| `<url>`           | Package url to install. First and only required argument.                                    |
 
 `local_install [options] <package>` -- function for installing packages without
 package manager. Only used for package existence checking and reporting.
