@@ -99,12 +99,12 @@ function select_package() {
   [[ -d "${LOCAL_PACKAGE_DIR}" ]] && package_dirs=( ${package_dirs} "${LOCAL_PACKAGE_DIR}" )
 
   local matches=(
-    $(find ${package_dirs} -type f \
+    $(find ${package_dirs[@]} -type f \
       ! -name "${excluded}" \
-      ! -name "${package}*.pre" \
-      ! -name "${package}*.post" \
-      ! -name "${package}.${package_ext}.*" \
-      -name "${package}*.*"
+      ! -name "*${package}*.pre" \
+      ! -name "*${package}*.post" \
+      ! -name "*${package}.${package_ext}.*" \
+      -name "*${package}*" \
     )
   )
 
@@ -156,12 +156,13 @@ function has_alternate_package() {
   [[ -d "${LOCAL_PACKAGE_DIR}" ]] && package_dirs=( ${package_dirs} "${LOCAL_PACKAGE_DIR}" )
 
   local matches=(
-    $(find ${package_dirs} -type f \
-      ! -name "${package}*.pre" \
-      ! -name "${package}*.post" \
-      ! -name "${package}.${package_ext}.*" \
-      -name "${package}*.*")
+    $(find ${package_dirs[@]} -type f \
+      ! -name "*${package}*.pre" \
+      ! -name "*${package}*.post" \
+      ! -name "*${package}.${package_ext}.*" \
+      -name "*${package}*" \
     )
+  )
 
   if [[ -n "${matches[@]}" ]]; then
     info "Alternate package found for '${package}'"

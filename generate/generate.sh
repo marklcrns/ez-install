@@ -125,9 +125,10 @@ function i_generate_template_main() {
     if [[ -d "${package_dir}" ]]; then
       matches=(
         $(find "${package_dir}" -type f \
-          ! -name "${package_name}*.pre" \
-          ! -name "${package_name}*.post" \
-          -name "${package_name}?${package_manager}")
+          ! -name "*${package_name}*.pre" \
+          ! -name "*${package_name}*.post" \
+          -name "${package_name}?${package_manager}"
+        )
       )
     fi
 
@@ -237,8 +238,9 @@ function i_generate_template_pre() {
     if [[ -d "${package_dir}" ]]; then
       matches=(
         $(find "${package_dir}" -type f \
-          ! -name "${package_name}*.post" \
-          -name "${package_name}?${package_manager}.pre")
+          ! -name "*${package_name}*.post" \
+          -name "${package_name}?${package_manager}.pre"
+        )
       )
     fi
 
@@ -334,8 +336,9 @@ function i_generate_template_post() {
     if [[ -d "${package_dir}" ]]; then
       matches=(
         $(find "${package_dir}" -type f \
-          ! -name "${package_name}*.pre" \
-          -name "${package_name}?${package_manager}.post")
+          ! -name "*${package_name}*.pre" \
+          -name "${package_name}?${package_manager}.post"
+        )
       )
     fi
 
