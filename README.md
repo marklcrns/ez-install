@@ -147,7 +147,8 @@ no knowledge of bash.
 
 For more options, run `ez-gen -h`.
 
-See sample packages [here](https://github.com/marklcrns/ez-install/tree/main/generate/packages/ubuntu/20.04).
+See sample packages
+[here](https://github.com/marklcrns/ez-install/tree/main/generate/packages/ubuntu/20.04).
 
 ### Simple Package Generator Usage
 
@@ -380,9 +381,12 @@ package manager. Only used for package existence checking and reporting.
 
 ## Contributing
 
-Anyone can contribute to share their tested personal packages using [`ez-gen
+Anyone can contribute to share their tested packages installers using [`ez-gen
 --global`](#package-generator) and the [Built-in Install
 Functions](#built-in-install-functions) by issuing a PR.
+
+See sample packages
+[here](https://github.com/marklcrns/ez-install/tree/main/generate/packages/ubuntu/20.04).
 
 ## TODO
 
