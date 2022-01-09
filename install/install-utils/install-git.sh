@@ -58,6 +58,7 @@ function git_clone() {
   fi
 
   local from="${@}"
+  local sudo=""
   ! ${VERBOSE:-false}        && args+=' -q'  # TODO: Useless, always quite
   [[ -z "${package_name}" ]] && package_name="${from}"
   [[ -z "${to}" ]]           && to="${DESTINATION:-.}/$(basename -- "${from}" '.git')"
@@ -66,7 +67,9 @@ function git_clone() {
   to=${to//\~/${HOME}}
 
   if $as_root; then
-    if ! command -v sudo &> /dev/null; then
+    if command -v sudo &> /dev/null; then
+      sudo="sudo "
+    else
       pac_log_failed $BASH_EX_MISUSE 'Git' "${package_name}" "Git '${package_name}' installation failed. 'sudo' not installed"
       return $BASH_EX_MISUSE
     fi
@@ -125,14 +128,22 @@ function git_clone() {
   fi
 
   # Execute cloning
-  clone_repo -a "${args}" -n "${package_name}" -o "${to}" -S $as_root -- "${from}"
-  res=$?
-  if [[ $res -ne $BASH_EX_OK ]]; then
-    if [[ $res -eq $BASH_SYS_EX_SOFTWARE ]]; then
-      pac_log_failed $res 'Git' "${package_name}" "Git clone '${package_name}' failed! Authentication timeout"
-    else
-      pac_log_failed $res 'Git' "${package_name}" "Git clone '${from}' -> '${to}' failed"
-    fi
+  # clone_repo -a "${args}" -n "${package_name}" -o "${to}" -S $as_root -- "${from}"
+  # res=$?
+  # if [[ $res -ne $BASH_EX_OK ]]; then
+  #   if [[ $res -eq $BASH_SYS_EX_SOFTWARE ]]; then
+  #     pac_log_failed $res 'Git' "${package_name}" "Git clone '${package_name}' failed! Authentication timeout"
+  #   else
+  #     pac_log_failed $res 'Git' "${package_name}" "Git clone '${from}' -> '${to}' failed"
+  #   fi
+  #   return $res
+  # fi
+
+  if execlog "${sudo}git clone ${args} -- "${from}" "${to}""; then
+    pac_log_success 'Git' "${package_name}" "Git '${to}' successful"
+  else
+    res=$?
+    pac_log_failed $res 'Git' "${package_name}" "Git '${to}' failed!"
     return $res
   fi
 
