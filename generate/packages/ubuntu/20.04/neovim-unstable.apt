@@ -7,7 +7,7 @@
 # package-manager: apt
 # dependency: neovim-unstable.apt-add
 # author: 
-# date: 2022-01-08
+# date: 2022-01-09
 # ---
 ################################################################################
 
@@ -48,17 +48,17 @@ function _main() {
   #
   # Arguments:
   #
-  #   $1   Installing package manager.
-  #         Supported:
-  #           - apt, apt-add
-  #           - pkg
-  #           - npm
-  #           - pip (executes default pip version), pip2, pip3
-  #           - curl
-  #           - wget
-  #           - git
-  #           - local (independent local installation only for reporting and triggering
-  #             pre and post installation processes).
+  #   $1    Installing package manager.
+  #          Supported:
+  #            - apt, apt-add
+  #            - pkg
+  #            - npm
+  #            - pip (executes default pip version), pip2, pip3
+  #            - curl
+  #            - wget
+  #            - git
+  #            - local (independent local installation only for reporting and triggering
+  #              pre and post installation processes).
   #   $2    Package to install.
   #   $3    Output directory for curl, wget, and git (optional, default=$HOME/Downloads).
   #

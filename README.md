@@ -413,9 +413,10 @@ See sample packages
   - [X] Print dependency tree before installation
   - [X] Prevent package installation with missing dependencies
   - [X] Full support for custom package install directory
-- [X] More flexible installation
+- [o] More flexible installation
   - [X] Support individual installation via command-line
   - [X] Support JSON install configuration
+  - [ ] `-f, --forced` flag and in-line options for `git`, `curl`, and `wget`
 - [ ] Add more features
   - [ ] Cache all installed packages
   - [ ] Uninstall

@@ -80,11 +80,11 @@ function i_generate_template_main() {
   fi
 
   local package="${1##*#}"
-  local package_name="${package%.*}"
   local package_manager="$([[ "${package##*.}" != "${package}" ]] && echo "${package##*.}")"
 
   local author=""
   local dependencies=""
+  local package_name=""
   local executable_name=""
   local output_dir=""
   local execute=""
@@ -100,16 +100,15 @@ function i_generate_template_main() {
   while true; do
     prompt_input author "${indent}Author: "
     prompt_input dependencies "${indent}Dependencies (',' separator): "
-    prompt_input package_name "${indent}Package name: "; package="${package_name}"
+    prompt_input package_name "${indent}Package name: "
     prompt_input executable_name "${indent}Executable name: "
     prompt_package_manager package_manager "${indent}Package manager: "
 
     if [[ -n ${package_manager} ]]; then
-      [[ "${package##*.}" == "${package}" ]] && package+=".${package_manager}"
-
       if [[ ${package_manager} == "curl" ]] \
         || [[ ${package_manager} == "wget" ]] \
         || [[ ${package_manager} == "git" ]]; then
+        prompt_input package "${indent}${indent}Package Url: "
         prompt_dir output_dir "${indent}${indent}Output directory: "
         if [[ ${package_manager} == "curl" ]] \
           || [[ ${package_manager} == "wget" ]]; then
