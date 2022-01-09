@@ -123,12 +123,14 @@ function i_generate_template_main() {
       prompt_input args "${indent}${indent}${package_manager:-Package Manager} args: "
     fi
 
-    matches=(
-      $(find "${package_dir}" -type f \
-        ! -name "${package_name}*.pre" \
-        ! -name "${package_name}*.post" \
-        -name "${package_name}?${package_manager}")
+    if [[ -d "${package_dir}" ]]; then
+      matches=(
+        $(find "${package_dir}" -type f \
+          ! -name "${package_name}*.pre" \
+          ! -name "${package_name}*.post" \
+          -name "${package_name}?${package_manager}")
       )
+    fi
 
     if [[ -n "${matches+x}" ]]; then
       echo -e "\nSimilar package(s) found:\n"
@@ -233,11 +235,13 @@ function i_generate_template_pre() {
     prompt_package_manager package_manager "${indent}Package manager: "
     echo ""
 
-    matches=(
-    $(find "${package_dir}" -type f \
-      ! -name "${package_name}*.post" \
-      -name "${package_name}?${package_manager}.pre")
-    )
+    if [[ -d "${package_dir}" ]]; then
+      matches=(
+        $(find "${package_dir}" -type f \
+          ! -name "${package_name}*.post" \
+          -name "${package_name}?${package_manager}.pre")
+      )
+    fi
 
     if [[ -n "${matches+x}" ]]; then
       echo -e "\nSimilar package(s) found:\n"
@@ -328,11 +332,13 @@ function i_generate_template_post() {
     prompt_package_manager package_manager "${indent}Package manager: "
     echo ""
 
-    matches=(
-    $(find "${package_dir}" -type f \
-      ! -name "${package_name}*.pre" \
-      -name "${package_name}?${package_manager}.post")
-    )
+    if [[ -d "${package_dir}" ]]; then
+      matches=(
+        $(find "${package_dir}" -type f \
+          ! -name "${package_name}*.pre" \
+          -name "${package_name}?${package_manager}.post")
+      )
+    fi
 
     if [[ -n "${matches+x}" ]]; then
       echo -e "\nSimilar package(s) found:\n"

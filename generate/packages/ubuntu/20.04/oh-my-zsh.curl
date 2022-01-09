@@ -7,7 +7,7 @@
 # package-manager: curl
 # dependency: zsh
 # author: 
-# date: 2022-01-07
+# date: 2022-01-08
 # ---
 ################################################################################
 
@@ -28,7 +28,7 @@ function _main() {
   local package_name="oh-my-zsh"
   local executable_name="oh-my-zsh"
   local package_manager="curl"
-  local destination="~/.oh-my-zsh"
+  local destination=""
   local res=0
 
   # Get system package manager
