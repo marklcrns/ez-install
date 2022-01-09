@@ -95,19 +95,25 @@ function i_generate_template_main() {
   local matches=()
 
   echo -e "\nGenerating main package installer..."
-  echo -e "\n${indent}${COLOR_HI_BLACK}All optional. Press [enter] to skip.${COLOR_NC}\n"
+  echo -e "\n${indent}${COLOR_HI_BLACK}Some are optional. Press [enter] to skip.${COLOR_NC}\n"
 
   while true; do
     prompt_input author "${indent}Author: "
     prompt_input dependencies "${indent}Dependencies (',' separator): "
-    prompt_input package_name "${indent}Package name: "
-    prompt_input executable_name "${indent}Executable name: "
     prompt_package_manager package_manager "${indent}Package manager: "
+    prompt_input executable_name "${indent}Executable name: "
+    prompt_input package_name "${indent}Package name: "
 
     if [[ -n ${package_manager} ]]; then
       if [[ ${package_manager} == "curl" ]] \
         || [[ ${package_manager} == "wget" ]] \
         || [[ ${package_manager} == "git" ]]; then
+        # Curl, wget git packages
+        while [[ -z "${package_name}" ]]; do
+          package_name="${package%.*}"
+          prompt_input package_name "${indent}Package name (required): "
+        done
+        package=""
         prompt_input package "${indent}${indent}Package Url: "
         prompt_dir output_dir "${indent}${indent}Output directory: "
         if [[ ${package_manager} == "curl" ]] \
@@ -117,6 +123,7 @@ function i_generate_template_main() {
       elif [[ ${package_manager} == "apt" ]] \
         || [[ ${package_manager} == "apt-add" ]] \
         || [[ ${package_manager} == "pkg" ]]; then
+        # Ask for update if apt, apt-add or pkg
         prompt_boolean update "${indent}${indent}${package_manager} update (default=false): "
       fi
       prompt_input args "${indent}${indent}${package_manager:-Package Manager} args: "

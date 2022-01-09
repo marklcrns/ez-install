@@ -217,18 +217,18 @@ function handle_args() {
 
   resolve_package_dir
 
+  if [[ ${PACKAGE_MANAGER} == "curl" ]] || [[ ${PACKAGE_MANAGER} == "wget" ]] || [[ ${PACKAGE_MANAGER} == "git" ]]; then
+    if [[ -z "${PACKAGE_NAME}" ]]; then
+      usage
+      error "No package name provided for '${PACKAGE_MANAGER} ${1}'"
+      exit $BASH_SYS_EX_USAGE
+    fi
+  fi
+
   PACKAGE="${1:-${PACKAGE_NAME}}"
   PACKAGE_NAME="${PACKAGE_NAME:-${PACKAGE}}"
   COMMAND_NAME="${COMMAND_NAME:-${PACKAGE_NAME}}"
   FILE="${PACKAGE_NAME:-${PACKAGE}}"
-
-  if [[ ${PACKAGE_MANAGER} == "curl" ]] || [[ ${PACKAGE_MANAGER} == "wget" ]] || [[ ${PACKAGE_MANAGER} == "git" ]]; then
-    if [[ -z "${PACKAGE_NAME}" ]]; then
-      usage
-      error "No package name provided for '${PACKAGE_MANAGER} ${PACKAGE}'"
-      exit $BASH_SYS_EX_USAGE
-    fi
-  fi
 
   if $GLOBAL; then
     GEN_PACKAGE_ROOT_DIR="${PACKAGE_ROOT_DIR}"
