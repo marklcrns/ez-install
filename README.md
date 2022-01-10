@@ -1,7 +1,7 @@
 # Ez-install
 
 Install your packages and its dependencies, personal dotfiles, run scripts, pull
-repositories, and more in just one command.
+repositories, and more with just one command.
 
 Ez-install has a `make`-like system that tries to install dependencies first
 before the main target package. Dependency failure will halt the target package
@@ -10,10 +10,6 @@ installation.
 With the [package generation](#package-generator) system, you can create your
 own package installer from many different package managers with little to no
 Bash scripting knowledge.
-
-Finally, installing packages using the [built-in install
-functions](#built-in-install-functions) are subject for the convenient package
-reporting after the installation.
 
 <!-- TOC GFM -->
 
@@ -100,6 +96,10 @@ IN-LINE OPTIONS:
 ```
 
 ### Reporting
+
+Installing packages using the [built-in install
+functions](#built-in-install-functions) are subject for the convenient package
+reporting after the installation.
 
 | Report         | Description                                             |
 |----------------|---------------------------------------------------------|
