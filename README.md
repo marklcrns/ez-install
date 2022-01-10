@@ -38,8 +38,6 @@ reporting after the installation.
 
 <!-- /TOC -->
 
-![Demo](./demo.gif)
-
 ## Installation
 
 Firstly, clone the repo.
@@ -74,6 +72,11 @@ export EZ_INSTALL_HOME="${HOME}/.ez-install"
 ```bash
 ez [options] package1 package2 package3 ...
 ```
+
+![Main Demo](./demo/ez_demo.gif)
+![Dependency Demo](./demo/ez_dep_demo.gif)
+
+See `ez -h` for more on options.
 
 ### In-line Options
 
@@ -212,7 +215,7 @@ ez-gen -e -m curl -d zsh -n oh-my-zsh 'https://raw.githubusercontent.com/ohmyzsh
 ez-gen -e -m wget -d zsh -n oh-my-zsh 'https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh'
 ```
 
-See `ez-gen -h` for more options.
+See `ez-gen -h` for more on options.
 
 ### More Advanced Package Generator Usage
 
@@ -262,9 +265,11 @@ first before proceeding to the `_main()` function above.
 `my-dotfiles#nodep` [in-line option](#in-line-options)
 
 > NOTE: [`.pre` and `.post`](#pre-and-post-installation) can also be used. See
-`ez-gen -h`
+`ez-gen -h` for more on options
 
 ### Interactive Package Generator
+
+![Interactive Demo](./demo/ez-gen_demo.gif)
 
 ```bash
 # Optional package argument
