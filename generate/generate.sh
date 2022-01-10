@@ -147,6 +147,7 @@ function i_generate_template_main() {
       done
     fi
 
+    # TODO: Fix package check. Include package manager
     if [[ -n "${package_name}" ]] && [[ -e "${package_dir}/${package}" ]]; then
       echo ""
       warning "About to overwrite '${package_dir}/${package}'"
@@ -175,13 +176,13 @@ function i_generate_template_main() {
 
   # Escape whitespaces
   local ez_gen_args=
-  [[ -n "${author}" ]]          && ez_gen_args+=" -A ${author// /\\ }"
-  [[ -n "${dependencies}" ]]    && ez_gen_args+=" -d ${dependencies// /\\ }"
-  [[ -n "${executable_name}" ]] && ez_gen_args+=" -c ${executable_name// /\\ }"
-  [[ -n "${package_name}" ]]    && ez_gen_args+=" -n ${package_name// /\\ }"
-  [[ -n "${package_manager}" ]] && ez_gen_args+=" -m ${package_manager// /\\ }"
-  [[ -n "${output_dir}" ]]      && ez_gen_args+=" -o ${output_dir// /\\ }"
-  [[ -n "${args}" ]]            && ez_gen_args+=" -a ${args// /\\ }"
+  [[ -n "${author}" ]]          && ez_gen_args+=" -A '${author// /\\ }'"
+  [[ -n "${dependencies}" ]]    && ez_gen_args+=" -d '${dependencies// /\\ }'"
+  [[ -n "${executable_name}" ]] && ez_gen_args+=" -c '${executable_name// /\\ }'"
+  [[ -n "${package_name}" ]]    && ez_gen_args+=" -n '${package_name// /\\ }'"
+  [[ -n "${package_manager}" ]] && ez_gen_args+=" -m '${package_manager// /\\ }'"
+  [[ -n "${output_dir}" ]]      && ez_gen_args+=" -o '${output_dir// /\\ }'"
+  [[ -n "${args}" ]]            && ez_gen_args+=" -a '${args// /\\ }'"
   ${update:-false}              && ez_gen_args+=" -u"
   ${execute:-false}             && ez_gen_args+=" -e"
   ! ${VERBOSE}                  && ez_gen_args+=" -q"
@@ -280,8 +281,8 @@ function i_generate_template_pre() {
 
   # Escape whitespaces
   local ez_gen_args=
-  [[ -n "${package_name}" ]]    && ez_gen_args+=" -n ${package_name// /\\ }"
-  [[ -n "${package_manager}" ]] && ez_gen_args+=" -m ${package_manager// /\\ }"
+  [[ -n "${package_name}" ]]    && ez_gen_args+=" -n '${package_name// /\\ }'"
+  [[ -n "${package_manager}" ]] && ez_gen_args+=" -m '${package_manager// /\\ }'"
   ! ${VERBOSE}                  && ez_gen_args+=" -q"
   ${DEBUG}                      && ez_gen_args+=" -x"
 
@@ -378,8 +379,8 @@ function i_generate_template_post() {
 
   # Escape whitespaces
   local ez_gen_args=
-  [[ -n "${package_name}" ]]    && ez_gen_args+=" -n ${package_name// /\\ }"
-  [[ -n "${package_manager}" ]] && ez_gen_args+=" -m ${package_manager// /\\ }"
+  [[ -n "${package_name}" ]]    && ez_gen_args+=" -n '${package_name// /\\ }'"
+  [[ -n "${package_manager}" ]] && ez_gen_args+=" -m '${package_manager// /\\ }'"
   ! ${VERBOSE}                  && ez_gen_args+=" -q"
   ${DEBUG}                      && ez_gen_args+=" -x"
 
