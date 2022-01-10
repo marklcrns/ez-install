@@ -26,7 +26,9 @@ reporting after the installation.
 * [Package Generator](#package-generator)
   * [Simple Package Generator Usage](#simple-package-generator-usage)
   * [Advanced Package Generator Usage](#advanced-package-generator-usage)
+  * [Sample Package Geneartor Usage For `git`, `curl`, and `wget`](#sample-package-geneartor-usage-for-git-curl-and-wget)
   * [More Advanced Package Generator Usage](#more-advanced-package-generator-usage)
+  * [Interactive Package Generator](#interactive-package-generator)
 * [Built-in Install Functions](#built-in-install-functions)
   * [Package Manager Specific Functions](#package-manager-specific-functions)
 * [Supported Package Managers](#supported-package-managers)
@@ -202,6 +204,16 @@ and add `git lfs install` inside the `_main()` function.
 Finally, run `ez git-lfs` and it will try to install `git` first, including its
 `.pre` and `.post`, then if successful, will install `git-lfs` likewise.
 
+### Sample Package Geneartor Usage For `git`, `curl`, and `wget`
+
+```bash
+ez-gen -m git -a '--depth=1' -n fzf -o '~/.fzf' 'https://github.com/junegunn/fzf.git'
+ez-gen -e -m curl -d zsh -n oh-my-zsh 'https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh'
+ez-gen -e -m wget -d zsh -n oh-my-zsh 'https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh'
+```
+
+See `ez-gen -h` for more options.
+
 ### More Advanced Package Generator Usage
 
 In this example, we create a custom package that install and [distribute
@@ -251,6 +263,20 @@ first before proceeding to the `_main()` function above.
 
 > NOTE: [`.pre` and `.post`](#pre-and-post-installation) can also be used. See
 `ez-gen -h`
+
+### Interactive Package Generator
+
+```bash
+# Optional package argument
+ez-gen -i [package]
+
+# Will enter interactive mode but fill package name with 'test' automatically
+ez-gen -i test
+
+# Will enter interactive mode but fill package name with 'test' and package
+# manager with 'apt' automatically
+ez-gen -i test.apt
+```
 
 ## Built-in Install Functions
 
