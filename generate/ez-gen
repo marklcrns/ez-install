@@ -330,7 +330,7 @@ function generate_template_main() {
   local res=0
 
   if check_package "${file_path}" && ! $SKIP_CONFIRM; then
-    confirm "'${package}' already exist. Continue? (Y/y): " || return $BASH_EZ_EX_PAC_EXIST
+    confirm "'${file_path}' already exist. Continue? (Y/y): " || return $BASH_EZ_EX_PAC_EXIST
   fi
 
   if execlog "echo -n '' > '${file_path}' && chmod +x '${file_path}'"; then
@@ -357,7 +357,7 @@ function generate_template_pre() {
   local res=0
 
   if check_package "${file_path}" && ! $SKIP_CONFIRM; then
-    confirm "'${package}' already exist. Continue? (Y/y): " || return $BASH_EZ_EX_PAC_EXIST
+    confirm "'${file_path}' already exist. Continue? (Y/y): " || return $BASH_EZ_EX_PAC_EXIST
   fi
 
   if execlog "echo -n '' > '${file_path}' && chmod +x '${file_path}'"; then
@@ -384,7 +384,7 @@ function generate_template_post() {
   local res=0
 
   if check_package "${file_path}" && ! $SKIP_CONFIRM; then
-    confirm "'${package}' already exist. Continue? (Y/y): " || return $BASH_EZ_EX_PAC_EXIST
+    confirm "'${file_path}' already exist. Continue? (Y/y): " || return $BASH_EZ_EX_PAC_EXIST
   fi
 
   if execlog "echo -n '' > '${file_path}' && chmod +x '${file_path}'"; then
