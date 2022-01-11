@@ -476,6 +476,11 @@ See sample packages
   - [X] `wget`
   - [X] `local`
   - [ ] `brew`
+  - [ ] `port`
+  - [ ] `dnf`
+  - [ ] `zypper`
+  - [ ] `cargo`
+  - [ ] `nix-env`
   - [ ] More support coming
 - [ ] Bourne Shell support
 
