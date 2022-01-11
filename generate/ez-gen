@@ -227,7 +227,6 @@ function handle_args() {
 
   PACKAGE="${1:-${PACKAGE_NAME}}"
   PACKAGE_NAME="${PACKAGE_NAME:-${PACKAGE}}"
-  COMMAND_NAME="${COMMAND_NAME:-${PACKAGE_NAME}}"
   FILE="${PACKAGE_NAME:-${PACKAGE}}"
 
   if $GLOBAL; then
