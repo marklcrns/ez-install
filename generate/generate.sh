@@ -246,9 +246,7 @@ function i_generate_template_pre() {
   local package_name="${package%.*}"
   local package_manager="$([[ "${package##*.}" != "${package}" ]] && echo "${package##*.}")"
 
-  local update=false
-  local execute=false
-  local args=""
+  local as_root=""
   local indent="  "
   local res=0
   local matches=()
@@ -259,10 +257,8 @@ function i_generate_template_pre() {
   while true; do
     prompt_input package_name "${indent}Package name: "; package="${package_name}"
     prompt_package_manager package_manager "${indent}Package manager: "
+    prompt_boolean as_root "${indent}As root (default=false): "
     echo ""
-
-    local file_path="${package_dir}/${package_name}"
-    [[ -n "${package_manager}" ]] && file_path+=".${package_manager}"
 
     if [[ -d "${package_dir}" ]]; then
       matches=(
@@ -280,6 +276,9 @@ function i_generate_template_pre() {
         printf "$(($i+1))) ${matches[$i]}\n"
       done
     fi
+
+    local file_path="${package_dir}/${package_name}"
+    [[ -n "${package_manager}" ]] && file_path+=".${package_manager}"
 
     if [[ -e "${file_path}.pre" ]]; then
       echo ""
@@ -304,6 +303,7 @@ function i_generate_template_pre() {
   local ez_gen_args=
   [[ -n "${package_name}" ]]    && ez_gen_args+=" -n '${package_name// /\\ }'"
   [[ -n "${package_manager}" ]] && ez_gen_args+=" -m '${package_manager// /\\ }'"
+  ${as_root:-false}             && ez_gen_args+=" -S"
   ! ${VERBOSE}                  && ez_gen_args+=" -q"
   ${DEBUG}                      && ez_gen_args+=" -x"
 
@@ -350,9 +350,7 @@ function i_generate_template_post() {
   local package_name="${package%.*}"
   local package_manager="$([[ "${package##*.}" != "${package}" ]] && echo "${package##*.}")"
 
-  local update=false
-  local execute=false
-  local args=""
+  local as_root=""
   local indent="  "
   local res=0
   local matches=()
@@ -363,10 +361,8 @@ function i_generate_template_post() {
   while true; do
     prompt_input package_name "${indent}Package name: "; package="${package_name}"
     prompt_package_manager package_manager "${indent}Package manager: "
+    prompt_boolean as_root "${indent}As root (default=false): "
     echo ""
-
-    local file_path="${package_dir}/${package_name}"
-    [[ -n "${package_manager}" ]] && file_path+=".${package_manager}"
 
     if [[ -d "${package_dir}" ]]; then
       matches=(
@@ -384,6 +380,9 @@ function i_generate_template_post() {
         printf "$(($i+1))) ${matches[$i]}\n"
       done
     fi
+
+    local file_path="${package_dir}/${package_name}"
+    [[ -n "${package_manager}" ]] && file_path+=".${package_manager}"
 
     if [[ -e "${file_path}.post" ]]; then
       echo ""
@@ -408,6 +407,7 @@ function i_generate_template_post() {
   local ez_gen_args=
   [[ -n "${package_name}" ]]    && ez_gen_args+=" -n '${package_name// /\\ }'"
   [[ -n "${package_manager}" ]] && ez_gen_args+=" -m '${package_manager// /\\ }'"
+  ${as_root:-false}             && ez_gen_args+=" -S"
   ! ${VERBOSE}                  && ez_gen_args+=" -q"
   ${DEBUG}                      && ez_gen_args+=" -x"
 
