@@ -3,11 +3,11 @@
 ############################################ PACKAGE METADATA (DO NOT TOUCH) ###
 # ---
 # package: Send2Trash
-# executable: Send2Trash
+# executable: send2trash
 # package-manager: pip2
 # dependency: python2
 # author: 
-# date: 2022-01-09
+# date: 2022-01-11
 # ---
 ################################################################################
 
@@ -26,7 +26,7 @@ function _main() {
   local args=""
   local package="Send2Trash"
   local package_name="Send2Trash"
-  local executable_name="Send2Trash"
+  local executable_name="send2trash"
   local package_manager="pip2"
   local destination=""
   local res=0

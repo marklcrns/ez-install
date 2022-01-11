@@ -3,11 +3,11 @@
 ############################################ PACKAGE METADATA (DO NOT TOUCH) ###
 # ---
 # package: libssl-dev
-# executable: libssl-dev
+# executable: 
 # package-manager: 
 # dependency: 
 # author: 
-# date: 2022-01-09
+# date: 2022-01-11
 # ---
 ################################################################################
 
@@ -26,7 +26,7 @@ function _main() {
   local args=""
   local package="libssl-dev"
   local package_name="libssl-dev"
-  local executable_name="libssl-dev"
+  local executable_name=""
   local package_manager=""
   local destination=""
   local res=0

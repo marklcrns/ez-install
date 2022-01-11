@@ -46,6 +46,9 @@ function apt_add_repo() {
       u)
         is_update=${OPTARG}
         ;;
+      *)
+        error "Invalid flag option(s)"
+        exit $BASH_SYS_EX_USAGE
     esac
   done
   shift "$((OPTIND-1))"
@@ -140,6 +143,9 @@ function apt_install() {
       u)
         is_update=${OPTARG}
         ;;
+      *)
+        error "Invalid flag option(s)"
+        exit $BASH_SYS_EX_USAGE
     esac
   done
   shift "$((OPTIND-1))"
@@ -219,6 +225,9 @@ function apt_update() {
       S)
         as_root=${OPTARG}
         ;;
+      *)
+        error "Invalid flag option(s)"
+        exit $BASH_SYS_EX_USAGE
     esac
   done
   shift "$((OPTIND-1))"
@@ -261,6 +270,9 @@ function apt_upgrade() {
       S)
         as_root=${OPTARG}
         ;;
+      *)
+        error "Invalid flag option(s)"
+        exit $BASH_SYS_EX_USAGE
     esac
   done
   shift "$((OPTIND-1))"
@@ -311,6 +323,9 @@ function apt_purge() {
       S)
         as_root=${OPTARG}
         ;;
+      *)
+        error "Invalid flag option(s)"
+        exit $BASH_SYS_EX_USAGE
     esac
   done
   shift "$((OPTIND-1))"

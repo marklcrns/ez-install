@@ -3,11 +3,11 @@
 ############################################ PACKAGE METADATA (DO NOT TOUCH) ###
 # ---
 # package: docker-ce-cli
-# executable: docker-ce-cli
+# executable: 
 # package-manager: apt
 # dependency: ca-certificates,curl,gnupg,lsb-release
 # author: 
-# date: 2022-01-09
+# date: 2022-01-11
 # ---
 ################################################################################
 
@@ -26,7 +26,7 @@ function _main() {
   local args=""
   local package="docker-ce-cli"
   local package_name="docker-ce-cli"
-  local executable_name="docker-ce-cli"
+  local executable_name=""
   local package_manager="apt"
   local destination=""
   local res=0

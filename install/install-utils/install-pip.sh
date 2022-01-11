@@ -48,6 +48,9 @@ function pip_install() {
       v)
         pip_version="${OPTARG}"
         ;;
+      *)
+        error "Invalid flag option(s)"
+        exit $BASH_SYS_EX_USAGE
     esac
   done
   shift "$((OPTIND-1))"

@@ -3,11 +3,11 @@
 ############################################ PACKAGE METADATA (DO NOT TOUCH) ###
 # ---
 # package: neovim
-# executable: neovim
+# executable: 
 # package-manager: npm
 # dependency: nodejs,neovim
 # author: 
-# date: 2022-01-09
+# date: 2022-01-11
 # ---
 ################################################################################
 
@@ -26,7 +26,7 @@ function _main() {
   local args=""
   local package="neovim"
   local package_name="neovim"
-  local executable_name="neovim"
+  local executable_name=""
   local package_manager="npm"
   local destination=""
   local res=0

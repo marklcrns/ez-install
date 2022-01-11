@@ -28,6 +28,9 @@ function handle_package_args() {
       S)
         as_root=${OPTARG}
         ;;
+      *)
+        error "Invalid flag option(s)"
+        exit $BASH_SYS_EX_USAGE
     esac
   done
   shift "$((OPTIND-1))"

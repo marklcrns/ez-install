@@ -44,6 +44,9 @@ function pkg_install() {
       u)
         is_update=true
         ;;
+      *)
+        error "Invalid flag option(s)"
+        exit $BASH_SYS_EX_USAGE
     esac
   done
   shift "$((OPTIND-1))"

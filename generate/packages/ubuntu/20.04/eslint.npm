@@ -3,11 +3,11 @@
 ############################################ PACKAGE METADATA (DO NOT TOUCH) ###
 # ---
 # package: eslint
-# executable: eslint
+# executable: 
 # package-manager: npm
 # dependency: nodejs
 # author: 
-# date: 2022-01-09
+# date: 2022-01-11
 # ---
 ################################################################################
 
@@ -26,7 +26,7 @@ function _main() {
   local args=""
   local package="eslint"
   local package_name="eslint"
-  local executable_name="eslint"
+  local executable_name=""
   local package_manager="npm"
   local destination=""
   local res=0

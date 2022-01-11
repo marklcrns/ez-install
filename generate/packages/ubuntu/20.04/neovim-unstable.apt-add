@@ -3,11 +3,11 @@
 ############################################ PACKAGE METADATA (DO NOT TOUCH) ###
 # ---
 # package: neovim-unstable
-# executable: neovim-unstable
+# executable: 
 # package-manager: apt-add
 # dependency: 
 # author: 
-# date: 2022-01-09
+# date: 2022-01-11
 # ---
 ################################################################################
 
@@ -26,7 +26,7 @@ function _main() {
   local args=""
   local package="ppa:neovim-ppa/unstable"
   local package_name="neovim-unstable"
-  local executable_name="neovim-unstable"
+  local executable_name=""
   local package_manager="apt-add"
   local destination=""
   local res=0

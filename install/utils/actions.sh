@@ -52,6 +52,9 @@ function info() {
       d)
         depth=${OPTARG}
         ;;
+      *)
+        error "Invalid flag option(s)"
+        exit $BASH_SYS_EX_USAGE
     esac
   done
   shift "$((OPTIND-1))"
@@ -79,6 +82,9 @@ function ok() {
       d)
         depth=${OPTARG}
         ;;
+      *)
+        error "Invalid flag option(s)"
+        exit $BASH_SYS_EX_USAGE
     esac
   done
   shift "$((OPTIND-1))"
@@ -107,6 +113,9 @@ function skip() {
       d)
         depth=${OPTARG}
         ;;
+      *)
+        error "Invalid flag option(s)"
+        exit $BASH_SYS_EX_USAGE
     esac
   done
   shift "$((OPTIND-1))"
@@ -135,6 +144,9 @@ function finish() {
       d)
         depth=${OPTARG}
         ;;
+      *)
+        error "Invalid flag option(s)"
+        exit $BASH_SYS_EX_USAGE
     esac
   done
   shift "$((OPTIND-1))"
@@ -163,6 +175,9 @@ function warning() {
       d)
         depth=${OPTARG}
         ;;
+      *)
+        error "Invalid flag option(s)"
+        exit $BASH_SYS_EX_USAGE
     esac
   done
   shift "$((OPTIND-1))"
@@ -190,6 +205,9 @@ function abort() {
       d)
         depth=${OPTARG}
         ;;
+      *)
+        error "Invalid flag option(s)"
+        exit $BASH_SYS_EX_USAGE
     esac
   done
   shift "$((OPTIND-1))"
@@ -218,6 +236,9 @@ function error() {
       d)
         depth=${OPTARG}
         ;;
+      *)
+        echo "Invalid flag option(s)"
+        exit $BASH_SYS_EX_USAGE
     esac
   done
   shift "$((OPTIND-1))"
@@ -248,6 +269,9 @@ function execlog() {
       d)
         depth=${OPTARG}
         ;;
+      *)
+        error "Invalid flag option(s)"
+        exit $BASH_SYS_EX_USAGE
     esac
   done
   shift "$((OPTIND-1))"

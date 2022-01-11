@@ -33,6 +33,9 @@ function pac_array_jsonify() {
       S)
         as_root=${OPTARG}
         ;;
+      *)
+        error "Invalid flag option(s)"
+        exit $BASH_SYS_EX_USAGE
     esac
   done
   shift "$((OPTIND-1))"
@@ -78,6 +81,9 @@ function pac_jsonify() {
       S)
         as_root=${OPTARG}
         ;;
+      *)
+        error "Invalid flag option(s)"
+        exit $BASH_SYS_EX_USAGE
     esac
   done
   shift "$((OPTIND-1))"
@@ -180,6 +186,9 @@ function validate_packages() {
       S)
         as_root=${OPTARG}
         ;;
+      *)
+        error "Invalid flag option(s)"
+        exit $BASH_SYS_EX_USAGE
     esac
   done
   shift "$((OPTIND-1))"
@@ -218,6 +227,9 @@ function validate_package() {
       S)
         as_root=${OPTARG}
         ;;
+      *)
+        error "Invalid flag option(s)"
+        exit $BASH_SYS_EX_USAGE
     esac
   done
   shift "$((OPTIND-1))"

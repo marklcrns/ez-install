@@ -3,11 +3,11 @@
 ############################################ PACKAGE METADATA (DO NOT TOUCH) ###
 # ---
 # package: zsh-syntax-highlighting
-# executable: zsh-syntax-highlighting
+# executable: 
 # package-manager: git
 # dependency: oh-my-zsh
 # author: 
-# date: 2022-01-09
+# date: 2022-01-11
 # ---
 ################################################################################
 
@@ -26,7 +26,7 @@ function _main() {
   local args="--depth=1"
   local package="https://github.com/zsh-users/zsh-syntax-highlighting.git"
   local package_name="zsh-syntax-highlighting"
-  local executable_name="zsh-syntax-highlighting"
+  local executable_name=""
   local package_manager="git"
   local destination="${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting"
   local res=0

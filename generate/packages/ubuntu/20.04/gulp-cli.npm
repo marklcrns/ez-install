@@ -3,11 +3,11 @@
 ############################################ PACKAGE METADATA (DO NOT TOUCH) ###
 # ---
 # package: gulp-cli
-# executable: gulp-cli
+# executable: gulp
 # package-manager: npm
 # dependency: nodejs
 # author: 
-# date: 2022-01-09
+# date: 2022-01-11
 # ---
 ################################################################################
 
@@ -26,7 +26,7 @@ function _main() {
   local args=""
   local package="gulp-cli"
   local package_name="gulp-cli"
-  local executable_name="gulp-cli"
+  local executable_name="gulp"
   local package_manager="npm"
   local destination=""
   local res=0

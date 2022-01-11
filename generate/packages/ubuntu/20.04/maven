@@ -3,11 +3,11 @@
 ############################################ PACKAGE METADATA (DO NOT TOUCH) ###
 # ---
 # package: maven
-# executable: maven
+# executable: mvn
 # package-manager: 
 # dependency: 
 # author: 
-# date: 2022-01-09
+# date: 2022-01-11
 # ---
 ################################################################################
 
@@ -26,7 +26,7 @@ function _main() {
   local args=""
   local package="maven"
   local package_name="maven"
-  local executable_name="maven"
+  local executable_name="mvn"
   local package_manager=""
   local destination=""
   local res=0

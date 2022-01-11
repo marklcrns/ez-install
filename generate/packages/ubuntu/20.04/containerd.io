@@ -3,11 +3,11 @@
 ############################################ PACKAGE METADATA (DO NOT TOUCH) ###
 # ---
 # package: containerd.io
-# executable: containerd.io
+# executable: 
 # package-manager: 
 # dependency: 
 # author: 
-# date: 2022-01-09
+# date: 2022-01-11
 # ---
 ################################################################################
 
@@ -26,7 +26,7 @@ function _main() {
   local args=""
   local package="containerd.io"
   local package_name="containerd.io"
-  local executable_name="containerd.io"
+  local executable_name=""
   local package_manager=""
   local destination=""
   local res=0

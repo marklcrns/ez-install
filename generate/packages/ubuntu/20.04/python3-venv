@@ -3,11 +3,11 @@
 ############################################ PACKAGE METADATA (DO NOT TOUCH) ###
 # ---
 # package: python3-venv
-# executable: python3-venv
+# executable: 
 # package-manager: 
 # dependency: 
 # author: 
-# date: 2022-01-09
+# date: 2022-01-11
 # ---
 ################################################################################
 
@@ -26,7 +26,7 @@ function _main() {
   local args=""
   local package="python3-venv"
   local package_name="python3-venv"
-  local executable_name="python3-venv"
+  local executable_name=""
   local package_manager=""
   local destination=""
   local res=0

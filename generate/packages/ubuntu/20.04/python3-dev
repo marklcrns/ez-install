@@ -3,11 +3,11 @@
 ############################################ PACKAGE METADATA (DO NOT TOUCH) ###
 # ---
 # package: python3-dev
-# executable: python3-dev
+# executable: python3
 # package-manager: 
 # dependency: 
 # author: 
-# date: 2022-01-09
+# date: 2022-01-11
 # ---
 ################################################################################
 
@@ -26,7 +26,7 @@ function _main() {
   local args=""
   local package="python3-dev"
   local package_name="python3-dev"
-  local executable_name="python3-dev"
+  local executable_name="python3"
   local package_manager=""
   local destination=""
   local res=0

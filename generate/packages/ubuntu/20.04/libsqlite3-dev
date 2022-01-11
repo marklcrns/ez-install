@@ -3,11 +3,11 @@
 ############################################ PACKAGE METADATA (DO NOT TOUCH) ###
 # ---
 # package: libsqlite3-dev
-# executable: libsqlite3-dev
+# executable: 
 # package-manager: 
 # dependency: 
 # author: 
-# date: 2022-01-09
+# date: 2022-01-11
 # ---
 ################################################################################
 
@@ -26,7 +26,7 @@ function _main() {
   local args=""
   local package="libsqlite3-dev"
   local package_name="libsqlite3-dev"
-  local executable_name="libsqlite3-dev"
+  local executable_name=""
   local package_manager=""
   local destination=""
   local res=0

@@ -3,11 +3,11 @@
 ############################################ PACKAGE METADATA (DO NOT TOUCH) ###
 # ---
 # package: oh-my-zsh
-# executable: oh-my-zsh
+# executable: 
 # package-manager: curl
 # dependency: zsh
 # author: 
-# date: 2022-01-09
+# date: 2022-01-11
 # ---
 ################################################################################
 
@@ -26,7 +26,7 @@ function _main() {
   local args=""
   local package="https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh"
   local package_name="oh-my-zsh"
-  local executable_name="oh-my-zsh"
+  local executable_name=""
   local package_manager="curl"
   local destination=""
   local res=0

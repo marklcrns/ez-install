@@ -3,11 +3,11 @@
 ############################################ PACKAGE METADATA (DO NOT TOUCH) ###
 # ---
 # package: fd-find
-# executable: fd-find
+# executable: fd
 # package-manager: 
 # dependency: 
 # author: 
-# date: 2022-01-09
+# date: 2022-01-11
 # ---
 ################################################################################
 
@@ -26,7 +26,7 @@ function _main() {
   local args=""
   local package="fd-find"
   local package_name="fd-find"
-  local executable_name="fd-find"
+  local executable_name="fd"
   local package_manager=""
   local destination=""
   local res=0

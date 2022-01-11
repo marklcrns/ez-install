@@ -30,6 +30,9 @@ function i_batch_generate_template_main() {
       D)
         package_root_dir="${OPTARG}"
         ;;
+      *)
+        error "Invalid flag option(s)"
+        exit $BASH_SYS_EX_USAGE
     esac
   done
   shift "$((OPTIND-1))"
@@ -59,6 +62,9 @@ function i_generate_template_main() {
       D)
         package_root_dir="${OPTARG}"
         ;;
+      *)
+        error "Invalid flag option(s)"
+        exit $BASH_SYS_EX_USAGE
     esac
   done
   shift "$((OPTIND-1))"
@@ -89,6 +95,7 @@ function i_generate_template_main() {
   local output_dir=""
   local execute=""
   local update=""
+  local as_root=""
   local args=""
   local indent="  "
   local res=0
@@ -131,6 +138,7 @@ function i_generate_template_main() {
       fi
       prompt_input args "${indent}${indent}${package_manager:-Package Manager} args: "
     fi
+    prompt_boolean as_root "${indent}As root (default=false): "
     [[ -z "${package_name}" ]] && package_name="${package%.*}"
 
     if [[ -d "${package_dir}" ]]; then
@@ -191,6 +199,7 @@ function i_generate_template_main() {
   [[ -n "${args}" ]]            && ez_gen_args+=" -a '${args// /\\ }'"
   ${update:-false}              && ez_gen_args+=" -u"
   ${execute:-false}             && ez_gen_args+=" -e"
+  ${as_root:-false}             && ez_gen_args+=" -S"
   ! ${VERBOSE}                  && ez_gen_args+=" -q"
   ${DEBUG}                      && ez_gen_args+=" -x"
 
@@ -210,6 +219,9 @@ function i_generate_template_pre() {
       D)
         package_root_dir="${OPTARG}"
         ;;
+      *)
+        error "Invalid flag option(s)"
+        exit $BASH_SYS_EX_USAGE
     esac
   done
   shift "$((OPTIND-1))"
@@ -295,7 +307,7 @@ function i_generate_template_pre() {
   ! ${VERBOSE}                  && ez_gen_args+=" -q"
   ${DEBUG}                      && ez_gen_args+=" -x"
 
-  ${EZ_DEP_EZ_GEN} -D "${package_root_dir}" -pyS ${ez_gen_args} -- "${package}"
+  ${EZ_DEP_EZ_GEN} -D "${package_root_dir}" -pyM ${ez_gen_args} -- "${package}"
 
   res=$?
   return $res
@@ -311,6 +323,9 @@ function i_generate_template_post() {
       D)
         package_root_dir="${OPTARG}"
         ;;
+      *)
+        error "Invalid flag option(s)"
+        exit $BASH_SYS_EX_USAGE
     esac
   done
   shift "$((OPTIND-1))"
@@ -396,7 +411,7 @@ function i_generate_template_post() {
   ! ${VERBOSE}                  && ez_gen_args+=" -q"
   ${DEBUG}                      && ez_gen_args+=" -x"
 
-  ${EZ_DEP_EZ_GEN} -D "${package_root_dir}" -PyS ${ez_gen_args} -- "${package}"
+  ${EZ_DEP_EZ_GEN} -D "${package_root_dir}" -PyM ${ez_gen_args} -- "${package}"
 
   res=$?
   return $res

@@ -3,11 +3,11 @@
 ############################################ PACKAGE METADATA (DO NOT TOUCH) ###
 # ---
 # package: openjdk-11-jdk
-# executable: openjdk-11-jdk
+# executable: 
 # package-manager: 
 # dependency: 
 # author: 
-# date: 2022-01-09
+# date: 2022-01-11
 # ---
 ################################################################################
 
@@ -26,7 +26,7 @@ function _main() {
   local args=""
   local package="openjdk-11-jdk"
   local package_name="openjdk-11-jdk"
-  local executable_name="openjdk-11-jdk"
+  local executable_name=""
   local package_manager=""
   local destination=""
   local res=0

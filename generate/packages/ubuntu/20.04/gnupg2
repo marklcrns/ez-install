@@ -3,11 +3,11 @@
 ############################################ PACKAGE METADATA (DO NOT TOUCH) ###
 # ---
 # package: gnupg2
-# executable: gnupg2
+# executable: gpg2
 # package-manager: 
 # dependency: 
 # author: 
-# date: 2022-01-09
+# date: 2022-01-11
 # ---
 ################################################################################
 
@@ -26,7 +26,7 @@ function _main() {
   local args=""
   local package="gnupg2"
   local package_name="gnupg2"
-  local executable_name="gnupg2"
+  local executable_name="gpg2"
   local package_manager=""
   local destination=""
   local res=0

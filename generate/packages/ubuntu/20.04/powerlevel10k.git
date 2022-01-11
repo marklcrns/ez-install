@@ -3,11 +3,11 @@
 ############################################ PACKAGE METADATA (DO NOT TOUCH) ###
 # ---
 # package: powerlevel10k
-# executable: powerlevel10k
+# executable: 
 # package-manager: git
 # dependency: oh-my-zsh
 # author: 
-# date: 2022-01-09
+# date: 2022-01-11
 # ---
 ################################################################################
 
@@ -26,7 +26,7 @@ function _main() {
   local args="--depth=1"
   local package="https://github.com/romkatv/powerlevel10k.git"
   local package_name="powerlevel10k"
-  local executable_name="powerlevel10k"
+  local executable_name=""
   local package_manager="git"
   local destination="~/.oh-my-zsh/themes/powerlevel10k"
   local res=0

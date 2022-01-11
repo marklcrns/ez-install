@@ -55,15 +55,17 @@ OPTIONS:
 
   Flag option switches
 
+    --execute          -e    Pipe package with \`| sh\` to execute. (for curl, wget).
+    --skip-edit        -E    Do not edit file(s) after generating.
     --interactive      -i    Run interactive mode.
     --pre              -p    Generate package pre installation.
     --post             -P    Generate package post installation.
-    --skip-main        -S    Skip main package generation. Requires --pre and/or
+    --skip-main        -M    Skip main package generation. Requires --pre and/or
                              --post flag(s) to be active.
-    --execute          -e    Pipe package with \`| sh\` to execute. (for curl, wget).
     --update           -u    Update package manager repository before installation
                              (for apt, pkg, etc.).
     --quiet            -q    Suppress standard output. LOG_DEBUG_LEVEL=3.
+    --as_root          -S    Set package default privileges as root.
     --debug            -x    Debug mode (print all log levels). LOG_DEBUG_LEVEL=7.
     --skip-confirm     -y    Skip confirmation.
     --help             -h    Print usage.
@@ -86,12 +88,14 @@ function handle_args() {
       --package-manager)  args="${args:-}-m ";;
       --package-name)     args="${args:-}-n ";;
       --destination)      args="${args:-}-o ";;
+      --skip-edit)        args="${args:-}-E ";;
+      --global)           args="${args:-}-G ";;
       --interactive)      args="${args:-}-i ";;
+      --skip-main)        args="${args:-}-M ";;
       --pre)              args="${args:-}-p ";;
       --post)             args="${args:-}-P ";;
       --quiet)            args="${args:-}-q ";;
-      --skip-main)        args="${args:-}-S ";;
-      --global)           args="${args:-}-G ";;
+      --as_root)          args="${args:-}-S ";;
       --skip-confirm)     args="${args:-}-y ";;
       --update)           args="${args:-}-u ";;
       --debug)            args="${args:-}-x ";;
@@ -127,14 +131,15 @@ function handle_args() {
   INTERACTIVE=false
   GENERATE_PRE=false
   GENERATE_POST=false
-  SKIP_MAIN=false
   AS_ROOT=false
+  SKIP_MAIN=false
+  SKIP_EDIT=false
   EXECUTE=false
   GLOBAL=false
   UPDATE=false
 
   OPTIND=1
-  while getopts "a:A:c:d:D:m:n:o:ipPeuGqSxyhV" opt; do
+  while getopts "a:A:c:d:D:m:n:o:ipPeEuGqSMxyhV" opt; do
     case ${opt} in
       a)
         ARGS="${OPTARG}"
@@ -169,14 +174,17 @@ function handle_args() {
       P)
         GENERATE_POST=true
         ;;
-      S)
-        SKIP_MAIN=true
-        ;;
       e)
         EXECUTE=true
         ;;
+      E)
+        SKIP_EDIT=true
+        ;;
       G)
         GLOBAL=true
+        ;;
+      M)
+        SKIP_MAIN=true
         ;;
       q)
         VERBOSE=false
@@ -299,6 +307,8 @@ function open_editor_package() {
   if [[ -z "${editor}" ]]; then
     error "No \$EDITOR specified to edit package"
   fi
+
+  $SKIP_EDIT && return $BASH_EX_OK
 
   if check_package "${file_path}"; then
     if prompt_confirm "Do you wish to edit '${file_path}' now? (y/N): "; then
@@ -434,23 +444,26 @@ function _main() {
         generate_template_main "${file_path}"
         res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
         open_editor_package "${file_path}"
+        finish "Package generated in to '${file_path}'"
       fi
       if $GENERATE_PRE; then
         generate_template_pre "${file_path}"
         res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
         open_editor_package "${file_path}.pre"
+        finish "Package generated in to '${file_path}.pre'"
       fi
       if $GENERATE_POST; then
         generate_template_post "${file_path}"
         res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
         open_editor_package "${file_path}.post"
+        finish "Package generated in to '${file_path}.post'"
       fi
     else
       generate_template_main "${file_path}"
       res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
       open_editor_package "${file_path}"
+      finish "Package generated in to '${file_path}'"
     fi
-    finish "Package(s) generated in to ${GEN_PACKAGE_DIR}"
   fi
   return $res
 }
@@ -472,6 +485,8 @@ unset DESTINATION
 unset GEN_PACKAGE_DIR
 unset GENERATE_PRE
 unset GENERATE_POST
+unset SKIP_MAIN
+unset SKIP_EDIT
 unset EXECUTE
 unset GLOBAL
 unset UPDATE

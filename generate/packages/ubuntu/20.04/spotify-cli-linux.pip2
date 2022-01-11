@@ -3,11 +3,11 @@
 ############################################ PACKAGE METADATA (DO NOT TOUCH) ###
 # ---
 # package: spotify-cli-linux
-# executable: spotify-cli-linux
+# executable: spotifycli
 # package-manager: pip2
 # dependency: python2
 # author: 
-# date: 2022-01-09
+# date: 2022-01-11
 # ---
 ################################################################################
 
@@ -26,7 +26,7 @@ function _main() {
   local args=""
   local package="spotify-cli-linux"
   local package_name="spotify-cli-linux"
-  local executable_name="spotify-cli-linux"
+  local executable_name="spotifycli"
   local package_manager="pip2"
   local destination=""
   local res=0

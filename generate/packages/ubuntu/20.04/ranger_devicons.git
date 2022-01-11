@@ -3,11 +3,11 @@
 ############################################ PACKAGE METADATA (DO NOT TOUCH) ###
 # ---
 # package: ranger_devicons
-# executable: ranger_devicons
+# executable: 
 # package-manager: git
 # dependency: 
 # author: 
-# date: 2022-01-09
+# date: 2022-01-11
 # ---
 ################################################################################
 
@@ -26,7 +26,7 @@ function _main() {
   local args="--depth=1"
   local package="https://github.com/alexanderjeurissen/ranger_devicons"
   local package_name="ranger_devicons"
-  local executable_name="ranger_devicons"
+  local executable_name=""
   local package_manager="git"
   local destination="~/.config/ranger/plugins/ranger_devicons"
   local res=0
