@@ -36,7 +36,7 @@ Bash scripting knowledge.
 
 ## Installation
 
-Firstly, clone the repo.
+First, clone the repo.
 
 ```bash
 git clone --recurse-submodules --depth=1 https://github.com/marklcrns/ez-install ~/.ez-install
@@ -54,6 +54,9 @@ ln -s ~/.ez-install/generate/ez-gen $INSTALL_DIR
 
 make
 ```
+
+Second, install required [`jq`](https://stedolan.github.io/jq/download/)
+dependency.
 
 Finally, `export EZ_INSTALL_HOME` in your `~/.bashrc` or `~/.zshrc` or in any
 environment rc file of your shell initialized on startup.

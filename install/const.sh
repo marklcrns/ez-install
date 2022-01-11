@@ -42,11 +42,14 @@ readonly BASH_SYS_MSG_USAGE_INVREFVAR='Invalid reference to variable'
 
 # Dependencies
 
-if [[ ! -e "${EZ_INSTALL_HOME}/lib/parser/jq" ]]; then
-  error "Missing '${EZ_INSTALL_HOME}/lib/parser/jq' dependency"
-  return $BASH_EZ_EX_DEP_NOTFOUND
-else
+
+if [[ -e "${EZ_INSTALL_HOME}/lib/parser/jq" ]]; then
   readonly EZ_DEP_JQ="${EZ_INSTALL_HOME}/lib/parser/jq"
+elif command -v jq; then
+  readonly EZ_DEP_JQ="jq"
+else
+  error "Missing 'jq' dependency"
+  return $BASH_EZ_EX_DEP_NOTFOUND
 fi
 
 if [[ ! -e "${EZ_INSTALL_HOME}/install/utils/metadata-parser" ]]; then
