@@ -101,9 +101,6 @@ function git_clone() {
     return $res
   fi
 
-  pac_pre_install "${package_name}" 'git'
-  res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
-
   # Replace existing repo destination dir if force
   if [[ -d "${to}" ]]; then
     if ${forced}; then
@@ -126,6 +123,9 @@ function git_clone() {
       return $res
     fi
   fi
+
+  pac_pre_install "${package_name}" 'git'
+  res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   # Execute cloning
   # clone_repo -a "${args}" -n "${package_name}" -o "${to}" -S $as_root -- "${from}"

@@ -255,9 +255,7 @@ function pac_pre_install() {
   fi
 
   local package="${1}"
-  local package_manager="${2:-}"
-  [[ -z "${package_manager}" ]] && package_manager="N/A" || capitalize "${package_manager}"
-  local package_manager_lower="${package_manager}"; to_lower "${package_manager_lower}"
+  local package_manager="${2:-N/A}"
 
   local res=0
   local package_pre_path=""
@@ -282,6 +280,10 @@ function pac_pre_install() {
 
     # Pre process local
   if [[ "${package_manager}" != 'N/A' ]]; then
+    local package_manager_lower="${package_manager}"
+    capitalize package_manager
+    to_lower package_manager_lower
+
     package_pre_path="${package}.${package_manager_lower}.pre"
     fetch_package package_pre_path
     if [[ $? -eq $BASH_EX_OK ]]; then
@@ -309,9 +311,7 @@ function pac_post_install() {
   fi
 
   local package="${1}"
-  local package_manager="${2:-}"
-  [[ -z "${package_manager}" ]] && package_manager="N/A" || capitalize "${package_manager}"
-  local package_manager_lower="${package_manager}"; to_lower "${package_manager_lower}"
+  local package_manager="${2:-N/A}"
 
   local res=0
   local package_post_path=""
@@ -336,6 +336,10 @@ function pac_post_install() {
 
     # Post process local
   if [[ "${package_manager}" != 'N/A' ]]; then
+    local package_manager_lower="${package_manager}"
+    capitalize package_manager
+    to_lower package_manager_lower
+
     package_post_path="${package}.${package_manager_lower}.post"
     fetch_package package_post_path
     if [[ $? -eq $BASH_EX_OK ]]; then
