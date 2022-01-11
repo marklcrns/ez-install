@@ -61,7 +61,7 @@ function git_clone() {
   local sudo=""
   ! ${VERBOSE:-false}        && args+=' -q'  # TODO: Useless, always quite
   [[ -z "${package_name}" ]] && package_name="${from}"
-  [[ -z "${to}" ]]           && to="${DESTINATION:-.}/$(basename -- "${from}" '.git')"
+  [[ -z "${to}" ]]           && to="${DESTINATION:-${EZ_DOWNLOADS_DIR}}/$(basename -- "${from}" '.git')"
 
   # NOTE: ~ does not expand when test -d, i.e., [[ -d ${to} ]]
   to=${to//\~/${HOME}}

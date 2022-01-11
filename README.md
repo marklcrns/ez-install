@@ -122,6 +122,8 @@ for the package's `.pre` and `.post` installations.
 | `$LOCAL_PACKAGE_ROOT_DIR` | Local package directory. default=`$EZ_INSTALL_HOME/packages`   |
 | `$LOG_SYSLOG`             | Enables system logging using built-in `logger`. default=`true` |
 | `$LOG_FILELOG`            | Enables file logging `logger`. default=`true`                  |
+| `$EZ_DOWNLOADS_DIR`       | Default output directory. default=`$HOME/Downloads`              |
+| `$EZ_EDITOR`              | Default editor for `ez-gen`. default=`$EDITOR`                   |
 
 > `$LOG_FILELOG` output can be found in `/tmp/%path%to%<INSTALL_DIR>%ez.log` for
 > `ez` or `/tmp/%path%to%<INSTALL_DIR>%ez-gen.log` for `ez-gen`

@@ -6,10 +6,11 @@
   || return 0
 
 
-[[ -z "${LOG_SYSLOG+x}" ]]    && LOG_SYSLOG=true
-[[ -z "${LOG_FILELOG+x}" ]]   && LOG_FILELOG=true
-[[ -z "${TIMEOUT+x}" ]]       && TIMEOUT=5m
-[[ -z "${DOWNLOADS_DIR+x}" ]] && DOWNLOADS_DIR="${HOME}/Downloads"
+[[ -z "${LOG_SYSLOG+x}" ]]       && LOG_SYSLOG=true
+[[ -z "${LOG_FILELOG+x}" ]]      && LOG_FILELOG=true
+[[ -z "${TIMEOUT+x}" ]]          && TIMEOUT=15m
+[[ -z "${EZ_DOWNLOADS_DIR+x}" ]] && EZ_DOWNLOADS_DIR="${HOME}/Downloads"
+[[ -z "${EZ_EDITOR+x}" ]]        && EZ_EDITOR="${EDITOR}"
 
 [[ -z "${SKIP_CONFIRM+x}" ]]    && SKIP_CONFIRM=false
 [[ -z "${VERBOSE+x}" ]]         && VERBOSE=true

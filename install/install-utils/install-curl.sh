@@ -65,7 +65,7 @@ function curl_install() {
   [[ -z "${args}" ]]         && args='-fSL'
   ! ${VERBOSE:-false}        && args+=' -s'
   [[ -z "${package_name}" ]] && package_name="${from}"
-  [[ -z "${to}" ]]           && to="${DESTINATION:-.}/$(basename -- "${from}")"
+  [[ -z "${to}" ]]           && to="${DESTINATION:-${EZ_DOWNLOADS_DIR}}/$(basename -- "${from}")"
 
   # NOTE: ~ does not expand when test -d, i.e., [[ -d ${to} ]]
   to=${to//\~/${HOME}}
