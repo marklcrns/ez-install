@@ -255,7 +255,9 @@ function pac_pre_install() {
   fi
 
   local package="${1}"
-  local package_manager="${2:-N/A}"
+  local package_manager="${2:-}"
+  [[ -z "${package_manager}" ]] && package_manager="N/A" || capitalize "${package_manager}"
+  local package_manager_lower="${package_manager}"; to_lower "${package_manager_lower}"
 
   local res=0
   local package_pre_path=""
@@ -264,36 +266,37 @@ function pac_pre_install() {
   package_pre_path="${package}.pre"
   fetch_package package_pre_path
   if [[ $? -eq $BASH_EX_OK ]]; then
-    info "Executing ${package_pre-path}..."
+    info "Executing ${package_pre_path}..."
     # Do not exit on unbound variables
     set -u
     source "${package_pre_path}"
     res=$?
     set +u
+
     if [[ $res -ne $BASH_EX_OK ]]; then
-      capitalize package_manager
-      pac_log_failed $res "${package_manager}" "${package}" "${package_manager} '${package}' global pre installation failed"
+      pac_log_failed $res "${package_manager}" "${package}.pre"
       return $res
     fi
+    pac_log_success "${package_manager}" "${package}.pre"
   fi
 
     # Pre process local
   if [[ "${package_manager}" != 'N/A' ]]; then
-    to_lower package_manager
-    package_pre_path="${package}.${package_manager}.pre"
+    package_pre_path="${package}.${package_manager_lower}.pre"
     fetch_package package_pre_path
     if [[ $? -eq $BASH_EX_OK ]]; then
-      info "Executing ${package_pre-path}..."
+      info "Executing ${package_pre_path}..."
       # Do not exit on unbound variables
       set -u
       source "${package_pre_path}"
       res=$?
       set +u
+
       if [[ $res -ne $BASH_EX_OK ]]; then
-        capitalize package_manager
-        pac_log_failed $res "${package_manager}" "${package}" "${package_manager} '${package}' local pre installation failed"
+        pac_log_failed $res "${package_manager}" "${package}.${package_manager_lower}.pre"
         return $res
       fi
+      pac_log_success "${package_manager}" "${package}.${package_manager_lower}.pre"
     fi
   fi
 }
@@ -306,7 +309,9 @@ function pac_post_install() {
   fi
 
   local package="${1}"
-  local package_manager="${2:-N/A}"
+  local package_manager="${2:-}"
+  [[ -z "${package_manager}" ]] && package_manager="N/A" || capitalize "${package_manager}"
+  local package_manager_lower="${package_manager}"; to_lower "${package_manager_lower}"
 
   local res=0
   local package_post_path=""
@@ -315,36 +320,37 @@ function pac_post_install() {
   package_post_path="${package}.post"
   fetch_package package_post_path
   if [[ $? -eq $BASH_EX_OK ]]; then
-    info "Executing ${package_pre-path}..."
+    info "Executing ${package_post_path}..."
     # Do not exit on unbound variables
     set -u
     source "${package_post_path}"
     res=$?
     set +u
+
     if [[ $res -ne $BASH_EX_OK ]]; then
-      capitalize package_manager
-      pac_log_failed $res "${package_manager}" "${package}" "${package_manager} '${package}' global post installation failed"
+      pac_log_failed $res "${package_manager}" "${package}.post"
       return $res
     fi
+    pac_log_success "${package_manager}" "${package}.post"
   fi
 
-  # Post process local
+    # Post process local
   if [[ "${package_manager}" != 'N/A' ]]; then
-    to_lower package_manager
-    package_post_path="${package}.${package_manager}.post"
+    package_post_path="${package}.${package_manager_lower}.post"
     fetch_package package_post_path
     if [[ $? -eq $BASH_EX_OK ]]; then
-      info "Executing ${package_pre-path}..."
+      info "Executing ${package_post_path}..."
       # Do not exit on unbound variables
       set -u
       source "${package_post_path}"
       res=$?
       set +u
+
       if [[ $res -ne $BASH_EX_OK ]]; then
-        capitalize package_manager
-        pac_log_failed $res "${package_manager}" "${package}" "${package_manager} '${package}' local post installation failed"
+        pac_log_failed $res "${package_manager}" "${package}.${package_manager_lower}.post"
         return $res
       fi
+      pac_log_success "${package_manager}" "${package}.${package_manager_lower}.post"
     fi
   fi
 }
