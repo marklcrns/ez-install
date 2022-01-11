@@ -95,10 +95,11 @@ function i_generate_template_main() {
   local matches=()
 
   echo -e "\nGenerating main package installer..."
-  echo -e "\n${indent}${COLOR_HI_BLACK}Some are optional. Press [enter] to skip.${COLOR_NC}\n"
+  echo -e "\n${indent}${COLOR_HI_BLACK}Press [enter] to skip optionals.${COLOR_NC}\n"
 
   while true; do
     prompt_input author "${indent}Author: "
+    prompt_input package "${indent}Package: "
     prompt_input dependencies "${indent}Dependencies (',' separator): "
     prompt_package_manager package_manager "${indent}Package manager: "
     prompt_input executable_name "${indent}Executable name: "
@@ -114,7 +115,9 @@ function i_generate_template_main() {
           prompt_input package_name "${indent}Package name (required): "
         done
         package=""
-        prompt_input package "${indent}${indent}Package Url: "
+        while [[ -z "${package}" ]]; do
+          prompt_input package "${indent}${indent}Package Url (required): "
+        done
         prompt_dir output_dir "${indent}${indent}Output directory: "
         if [[ ${package_manager} == "curl" ]] \
           || [[ ${package_manager} == "wget" ]]; then
@@ -128,6 +131,7 @@ function i_generate_template_main() {
       fi
       prompt_input args "${indent}${indent}${package_manager:-Package Manager} args: "
     fi
+    [[ -z "${package_name}" ]] && package_name="${package%.*}"
 
     if [[ -d "${package_dir}" ]]; then
       matches=(
@@ -147,14 +151,16 @@ function i_generate_template_main() {
       done
     fi
 
-    # TODO: Fix package check. Include package manager
-    if [[ -n "${package_name}" ]] && [[ -e "${package_dir}/${package}" ]]; then
+    local file_path="${package_dir}/${package_name}"
+    [[ -n "${package_manager}" ]] && file_path+=".${package_manager}"
+
+    if [[ -e "${file_path}" ]]; then
       echo ""
-      warning "About to overwrite '${package_dir}/${package}'"
+      warning "About to overwrite '${file_path}'"
     fi
     echo ""
 
-    if [[ -n "${package_name}" ]] && prompt_confirm "${COLOR_YELLOW}Are you ok with these? (y/N):${COLOR_NC} "; then
+    if [[ -n "${package}" ]] && prompt_confirm "${COLOR_YELLOW}Are you ok with these? (y/N):${COLOR_NC} "; then
       break
     else
       if ! prompt_confirm "${COLOR_YELLOW}Start over? (y/N):${COLOR_NC} "; then
@@ -243,6 +249,9 @@ function i_generate_template_pre() {
     prompt_package_manager package_manager "${indent}Package manager: "
     echo ""
 
+    local file_path="${package_dir}/${package_name}"
+    [[ -n "${package_manager}" ]] && file_path+=".${package_manager}"
+
     if [[ -d "${package_dir}" ]]; then
       matches=(
         $(find "${package_dir}" -type f \
@@ -260,13 +269,13 @@ function i_generate_template_pre() {
       done
     fi
 
-    if [[ -n "${package_name}" ]] && [[ -e "${package_dir}/${package}.pre" ]]; then
+    if [[ -e "${file_path}.pre" ]]; then
       echo ""
-      warning "About to overwrite '${package_dir}/${package}.pre'"
+      warning "About to overwrite '${file_path}.pre'"
     fi
     echo ""
 
-    if [[ -n "${package_name}" ]] && prompt_confirm "${COLOR_YELLOW}Are you ok with these? (y/N):${COLOR_NC} "; then
+    if [[ -n "${package}" ]] && prompt_confirm "${COLOR_YELLOW}Are you ok with these? (y/N):${COLOR_NC} "; then
       break
     else
       if ! prompt_confirm "${COLOR_YELLOW}Start over? (y/N):${COLOR_NC} "; then
@@ -341,6 +350,9 @@ function i_generate_template_post() {
     prompt_package_manager package_manager "${indent}Package manager: "
     echo ""
 
+    local file_path="${package_dir}/${package_name}"
+    [[ -n "${package_manager}" ]] && file_path+=".${package_manager}"
+
     if [[ -d "${package_dir}" ]]; then
       matches=(
         $(find "${package_dir}" -type f \
@@ -358,13 +370,13 @@ function i_generate_template_post() {
       done
     fi
 
-    if [[ -n "${package_name}" ]] && [[ -e "${package_dir}/${package}.post" ]]; then
+    if [[ -e "${file_path}.post" ]]; then
       echo ""
-      warning "About to overwrite '${package_dir}/${package}.post'"
+      warning "About to overwrite '${file_path}.post'"
     fi
     echo ""
 
-    if [[ -n "${package_name}" ]] && prompt_confirm "${COLOR_YELLOW}Are you ok with these? (y/N):${COLOR_NC} "; then
+    if [[ -n "${package}" ]] && prompt_confirm "${COLOR_YELLOW}Are you ok with these? (y/N):${COLOR_NC} "; then
       break
     else
       if ! prompt_confirm "${COLOR_YELLOW}Start over? (y/N):${COLOR_NC} "; then

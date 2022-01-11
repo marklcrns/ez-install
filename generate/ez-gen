@@ -260,9 +260,7 @@ function check_package() {
     return $BASH_SYS_EX_USAGE
   fi
 
-  if [[ -e "${package}" ]] && ! $SKIP_CONFIRM; then
-    confirm "'${package}' already exist. Continue? (Y/y): " || return $BASH_EZ_EX_PAC_EXIST
-  fi
+  [[ -e "${package}" ]] && return 0 || return $BASH_EX_GENERAL
 }
 
 
@@ -290,6 +288,29 @@ function give_exec_permission() {
 }
 
 
+function open_editor_package() {
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  local file_path="${1}"
+  local editor="${EZ_EDITOR:-${EDITOR}}"
+
+  if [[ -z "${editor}" ]]; then
+    error "No \$EDITOR specified to edit package"
+  fi
+
+  if check_package "${file_path}"; then
+    if prompt_confirm "Do you wish to edit '${file_path}' now? (y/N): "; then
+      ${editor} "${file_path}"
+    fi
+    return $BASH_EX_OK
+  fi
+  return $BASH_EZ_EX_PAC_EXIST
+}
+
+
 function generate_template_main() {
   if [[ -z "${1+x}" ]]; then
     error "${BASH_SYS_MSG_USAGE_MISSARG}"
@@ -299,8 +320,9 @@ function generate_template_main() {
   local file_path="${1}"
   local res=0
 
-  check_package "${file_path}"
-  res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
+  if check_package "${file_path}" && ! $SKIP_CONFIRM; then
+    confirm "'${package}' already exist. Continue? (Y/y): " || return $BASH_EZ_EX_PAC_EXIST
+  fi
 
   if execlog "echo -n '' > '${file_path}' && chmod +x '${file_path}'"; then
     while IFS= read -r line; do
@@ -325,8 +347,9 @@ function generate_template_pre() {
   local file_path="${1}.pre"
   local res=0
 
-  check_package "${file_path}"
-  res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
+  if check_package "${file_path}" && ! $SKIP_CONFIRM; then
+    confirm "'${package}' already exist. Continue? (Y/y): " || return $BASH_EZ_EX_PAC_EXIST
+  fi
 
   if execlog "echo -n '' > '${file_path}' && chmod +x '${file_path}'"; then
     while IFS= read -r line; do
@@ -349,13 +372,11 @@ function generate_template_post() {
   fi
 
   local file_path="${1}.post"
-
   local res=0
-  check_package "${file_path}"
-  res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
-  check_package "${file_path}"
-  res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
+  if check_package "${file_path}" && ! $SKIP_CONFIRM; then
+    confirm "'${package}' already exist. Continue? (Y/y): " || return $BASH_EZ_EX_PAC_EXIST
+  fi
 
   if execlog "echo -n '' > '${file_path}' && chmod +x '${file_path}'"; then
     while IFS= read -r line; do
@@ -413,18 +434,22 @@ function _main() {
       if ! $SKIP_MAIN && confirm "Would you like to generate the main package template? (Y/y): "; then
         generate_template_main "${file_path}"
         res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
+        open_editor_package "${file_path}"
       fi
       if $GENERATE_PRE; then
         generate_template_pre "${file_path}"
         res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
+        open_editor_package "${file_path}.pre"
       fi
       if $GENERATE_POST; then
         generate_template_post "${file_path}"
         res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
+        open_editor_package "${file_path}.post"
       fi
     else
       generate_template_main "${file_path}"
-      res=$?
+      res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
+      open_editor_package "${file_path}"
     fi
     finish "Package(s) generated in to ${GEN_PACKAGE_DIR}"
   fi
