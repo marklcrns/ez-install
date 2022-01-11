@@ -3,7 +3,7 @@
 ############################################ PACKAGE METADATA (DO NOT TOUCH) ###
 # ---
 # package: fd-find
-# executable: fd
+# executable: fdfind
 # package-manager: 
 # dependency: 
 # author: 
@@ -26,7 +26,7 @@ function _main() {
   local args=""
   local package="fd-find"
   local package_name="fd-find"
-  local executable_name="fd"
+  local executable_name="fdfind"
   local package_manager=""
   local destination=""
   local res=0

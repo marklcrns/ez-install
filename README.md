@@ -479,6 +479,9 @@ See sample packages
   - [ ] `port`
   - [ ] `dnf`
   - [ ] `zypper`
+  - [ ] `emerge`
+  - [ ] `apk`
+  - [ ] `pacman`
   - [ ] `cargo`
   - [ ] `nix-env`
   - [ ] More support coming
