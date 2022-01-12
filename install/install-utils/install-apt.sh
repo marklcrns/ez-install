@@ -95,7 +95,7 @@ function apt_add_repo() {
     res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
   fi
 
-  pac_pre_install "${package_name}" 'apt-add'
+  pac_pre_install -S ${as_root} "${package_name}" 'apt-add'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   # Execute installation
@@ -111,7 +111,7 @@ function apt_add_repo() {
   fi
   is_wsl && restore_nameserver
 
-  pac_post_install "${package_name}" 'apt-add'
+  pac_post_install -S ${as_root} "${package_name}" 'apt-add'
   res=$?
   return $res
 }
@@ -185,7 +185,7 @@ function apt_install() {
   fi
 
   # Check if already installed
-  if command -v "${command_name}" &> /dev/null || dpkg -s "${package}" &> /dev/null; then
+  if [[ -n "${command_name}" ]] && command -v "${command_name}" &> /dev/null || dpkg -s "${package}" &> /dev/null; then
     pac_log_skip "Apt" "${package_name}"
     return $BASH_EX_OK
   fi
@@ -197,7 +197,7 @@ function apt_install() {
     res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
   fi
 
-  pac_pre_install "${package_name}" 'apt'
+  pac_pre_install -S ${as_root} "${package_name}" 'apt'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   # Execute installation
@@ -209,7 +209,7 @@ function apt_install() {
     return $res
   fi
 
-  pac_post_install "${package_name}" 'apt'
+  pac_post_install -S ${as_root} "${package_name}" 'apt'
   res=$?
 
   return $res
@@ -359,7 +359,7 @@ function apt_purge() {
   fi
 
   # Check if already installed
-  if ! dpkg -s "${package}" &> /dev/null || ! command -v "${command_name}" &> /dev/null; then
+  if ! dpkg -s "${package}" &> /dev/null || [[ -n "${command_name}" ]] && ! command -v "${command_name}" &> /dev/null; then
     pac_log_skip 'Apt-purge' "${package_name}" "Apt purge '${package_name}' skipped. Package not installed."
     return $BASH_EX_OK
   fi

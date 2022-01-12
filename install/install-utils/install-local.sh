@@ -24,13 +24,16 @@ function local_install() {
   local package_name=""
 
   OPTIND=1
-  while getopts "c:n:" opt; do
+  while getopts "c:n:S:" opt; do
     case ${opt} in
       c)
         command_name="${OPTARG}"
         ;;
       n)
         package_name="${OPTARG}"
+        ;;
+      S)
+        as_root=${OPTARG}
         ;;
       *)
         error "Invalid flag option(s)"
@@ -48,17 +51,17 @@ function local_install() {
   [[ -z "${package_name}" ]] && package_name="${package}"
 
   # Check if already installed
-  if command -v ${command_name} &> /dev/null; then
+  if [[ -n "${command_name}" ]] && command -v ${command_name} &> /dev/null; then
     pac_log_skip "Local" "${package_name}"
     return $BASH_EX_OK
   fi
 
   local res=0
 
-  pac_pre_install "${package_name}" 'local'
+  pac_pre_install -S ${as_root} "${package_name}" 'local'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
-  pac_post_install "${package_name}" 'local'
+  pac_post_install -S ${as_root} "${package_name}" 'local'
   res=$?
   return $res
 }

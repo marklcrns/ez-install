@@ -99,7 +99,7 @@ function npm_install() {
     fi
   fi
 
-  pac_pre_install "${package_name}" 'npm'
+  pac_pre_install -S ${as_root} "${package_name}" 'npm'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   # Execute installation
@@ -123,7 +123,7 @@ function npm_install() {
     fi
   fi
 
-  pac_post_install "${package_name}" 'npm'
+  pac_post_install -S ${as_root} "${package_name}" 'npm'
   res=$?
   return $res
 }

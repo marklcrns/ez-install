@@ -103,7 +103,7 @@ function wget_install() {
     return $BASH_EX_OK
   fi
 
-  pac_pre_install "${package_name}" 'wget'
+  pac_pre_install -S ${as_root} "${package_name}" 'wget'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   if $execute; then
@@ -133,7 +133,7 @@ function wget_install() {
     fi
   fi
 
-  pac_post_install "${package_name}" 'wget'
+  pac_post_install -S ${as_root} "${package_name}" 'wget'
   res=$?
   return $res
 }

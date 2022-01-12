@@ -92,12 +92,12 @@ function pip_install() {
   fi
 
   # Check if already installed
-  if ${sudo}pip${pip_version} list | grep -F "${package}" &> /dev/null || command -v ${command_name} &> /dev/null; then
+  if ${sudo}pip${pip_version} list | grep -F "${package}" &> /dev/null || [[ -n "${command_name}" ]] && command -v ${command_name} &> /dev/null; then
     pac_log_skip "Pip${pip_version}" "${package_name}"
     return $BASH_EX_OK
   fi
 
-  pac_pre_install "${package_name}" "pip${pip_version}"
+  pac_pre_install -S ${as_root} "${package_name}" "pip${pip_version}"
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   # Execute installation
@@ -119,7 +119,7 @@ function pip_install() {
     fi
   fi
 
-  pac_post_install "${package_name}" "pip${pip_version}"
+  pac_post_install -S ${as_root} "${package_name}" "pip${pip_version}"
   res=$?
 
   return $res

@@ -80,7 +80,7 @@ function pkg_install() {
   fi
 
   # Check if already installed
-  if pkg search "${package}" | grep 'installed' &> /dev/null || command -v ${command_name} &> /dev/null; then
+  if pkg search "${package}" | grep 'installed' &> /dev/null || [[ -n "${command_name}" ]] && command -v ${command_name} &> /dev/null; then
     pac_log_skip 'Pkg' "${package_name}"
     return $BASH_EX_OK
   fi
@@ -90,7 +90,7 @@ function pkg_install() {
     res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
   fi
 
-  pac_pre_install "${package_name}" 'pkg'
+  pac_pre_install -S ${as_root} "${package_name}" 'pkg'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   # Execute installation
@@ -102,7 +102,7 @@ function pkg_install() {
     return $res
   fi
 
-  pac_post_install "${package_name}" 'pkg'
+  pac_post_install -S ${as_root} "${package_name}" 'pkg'
   res=$?
 
   return $res

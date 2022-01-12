@@ -255,6 +255,21 @@ function pac_deploy_init() {
 
 
 function pac_pre_install() {
+  local as_root=false
+
+  OPTIND=1
+  while getopts "S:" opt; do
+    case ${opt} in
+      S)
+        as_root=${OPTARG}
+        ;;
+      *)
+        error "Invalid flag option(s)"
+        exit $BASH_SYS_EX_USAGE
+    esac
+  done
+  shift "$((OPTIND-1))"
+
   if [[ -z "${@+x}" ]]; then
     error "${BASH_SYS_MSG_USAGE_MISSARG}"
     return $BASH_SYS_EX_USAGE
@@ -273,7 +288,7 @@ function pac_pre_install() {
     info "Executing ${package_pre_path}..."
     # Do not exit on unbound variables
     set -u
-    source "${package_pre_path}"
+    source "${package_pre_path}" -S ${as_root}
     res=$?
     set +u
 
@@ -296,7 +311,7 @@ function pac_pre_install() {
       info "Executing ${package_pre_path}..."
       # Do not exit on unbound variables
       set -u
-      source "${package_pre_path}"
+      source "${package_pre_path}" -S ${as_root}
       res=$?
       set +u
 
@@ -311,6 +326,21 @@ function pac_pre_install() {
 
 
 function pac_post_install() {
+  local as_root=false
+
+  OPTIND=1
+  while getopts "S:" opt; do
+    case ${opt} in
+      S)
+        as_root=${OPTARG}
+        ;;
+      *)
+        error "Invalid flag option(s)"
+        exit $BASH_SYS_EX_USAGE
+    esac
+  done
+  shift "$((OPTIND-1))"
+
   if [[ -z "${@+x}" ]]; then
     error "${BASH_SYS_MSG_USAGE_MISSARG}"
     return $BASH_SYS_EX_USAGE
@@ -329,7 +359,7 @@ function pac_post_install() {
     info "Executing ${package_post_path}..."
     # Do not exit on unbound variables
     set -u
-    source "${package_post_path}"
+    source "${package_post_path}" -S ${as_root}
     res=$?
     set +u
 
@@ -352,7 +382,7 @@ function pac_post_install() {
       info "Executing ${package_post_path}..."
       # Do not exit on unbound variables
       set -u
-      source "${package_post_path}"
+      source "${package_post_path}" -S ${as_root}
       res=$?
       set +u
 
