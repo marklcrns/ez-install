@@ -264,9 +264,9 @@ function _validate_dependencies() {
 
   local _package="${1}"
   local _as_root=${2:-false}
-  local _package_path="${_package}"
-  local _indent="${_indent:-}│  "
+  local _indent="${3:-}"
 
+  local _package_path="${_package}"
   local res=
   fetch_package _package_path
   res=$?
@@ -285,15 +285,22 @@ function _validate_dependencies() {
   local _tmp="$(${EZ_DEP_METADATA_PARSER} "dependency" "${_package_path}")"
   local -a _package_dependencies=( ${_tmp//,/ } )
   local _has_missing=false
+  local _next_indent=""
 
-  for dependency in "${_package_dependencies[@]}"; do
-    ! $DEBUG && printf "${_indent}└─${dependency}"
+  for i in "${!_package_dependencies[@]}"; do
+    if [[ $i -eq $((${#_package_dependencies[@]}-1)) ]]; then
+      ! $DEBUG && printf "${_indent}└──${_package_dependencies[$i]}"
+      _next_indent="${_indent}   "
+    else
+      ! $DEBUG && printf "${_indent}├──${_package_dependencies[$i]}"
+      _next_indent="${_indent}│  "
+    fi
     $_as_root && ! $DEBUG && printf " ${COLOR_BLUE}(ROOT)${COLOR_NC} "
 
-    if has_package "${dependency}"; then
-      _validate_dependencies "${dependency}" $_as_root
+    if has_package "${_package_dependencies[$i]}"; then
+      _validate_dependencies "${_package_dependencies[$i]}" $_as_root "${_next_indent}"
     else
-      if has_alternate_package ${dependency}; then
+      if has_alternate_package ${_package_dependencies[$i]}; then
         ! $DEBUG && printf " ${COLOR_YELLOW}(CHOOSE)${COLOR_NC}\n"
       else
         ! $DEBUG && printf " ${COLOR_RED}(MISSING)${COLOR_NC}\n"
