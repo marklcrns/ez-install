@@ -158,7 +158,7 @@ function pac_install() {
   fi
 
   if [[ ! -f "${package_dir}/${package}" ]]; then
-    pac_log_failed $BASH_EZ_EX_PAC_NOTFOUND 'N/A' "${package}" "Package '${package}' not found in ${package_dir}"
+    pac_log_failed $BASH_EZ_EX_PAC_NOTFOUND 'N/A' "${package}" "Package '${package}' not found"
     return $BASH_EZ_EX_PAC_NOTFOUND
   fi
 
