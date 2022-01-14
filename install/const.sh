@@ -49,20 +49,20 @@ elif command -v jq &> /dev/null; then
   readonly EZ_DEP_JQ="jq"
 else
   error "Missing 'jq' dependency"
-  return $BASH_EZ_EX_DEP_NOTFOUND
+  exit $BASH_EZ_EX_DEP_NOTFOUND
 fi
 
-if [[ ! -e "${EZ_INSTALL_HOME}/install/utils/metadata-parser" ]]; then
-  error "Missing '${EZ_INSTALL_HOME}/install/utils/metadata-parser' dependency"
-  return $BASH_EZ_EX_DEP_NOTFOUND
-else
+if [[ -e "${EZ_INSTALL_HOME}/install/utils/metadata-parser" ]]; then
   readonly EZ_DEP_METADATA_PARSER="${EZ_INSTALL_HOME}/install/utils/metadata-parser"
+else
+  error "Missing '${EZ_INSTALL_HOME}/install/utils/metadata-parser' dependency"
+  exit $BASH_EZ_EX_DEP_NOTFOUND
 fi
 
-if [[ ! -e "${EZ_INSTALL_HOME}/generate/ez-gen" ]]; then
-  error "Missing '${EZ_INSTALL_HOME}/generate/ez-gen' dependency"
-  return $BASH_EZ_EX_DEP_NOTFOUND
-else
+if [[ -e "${EZ_INSTALL_HOME}/generate/ez-gen" ]]; then
   readonly EZ_DEP_EZ_GEN="${EZ_INSTALL_HOME}/generate/ez-gen"
+else
+  error "Missing '${EZ_INSTALL_HOME}/generate/ez-gen' dependency"
+  exit $BASH_EZ_EX_DEP_NOTFOUND
 fi
 
