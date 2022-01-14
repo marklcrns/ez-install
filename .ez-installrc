@@ -16,6 +16,7 @@
 [[ -z "${VERBOSE+x}" ]]         && VERBOSE=true
 [[ -z "${DEBUG+x}" ]]           && DEBUG=false
 [[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=4
+[[ -z "${ENABLE_COLORS+x}" ]]   && ENABLE_COLORS=true
 
 [[ ! -d "${EZ_INSTALL_HOME:-}" ]]        && export EZ_INSTALL_HOME="$(realpath ${BASH_SOURCE%/*})"
 [[ ! -d "${PACKAGE_ROOT_DIR:-}" ]]       && PACKAGE_ROOT_DIR="$(realpath "${BASH_SOURCE%/*}/generate/packages")"

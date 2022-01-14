@@ -68,6 +68,7 @@ OPTIONS:
     --as_root          -S    Set package default privileges as root.
     --debug            -x    Debug mode (print all log levels). LOG_DEBUG_LEVEL=7.
     --skip-confirm     -y    Skip confirmation.
+    --no-colors        -z    Disable output colors.
     --help             -h    Print usage.
     --version          -V    Print ez-gen version.
 
@@ -96,9 +97,10 @@ function handle_args() {
       --post)             args="${args:-}-P ";;
       --quiet)            args="${args:-}-q ";;
       --as_root)          args="${args:-}-S ";;
-      --skip-confirm)     args="${args:-}-y ";;
       --update)           args="${args:-}-u ";;
       --debug)            args="${args:-}-x ";;
+      --skip-confirm)     args="${args:-}-y ";;
+      --no-colors)        args="${args:-}-z ";;
       --help)             args="${args:-}-h ";;
       --version)          args="${args:-}-V ";;
       *)
@@ -117,6 +119,7 @@ function handle_args() {
   [[ -z "${VERBOSE+x}" ]]         && VERBOSE=true
   [[ -z "${DEBUG+x}" ]]           && DEBUG=false
   [[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=3
+  [[ -z "${ENABLE_COLORS+x}" ]]   && ENABLE_COLORS=true
 
   ARGS=""
   AUTHOR=""
@@ -139,7 +142,7 @@ function handle_args() {
   UPDATE=false
 
   OPTIND=1
-  while getopts "a:A:c:d:D:m:n:o:ipPeEuGqSMxyhV" opt; do
+  while getopts "a:A:c:d:D:m:n:o:ipPeEuGqSMxyzhV" opt; do
     case ${opt} in
       a)
         ARGS="${OPTARG}"
@@ -202,6 +205,10 @@ function handle_args() {
         ;;
       y)
         SKIP_CONFIRM=true
+        ;;
+      z)
+        ENABLE_COLORS=false
+        include "${EZ_INSTALL_HOME}/common/colors.sh"
         ;;
       h)
         usage; exit 0
@@ -473,6 +480,11 @@ res=0
 _main
 res=$?
 
+unset SKIP_CONFIRM
+unset VERBOSE
+unset DEBUG
+unset LOG_DEBUG_LEVEL
+unset ENABLE_COLORS
 unset ARGS
 unset AUTHOR
 unset COMMAND_NAME

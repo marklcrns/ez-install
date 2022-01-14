@@ -61,6 +61,7 @@ OPTIONS:
     --quiet         -q    Suppress standard output. LOG_DEBUG_LEVEL=3.
     --debug         -x    Debug mode (print all log levels). LOG_DEBUG_LEVEL=7.
     --skip-confirm  -y    Skip confirmation.
+    --no-colors     -z    Disable output colors.
     --help          -h    Print usage.
     --version       -V    Print ez version.
 
@@ -165,6 +166,7 @@ function handle_args() {
       --version)        args="${args:-}-V ";;
       --debug)          args="${args:-}-x ";;
       --skip-confirm)   args="${args:-}-y ";;
+      --no-colors)      args="${args:-}-z ";;
       --help)           args="${args:-}-h ";;
       # pass through anything else
       *)
@@ -180,6 +182,7 @@ function handle_args() {
   [[ -z "${VERBOSE+x}" ]]         && VERBOSE=true
   [[ -z "${DEBUG+x}" ]]           && DEBUG=false
   [[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=4
+  [[ -z "${ENABLE_COLORS+x}" ]]   && ENABLE_COLORS=true
   [[ -z "${GENERATE+x}" ]]        && GENERATE=false
   [[ -z "${JSON+x}" ]]            && JSON=false
   [[ -z "${RECURSIVE+x}" ]]       && RECURSIVE=true
@@ -187,7 +190,7 @@ function handle_args() {
   [[ -z "${DESTINATION+x}" ]]     && DESTINATION="${HOME}/Downloads"
 
   OPTIND=1
-  while getopts "D:o:gjqRSxyhV" opt; do
+  while getopts "D:o:gjqRSxyzhV" opt; do
     case ${opt} in
       D)
         LOCAL_PACKAGE_ROOT_DIR="${OPTARG}"
@@ -217,6 +220,10 @@ function handle_args() {
         ;;
       y)
         SKIP_CONFIRM=true
+        ;;
+      z)
+        ENABLE_COLORS=false
+        include "${EZ_INSTALL_HOME}/common/colors.sh"
         ;;
       h)
         usage; manual; exit $BASH_EX_OK
@@ -343,6 +350,7 @@ unset SKIP_CONFIRM
 unset VERBOSE
 unset DEBUG
 unset LOG_DEBUG_LEVEL
+unset ENABLE_COLORS
 unset GENERATE
 unset JSON
 unset RECURSIVE
