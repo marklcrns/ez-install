@@ -127,7 +127,7 @@ function git_clone() {
     fi
   fi
 
-  pac_pre_install -S ${as_root} tt"${package_name}" 'git'
+  pac_pre_install -S ${as_root} "${package_name}" 'git'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   # Execute cloning
