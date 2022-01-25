@@ -485,16 +485,27 @@ function prompt_boolean() {
   fi
 
   local _boolean_var_name="${1}"
-  local _message="${2:-'Boolean (default=false): '}"
   eval "local _boolean=\${$1}"
 
-  while [[ "${_boolean}" != 'true' ]] && [[ "${_boolean}" != 'false' ]]; do
-    get_user_input _boolean "${_message}"
-    if [[ -z "${_boolean}" ]]; then
-      _boolean=false
-      break
-    fi
-  done
+  local _default=
+  if [[ -z "${_boolean}" ]] || [[ "${_boolean}" != 'true' ]] && [[ "${_boolean}" != 'false' ]]; then
+    _default=false
+  fi
+
+  local _message="${2:-Boolean \(default=${_default}\): }"
+
+  get_user_input _boolean "${_message}"
+  if [[ -z "${_boolean}" ]]; then
+    _boolean="${_default}"
+  else
+    while [[ "${_boolean}" != 'true' ]] && [[ "${_boolean}" != 'false' ]]; do
+      get_user_input _boolean "${_message}"
+      if [[ -z "${_boolean}" ]]; then
+        _boolean="${_default}"
+        break
+      fi
+    done
+  fi
   eval "${_boolean_var_name}=${_boolean}"
 }
 

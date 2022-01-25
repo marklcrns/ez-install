@@ -418,12 +418,13 @@ function _main() {
   [[ $res -ne $BASH_EX_OK ]] && return $res
 
   if $INTERACTIVE; then
-    local main=""
+    local main="true"
     local pre=""
     local post=""
-    prompt_boolean main "Generate main package? (true/false): "
-    prompt_boolean pre "Generate pre package? (true/false) "
-    prompt_boolean post "Generate post package? (true/false) "
+
+    ! $SKIP_MAIN && prompt_boolean main "Generate main package (default=true)? "
+    prompt_boolean pre "Generate pre package (default=false)? "
+    prompt_boolean post "Generate post package (default=false)? "
 
     $main && i_generate_template_main -D "${GEN_PACKAGE_ROOT_DIR}" "${PACKAGE}"
     $pre && i_generate_template_pre -D "${GEN_PACKAGE_ROOT_DIR}" "${PACKAGE}"
