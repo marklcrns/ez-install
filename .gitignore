@@ -1,1 +1,2 @@
 lib/parser/jq
+generate/packages/**/test*
