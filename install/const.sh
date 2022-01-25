@@ -31,7 +31,8 @@ readonly BASH_EZ_EX_PACMAN_NOTFOUND=102   # Package manager not supported
 readonly BASH_EZ_EX_DEP_NOTFOUND=103      # Dependency not found
 readonly BASH_EZ_EX_DEP_FAILED=104        # Package dependency failure
 readonly BASH_EZ_EX_PAC_EXIST=105         # Package exist
-readonly BASH_EZ_EX__MAX=105              # Ez special exit codes end
+readonly BASH_EZ_EX_PAC_GENERATED=106     # Package generated successfully
+readonly BASH_EZ_EX__MAX=106              # Ez special exit codes end
 
 # Exit Messages
 
@@ -41,7 +42,6 @@ readonly BASH_SYS_MSG_USAGE_MISSARG='Missing argument'
 readonly BASH_SYS_MSG_USAGE_INVREFVAR='Invalid reference to variable'
 
 # Dependencies
-
 
 if [[ -e "${EZ_INSTALL_HOME}/lib/parser/jq" ]]; then
   readonly EZ_DEP_JQ="${EZ_INSTALL_HOME}/lib/parser/jq"

@@ -169,6 +169,15 @@ function has_alternate_package() {
     return $BASH_EX_OK
   fi
 
+  local res=0
+  if ! $SKIP_GENERATE; then
+    ! $DEBUG && printf "\n"
+    warning "Generating ${package}"
+    ${EZ_DEP_EZ_GEN} -i ${package}
+    res=$?
+    [[ $res -eq $BASH_EX_OK ]] && return $BASH_EZ_EX_PAC_GENERATED || return $res
+  fi
+
   info "Alternate package NOT found for '${package}'"
   return $BASH_EZ_EX_PAC_NOTFOUND
 }

@@ -21,8 +21,9 @@ include "${EZ_INSTALL_HOME}/install/common.sh"
 include "${EZ_INSTALL_HOME}/install/utils/actions.sh"
 
 
-function i_batch_generate_template_main() {
+function i_batch_generate_template() {
   local package_dir=""
+  local package_root_dir=""
 
   OPTIND=1
   while getopts "D:" opt; do
@@ -48,7 +49,8 @@ function i_batch_generate_template_main() {
   local packages=( "${@}" )
 
   for package in ${packages[@]}; do
-    generate_package -D "${package_root_dir}" -- "${package}"
+    warning "Generating ${package}"
+    ${EZ_DEP_EZ_GEN} -i -D "${package_root_dir}" -- "${package}"
   done
 }
 
