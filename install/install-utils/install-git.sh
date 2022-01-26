@@ -83,7 +83,7 @@ function git_clone() {
     return $res
   fi
 
-  if $forced; then
+  if ! $forced; then
     # Check if already installed
     if [[ -n ${command_name} ]] && command -v ${command_name} &> /dev/null; then
       pac_log_skip "Git" "${package_name}"
