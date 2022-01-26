@@ -211,6 +211,8 @@ function handle_args() {
         ;;
       j)
         JSON=true
+        error "JSON data parsing is currently not supported"
+        exit $BASH_EX_GENERAL
         ;;
       q)
         VERBOSE=false
@@ -291,8 +293,7 @@ function handle_args() {
 
 function _ctrl_c() {
   echo ""
-  error "${SCRIPT_PATH} Interrupted!"
-  exit $BASH_EX_TERMCTRLC
+  log 'error' "$(basename -- "${BASH_SOURCE[1]}").${FUNCNAME[1]}(): Interrupted!" $BASH_EX_TERMCTRLC
 }
 
 
@@ -321,7 +322,6 @@ function _main () {
     if ! $JSON; then
       validate_packages ${packages[@]}
       res=$?; [[ ${res} -ne $BASH_EX_OK ]] && return $res
-
 
       $DEBUG && $VERBOSE && echo "Jsonifying..."
       pac_array_jsonify -R $RECURSIVE -S $AS_ROOT -- packages
