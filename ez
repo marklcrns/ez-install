@@ -58,7 +58,8 @@ OPTIONS:
     --no-norecurse  -R    Prevent recursive package dependency installation.
     --as-root       -S    Run package manager as root (sudo).
 
-    --skip-generate -C    Skip auto generate prompt.
+    --skip-generate -C    Skip auto generate prompt. When used with -c,
+                          --generate, generate non-interactive base template.
     --quiet         -q    Suppress standard output. LOG_DEBUG_LEVEL=3.
     --debug         -x    Debug mode (print all log levels). LOG_DEBUG_LEVEL=7.
     --skip-confirm  -y    Skip confirmation.

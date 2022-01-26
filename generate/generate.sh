@@ -50,7 +50,11 @@ function i_batch_generate_template() {
 
   for package in ${packages[@]}; do
     warning "Generating ${package}"
-    ${EZ_DEP_EZ_GEN} -i -D "${package_root_dir}" -- "${package}"
+    if $SKIP_GENERATE; then
+      ${EZ_DEP_EZ_GEN} -E -D "${package_root_dir}" -- "${package}"
+    else
+      ${EZ_DEP_EZ_GEN} -i -D "${package_root_dir}" -- "${package}"
+    fi
   done
 }
 

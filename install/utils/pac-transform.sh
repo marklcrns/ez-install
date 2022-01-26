@@ -287,19 +287,19 @@ function _validate_dependencies() {
   local _indent="${3:-}"
 
   local _package_path="${_package}"
-  local res=
+  local _res=0
   fetch_package _package_path
-  res=$?
+  _res=$?
 
-  if [[ $res -ne $BASH_EX_OK ]]; then
+  if [[ $_res -ne $BASH_EX_OK ]]; then
     if has_alternate_package "${_package}"; then
       ! $DEBUG && printf "${_package} ${COLOR_YELLOW}(CHOOSE)${COLOR_NC}"
       ! $DEBUG && $_as_root && printf " ${COLOR_GREEN}(ROOT)${COLOR_NC}"
       ! $DEBUG && printf "\n"
       return $BASH_EX_OK
     else
-      res=$?
-      if [[ $res -eq $BASH_EZ_EX_PAC_GENERATED ]]; then
+      _res=$?
+      if [[ $_res -eq $BASH_EZ_EX_PAC_GENERATED ]]; then
         ! $DEBUG && printf "${_package} ${COLOR_BLUE}(GENERATE)${COLOR_NC}"
       else
         ! $DEBUG && printf "${_package} ${COLOR_RED}(MISSING)${COLOR_NC}\n"
@@ -307,7 +307,7 @@ function _validate_dependencies() {
       fi
     fi
   else
-    ! $DEBUG && printf "${package}"
+    ! $DEBUG && printf "${_package}"
     ! $DEBUG && $_as_root && printf " ${COLOR_GREEN}(ROOT)${COLOR_NC}"
     ! $DEBUG && printf "\n"
   fi
@@ -316,7 +316,6 @@ function _validate_dependencies() {
   local -a _package_dependencies=( ${_tmp//,/ } )
   local _has_missing=false
   local _next_indent=""
-  local _res=0
 
   for i in "${!_package_dependencies[@]}"; do
     if [[ $i -eq $((${#_package_dependencies[@]}-1)) ]]; then
@@ -343,6 +342,7 @@ function _validate_dependencies() {
         fi
       fi
       ! $DEBUG && $_as_root && printf " ${COLOR_GREEN}(ROOT)${COLOR_NC}"
+      ! $DEBUG && printf "\n"
     fi
   done
 
