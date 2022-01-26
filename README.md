@@ -452,7 +452,7 @@ See sample packages
 - [o] More flexible installation
   - [X] Support individual installation via command-line
   - [X] Support JSON install configuration
-  - [ ] `-f, --forced` flag and in-line options for `git`, `curl`, and `wget`
+  - [X] `-f, --forced` flag and in-line options for `git`, `curl`, and `wget`
 - [ ] Add more features
   - [ ] Cache all installed packages
   - [ ] Uninstall
@@ -485,5 +485,5 @@ See sample packages
   - [ ] `cargo`
   - [ ] `nix-env`
   - [ ] More support coming
-- [ ] Bourne Shell support
+- [X] Bourne Shell support
 

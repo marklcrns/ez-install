@@ -91,19 +91,21 @@ function wget_install() {
     return $res
   fi
 
+  if ! $forced; then
+    # Check if already installed
+    if [[ -n ${command_name} ]] && command -v ${command_name} &> /dev/null; then
+      pac_log_skip "Wget" "${package_name}"
+      return $BASH_EX_OK
+    fi
+  fi
+
   # Replace existing if forced
   if [[ -e "${to}" ]] && ! $forced; then
     pac_log_skip "Wget" "${package_name}" "Wget '${package_name}' ${to} already exist"
     return $BASH_EX_OK
   fi
 
-  # Check if already installed
-  if [[ -n ${command_name} ]] && command -v ${command_name} &> /dev/null; then
-    pac_log_skip "Wget" "${package_name}"
-    return $BASH_EX_OK
-  fi
-
-  pac_pre_install -S ${as_root} "${package_name}" 'wget'
+  pac_pre_install -f $forced -S $as_root -- "${package_name}" 'wget'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   if $execute; then
@@ -133,7 +135,7 @@ function wget_install() {
     fi
   fi
 
-  pac_post_install -S ${as_root} "${package_name}" 'wget'
+  pac_post_install -f $forced -S ${as_root} -- "${package_name}" 'wget'
   res=$?
   return $res
 }

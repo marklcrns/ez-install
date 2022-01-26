@@ -77,6 +77,7 @@ function pac_json_install() {
     local package_name="$(echo ${package} | ${EZ_DEP_JQ} -crM ".name")"
     local package_dir="$(dirname -- "$(echo ${package} | ${EZ_DEP_JQ} -crM ".path")")"
     local as_root=$(echo ${package} | ${EZ_DEP_JQ} -crM ".as_root")
+    local forced=$(echo ${package} | ${EZ_DEP_JQ} -crM ".forced")
 
     local res=
     local sub_package=
@@ -103,7 +104,7 @@ function pac_json_install() {
         [[ $res -ne $BASH_EX_OK ]] && return $BASH_EZ_EX_DEP_FAILED # Abort immediately
       fi
     fi
-    pac_install -S $as_root -- "${package_name}" "${package_dir}"
+    pac_install -f $forced -S $as_root -- "${package_name}" "${package_dir}"
     res=$?
   fi
   return $res
@@ -111,12 +112,16 @@ function pac_json_install() {
 
 
 function pac_install() {
+  local forced=false
   local recursive=false
   local as_root=false
 
   OPTIND=1
-  while getopts "R:S:" opt; do
+  while getopts "f:R:S:" opt; do
     case ${opt} in
+      f)
+        forced=${OPTARG}
+        ;;
       R)
         recursive=${OPTARG}
         ;;
@@ -169,14 +174,14 @@ function pac_install() {
 
     for dependency in ${dependencies}; do
       info "Installing ${package} dependency -- ${dependency}"
-      pac_install -R $recursive -S $as_root -- "${dependency}"
+      pac_install -f $forced -R $recursive -S $as_root -- "${dependency}"
       local res=$?
       [[ $res -ne $BASH_EX_OK ]] && return $res
     done
   fi
 
   info "Installing '${package}' from '${package_dir}'"
-  source "${package_dir}/${package}" -S $as_root
+  source "${package_dir}/${package}" -f $forced -S $as_root
   res=$?
   return $res
 }
@@ -255,11 +260,15 @@ function pac_deploy_init() {
 
 
 function pac_pre_install() {
+  local forced=false
   local as_root=false
 
   OPTIND=1
-  while getopts "S:" opt; do
+  while getopts "f:S:" opt; do
     case ${opt} in
+      f)
+        forced=${OPTARG}
+        ;;
       S)
         as_root=${OPTARG}
         ;;
@@ -288,7 +297,7 @@ function pac_pre_install() {
     info "Executing ${package_pre_path}..."
     # Do not exit on unbound variables
     set -u
-    source "${package_pre_path}" -S ${as_root}
+    source "${package_pre_path}" -f $forced -S $as_root
     res=$?
     set +u
 
@@ -311,7 +320,7 @@ function pac_pre_install() {
       info "Executing ${package_pre_path}..."
       # Do not exit on unbound variables
       set -u
-      source "${package_pre_path}" -S ${as_root}
+      source "${package_pre_path}" -f $forced -S $as_root
       res=$?
       set +u
 
@@ -326,11 +335,15 @@ function pac_pre_install() {
 
 
 function pac_post_install() {
+  local forced=false
   local as_root=false
 
   OPTIND=1
-  while getopts "S:" opt; do
+  while getopts "f:S:" opt; do
     case ${opt} in
+      f)
+        forced=${OPTARG}
+        ;;
       S)
         as_root=${OPTARG}
         ;;
@@ -359,7 +372,7 @@ function pac_post_install() {
     info "Executing ${package_post_path}..."
     # Do not exit on unbound variables
     set -u
-    source "${package_post_path}" -S ${as_root}
+    source "${package_post_path}" -f $forced -S $as_root
     res=$?
     set +u
 
@@ -382,7 +395,7 @@ function pac_post_install() {
       info "Executing ${package_post_path}..."
       # Do not exit on unbound variables
       set -u
-      source "${package_post_path}" -S ${as_root}
+      source "${package_post_path}" -f $forced -S $as_root
       res=$?
       set +u
 

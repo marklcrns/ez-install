@@ -60,6 +60,7 @@ OPTIONS:
 
     --skip-generate -C    Skip auto generate prompt. When used with -c,
                           --generate, generate non-interactive base template.
+    --force         -f    Forced install/reinstall package.
     --quiet         -q    Suppress standard output. LOG_DEBUG_LEVEL=3.
     --debug         -x    Debug mode (print all log levels). LOG_DEBUG_LEVEL=7.
     --skip-confirm  -y    Skip confirmation.
@@ -162,6 +163,7 @@ function handle_args() {
       --package-dir)    args="${args:-}-D ";;
       --generate)       args="${args:-}-c ";;
       --skip-generate)  args="${args:-}-C ";;
+      --force)          args="${args:-}-f ";;
       --json)           args="${args:-}-j ";;
       --destination)    args="${args:-}-o ";;
       --quiet)          args="${args:-}-q ";;
@@ -189,13 +191,14 @@ function handle_args() {
   [[ -z "${ENABLE_COLORS+x}" ]]   && ENABLE_COLORS=true
   [[ -z "${SKIP_GENERATE+x}" ]]   && SKIP_GENERATE=false
   [[ -z "${GENERATE+x}" ]]        && GENERATE=false
+  [[ -z "${FORCED+x}" ]]          && FORCED=false
   [[ -z "${JSON+x}" ]]            && JSON=false
   [[ -z "${RECURSIVE+x}" ]]       && RECURSIVE=true
   [[ -z "${AS_ROOT+x}" ]]         && AS_ROOT=false
   [[ -z "${DESTINATION+x}" ]]     && DESTINATION="${HOME}/Downloads"
 
   OPTIND=1
-  while getopts "D:o:cCjqRSxyzhV" opt; do
+  while getopts "D:o:cCfjqRSxyzhV" opt; do
     case ${opt} in
       D)
         LOCAL_PACKAGE_ROOT_DIR="${OPTARG}"
@@ -208,6 +211,9 @@ function handle_args() {
         ;;
       C)
         SKIP_GENERATE=true
+        ;;
+      f)
+        FORCED=true
         ;;
       j)
         JSON=true
@@ -324,7 +330,7 @@ function _main () {
       res=$?; [[ ${res} -ne $BASH_EX_OK ]] && return $res
 
       $DEBUG && $VERBOSE && echo "Jsonifying..."
-      pac_array_jsonify -R $RECURSIVE -S $AS_ROOT -- packages
+      pac_array_jsonify -f $FORCED -R $RECURSIVE -S $AS_ROOT -- packages
     fi
 
     if $DEBUG && $VERBOSE || $JSON; then
@@ -360,6 +366,7 @@ unset DEBUG
 unset LOG_DEBUG_LEVEL
 unset ENABLE_COLORS
 unset GENERATE
+unset FORCED
 unset SKIP_GENERATE
 unset JSON
 unset RECURSIVE

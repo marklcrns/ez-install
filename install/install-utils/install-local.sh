@@ -20,17 +20,22 @@ include "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 
 
 function local_install() {
+  local forced=false
+  local as_root=false
   local command_name=""
   local package_name=""
 
   OPTIND=1
-  while getopts "c:n:S:" opt; do
+  while getopts "c:f:n:S:" opt; do
     case ${opt} in
       c)
         command_name="${OPTARG}"
         ;;
       n)
         package_name="${OPTARG}"
+        ;;
+      f)
+        forced=${OPTARG}
         ;;
       S)
         as_root=${OPTARG}
@@ -50,18 +55,20 @@ function local_install() {
   local package="${@%.*}"
   [[ -z "${package_name}" ]] && package_name="${package}"
 
-  # Check if already installed
-  if [[ -n "${command_name}" ]] && command -v ${command_name} &> /dev/null; then
-    pac_log_skip "Local" "${package_name}"
-    return $BASH_EX_OK
+  if ! $forced; then
+    # Check if already installed
+    if [[ -n "${command_name}" ]] && command -v ${command_name} &> /dev/null; then
+      pac_log_skip "Local" "${package_name}"
+      return $BASH_EX_OK
+    fi
   fi
 
   local res=0
 
-  pac_pre_install -S ${as_root} "${package_name}" 'local'
+  pac_pre_install -f $forced -S $as_root -- "${package_name}" 'local'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
-  pac_post_install -S ${as_root} "${package_name}" 'local'
+  pac_post_install -f $forced -S $as_root -- "${package_name}" 'local'
   res=$?
   return $res
 }

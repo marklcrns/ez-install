@@ -21,12 +21,16 @@ include "${EZ_INSTALL_HOME}/install/common.sh"
 
 
 function pac_array_jsonify() {
+  local forced=false
   local recursive=true
   local as_root=false
 
   OPTIND=1
-  while getopts "R:S:" opt; do
+  while getopts "f:R:S:" opt; do
     case ${opt} in
+      f)
+        forced=${OPTARG}
+        ;;
       R)
         recursive=${OPTARG}
         ;;
@@ -54,7 +58,7 @@ function pac_array_jsonify() {
   local package=
   for i in "${!pac_array[@]}"; do
     package="${pac_array[$i]}"
-    pac_jsonify -R $recursive -S $as_root -- package
+    pac_jsonify -f $forced -R $recursive -S $as_root -- package
     res=$?
 
     if [[ $res -ne $BASH_EX_OK ]]; then
@@ -69,12 +73,16 @@ function pac_array_jsonify() {
 
 
 function pac_jsonify() {
+  local forced=false
   local recursive=true
   local as_root=false
 
   OPTIND=1
-  while getopts "R:S:" opt; do
+  while getopts "f:R:S:" opt; do
     case ${opt} in
+      f)
+        forced=${OPTARG}
+        ;;
       R)
         recursive=${OPTARG}
         ;;
@@ -129,7 +137,8 @@ function pac_jsonify() {
   eval "${global_pac_var_name}+='\"package\":{'"
   eval "${global_pac_var_name}+='\"name\":\"${_package}\",'"
   eval "${global_pac_var_name}+='\"path\":\"${package_path}\",'"
-  eval "${global_pac_var_name}+='\"as_root\":$as_root'"
+  eval "${global_pac_var_name}+='\"as_root\":$as_root,'"
+  eval "${global_pac_var_name}+='\"forced\":$forced'"
 
   if $recursive; then
     local tmp="$(${EZ_DEP_METADATA_PARSER} "dependency" "${package_path}")"
@@ -156,7 +165,7 @@ function pac_jsonify() {
         info "${indent}Dependency: ${dependency}"
         eval "${global_pac_var_name}+='{'"
 
-        pac_jsonify -R $recursive -S $as_root -- "${global_pac_var_name}" dependency ${_package} $((depth+1))
+        pac_jsonify -f $forced -R $recursive -S $as_root -- "${global_pac_var_name}" dependency ${_package} $((depth+1))
         res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
         eval "${global_pac_var_name}+='}'"

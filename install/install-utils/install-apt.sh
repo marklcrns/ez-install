@@ -22,6 +22,7 @@ include "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 
 
 function apt_add_repo() {
+  local forced=false
   local as_root=false
   local is_update=false
   local args=""
@@ -29,7 +30,7 @@ function apt_add_repo() {
   local package_name=""
 
   OPTIND=1
-  while getopts "a:c:n:S:u:" opt; do
+  while getopts "a:c:f:n:S:u:" opt; do
     case ${opt} in
       a)
         args="${OPTARG}"
@@ -39,6 +40,9 @@ function apt_add_repo() {
         ;;
       n)
         package_name="${OPTARG}"
+        ;;
+      f)
+        forced=${OPTARG}
         ;;
       S)
         as_root=${OPTARG}
@@ -62,6 +66,8 @@ function apt_add_repo() {
   local apt_repo_dir='/etc/apt/'
   local sudo=""
   local redirect=""
+
+  $forced                    && args+=' --reinstall'
   ! ${VERBOSE:-false}        && redirect=' &> /dev/null'
   [[ -z "${package_name}" ]] && package_name="${repo}"
 
@@ -85,9 +91,11 @@ function apt_add_repo() {
     return $res
   fi
 
-  if find ${apt_repo_dir} -name "*.list" | xargs cat | grep -h "^[[:space:]]*deb.*${repo//ppa:/}" &> /dev/null; then
-    pac_log_skip 'Apt-add' "${package_name}"
-    return $BASH_EX_OK
+  if ! $forced; then
+    if find ${apt_repo_dir} -name "*.list" | xargs cat | grep -h "^[[:space:]]*deb.*${repo//ppa:/}" &> /dev/null; then
+      pac_log_skip 'Apt-add' "${package_name}"
+      return $BASH_EX_OK
+    fi
   fi
 
   if $is_update; then
@@ -95,7 +103,7 @@ function apt_add_repo() {
     res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
   fi
 
-  pac_pre_install -S ${as_root} "${package_name}" 'apt-add'
+  pac_pre_install -f $forced -S $as_root -- "${package_name}" 'apt-add'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   # Execute installation
@@ -111,7 +119,7 @@ function apt_add_repo() {
   fi
   is_wsl && restore_nameserver
 
-  pac_post_install -S ${as_root} "${package_name}" 'apt-add'
+  pac_post_install -f $forced -S $as_root -- "${package_name}" 'apt-add'
   res=$?
   return $res
 }
@@ -119,6 +127,7 @@ function apt_add_repo() {
 
 # Will `apt update` first before installation if $2 -eq 1
 function apt_install() {
+  local forced=false
   local as_root=false
   local is_update=false
   local args=""
@@ -126,7 +135,7 @@ function apt_install() {
   local package_name=""
 
   OPTIND=1
-  while getopts "a:c:n:S:u:" opt; do
+  while getopts "a:c:f:n:S:u:" opt; do
     case ${opt} in
       a)
         args="${OPTARG}"
@@ -136,6 +145,9 @@ function apt_install() {
         ;;
       n)
         package_name="${OPTARG}"
+        ;;
+      f)
+        forced=${OPTARG}
         ;;
       S)
         as_root=${OPTARG}
@@ -157,6 +169,8 @@ function apt_install() {
 
   local package="${@%.*}"
   local sudo=""
+
+  $forced                    && args+=' --reinstall'
   ! ${VERBOSE:-false}        && args+=' -q'
   [[ -z "${package_name}" ]] && package_name="${package}"
 
@@ -184,10 +198,12 @@ function apt_install() {
     return $BASH_EZ_EX_PAC_NOTFOUND
   fi
 
-  # Check if already installed
-  if [[ -n "${command_name}" ]] && command -v "${command_name}" &> /dev/null || dpkg -s "${package}" &> /dev/null; then
-    pac_log_skip "Apt" "${package_name}"
-    return $BASH_EX_OK
+  if ! $forced; then
+    # Check if already installed
+    if [[ -n "${command_name}" ]] && command -v "${command_name}" &> /dev/null || dpkg -s "${package}" &> /dev/null; then
+      pac_log_skip "Apt" "${package_name}"
+      return $BASH_EX_OK
+    fi
   fi
 
   local res=0
@@ -197,7 +213,7 @@ function apt_install() {
     res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
   fi
 
-  pac_pre_install -S ${as_root} "${package_name}" 'apt'
+  pac_pre_install -f $forced -S $as_root -- "${package_name}" 'apt'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   # Execute installation
@@ -209,7 +225,7 @@ function apt_install() {
     return $res
   fi
 
-  pac_post_install -S ${as_root} "${package_name}" 'apt'
+  pac_post_install -f $forced -S $as_root -- "${package_name}" 'apt'
   res=$?
 
   return $res

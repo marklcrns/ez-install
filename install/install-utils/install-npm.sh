@@ -20,6 +20,7 @@ include "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 
 
 function npm_install() {
+  local forced=false
   local as_root=false
   local is_local=false
   local args=""
@@ -27,7 +28,7 @@ function npm_install() {
   local package_name=""
 
   OPTIND=1
-  while getopts "a:c:n:lS:" opt; do
+  while getopts "a:c:f:n:lS:" opt; do
     case ${opt} in
       a)
         args="${OPTARG}"
@@ -37,6 +38,9 @@ function npm_install() {
         ;;
       n)
         package_name="${OPTARG}"
+        ;;
+      f)
+        forced=${OPTARG}
         ;;
       l)
         is_local=true
@@ -58,6 +62,8 @@ function npm_install() {
 
   local package="${@}"
   local sudo=""
+
+  $forced                    && args+=' --force'
   ! ${VERBOSE:-false}        && args+=' --silent'
   [[ -z "${package_name}" ]] && package_name="${package}"
 
@@ -86,20 +92,22 @@ function npm_install() {
     return $BASH_EZ_EX_PAC_NOTFOUND
   fi
 
-  # Check if package already installed
-  if $is_local; then
-    if npm list | grep -F "${package}" &> /dev/null; then
-      pac_log_skip 'Npm' "${package_name}" "Npm '${package_name}' local package already installed"
-      return $BASH_EX_OK
-    fi
-  else
-    if npm list -g | grep -F "${package}" &> /dev/null; then
-      pac_log_skip 'Npm' "${package_name}" "Npm '${package_name}' global package already installed"
-      return $BASH_EX_OK
+  if ! $forced ; then
+    # Check if package already installed
+    if $is_local; then
+      if npm list | grep -F "${package}" &> /dev/null; then
+        pac_log_skip 'Npm' "${package_name}" "Npm '${package_name}' local package already installed"
+        return $BASH_EX_OK
+      fi
+    else
+      if npm list -g | grep -F "${package}" &> /dev/null; then
+        pac_log_skip 'Npm' "${package_name}" "Npm '${package_name}' global package already installed"
+        return $BASH_EX_OK
+      fi
     fi
   fi
 
-  pac_pre_install -S ${as_root} "${package_name}" 'npm'
+  pac_pre_install -f $forced -S $as_root -- "${package_name}" 'npm'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   # Execute installation
@@ -123,7 +131,7 @@ function npm_install() {
     fi
   fi
 
-  pac_post_install -S ${as_root} "${package_name}" 'npm'
+  pac_post_install -f $forced -S $as_root -- "${package_name}" 'npm'
   res=$?
   return $res
 }

@@ -20,6 +20,7 @@ include "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 
 
 function pkg_install() {
+  local forced=false
   local as_root=false
   local is_update=false
   local args=""
@@ -27,13 +28,16 @@ function pkg_install() {
   local package_name=""
 
   OPTIND=1
-  while getopts "a:c:n:S:u" opt; do
+  while getopts "a:c:f:n:S:u" opt; do
     case ${opt} in
       a)
         args="${OPTARG}"
         ;;
       c)
         command_name="${OPTARG}"
+        ;;
+      f)
+        forced=${OPTARG}
         ;;
       n)
         package_name="${OPTARG}"
@@ -58,6 +62,8 @@ function pkg_install() {
 
   local package="${@%.*}"
   local sudo=""
+
+  $forced                    && args+=' -f'
   ! ${VERBOSE:-false}        && args+=' -q'
   [[ -z "${package_name}" ]] && package_name="${package}"
 
@@ -79,10 +85,12 @@ function pkg_install() {
     return $res
   fi
 
-  # Check if already installed
-  if pkg search "${package}" | grep 'installed' &> /dev/null || [[ -n "${command_name}" ]] && command -v ${command_name} &> /dev/null; then
-    pac_log_skip 'Pkg' "${package_name}"
-    return $BASH_EX_OK
+  if ! $forced; then
+    # Check if already installed
+    if pkg search "${package}" | grep 'installed' &> /dev/null || [[ -n "${command_name}" ]] && command -v ${command_name} &> /dev/null; then
+      pac_log_skip 'Pkg' "${package_name}"
+      return $BASH_EX_OK
+    fi
   fi
 
   if $is_update; then
@@ -90,7 +98,7 @@ function pkg_install() {
     res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
   fi
 
-  pac_pre_install -S ${as_root} "${package_name}" 'pkg'
+  pac_pre_install -f $forced -S $as_root -- "${package_name}" 'pkg'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   # Execute installation
@@ -102,7 +110,7 @@ function pkg_install() {
     return $res
   fi
 
-  pac_post_install -S ${as_root} "${package_name}" 'pkg'
+  pac_post_install -f $forced -S $as_root -- "${package_name}" 'pkg'
   res=$?
 
   return $res

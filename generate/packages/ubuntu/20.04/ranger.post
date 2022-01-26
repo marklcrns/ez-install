@@ -5,6 +5,7 @@
 source "${EZ_INSTALL_HOME}/install/init.sh"
 
 function _main() {
+  local forced=false
   local as_root=false
   handle_package_args ${@}
 

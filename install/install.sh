@@ -29,11 +29,12 @@ function install() {
   local package_name=""
   local destination=""
   local execute=false
+  local forced=false
   local as_root=false
   local update=false
 
   OPTIND=1
-  while getopts "a:c:e:m:n:o:S:u:" opt; do
+  while getopts "a:c:e:f:m:n:o:S:u:" opt; do
     case ${opt} in
       a)
         args="${OPTARG}"
@@ -43,6 +44,9 @@ function install() {
         ;;
       e)
         execute=${OPTARG}
+        ;;
+      f)
+        forced=${OPTARG}
         ;;
       m)
         package_manager="${OPTARG}"
@@ -90,6 +94,7 @@ function install() {
       apt_install -a "${args}" \
                   -c "${command_name}" \
                   -n "${package_name}" \
+                  -f $forced \
                   -S $as_root \
                   -u $update \
                   -- "${package}" \
@@ -98,6 +103,7 @@ function install() {
       apt_add_repo -a "${args}" \
                    -c "${command_name}" \
                    -n "${package_name}" \
+                   -f $forced \
                    -S $as_root \
                    -u $update \
                    -- "${package}" \
@@ -106,6 +112,7 @@ function install() {
       pkg_install -a "${args}" \
                   -c "${command_name}" \
                   -n "${package_name}" \
+                  -f $forced \
                   -S $as_root \
                   -u $update \
                   -- "${package}" \
@@ -114,6 +121,7 @@ function install() {
       npm_install -a "${args}" \
                   -c "${command_name}" \
                   -n "${package_name}" \
+                  -f $forced \
                   -S $as_root \
                   -- "${package}" \
       ;;
@@ -121,6 +129,7 @@ function install() {
       pip_install -a "${args}" \
                   -c "${command_name}" \
                   -n "${package_name}" \
+                  -f $forced \
                   -S $as_root \
                   -- "${package}" \
       ;;
@@ -129,6 +138,7 @@ function install() {
                   -a "${args}" \
                   -c "${command_name}" \
                   -n "${package_name}" \
+                  -f $forced \
                   -S $as_root \
                   -- "${package}" \
       ;;
@@ -137,6 +147,7 @@ function install() {
                   -a "${args}" \
                   -c "${command_name}" \
                   -n "${package_name}" \
+                  -f $forced \
                   -S $as_root \
                   -- "${package}" \
       ;;
@@ -146,6 +157,7 @@ function install() {
                    -n "${package_name}" \
                    -o "${destination}" \
                    -e $execute \
+                   -f $forced \
                    -S $as_root \
                    -- "${package}" \
       ;;
@@ -155,6 +167,7 @@ function install() {
                    -n "${package_name}" \
                    -o "${destination}" \
                    -e $execute \
+                   -f $forced \
                    -S $as_root \
                    -- "${package}" \
       ;;
@@ -163,12 +176,17 @@ function install() {
                 -c "${command_name}" \
                 -n "${package_name}" \
                 -o "${destination}" \
+                -f $forced \
                 -S $as_root \
                 -- "${package}" \
       ;;
     local)
       # Do nothing but check if executable exists and trigger pre and post processes
-      local_install -c "${command_name}" -n "${package_name}" -S $as_root -- "${package}"
+      local_install -c "${command_name}" \
+                    -n "${package_name}" \
+                    -f $forced \
+                    -S $as_root \
+                    -- "${package}"
       ;;
     *)
       error "${BASH_EZ_MSG_PACMAN_NOTFOUND}"

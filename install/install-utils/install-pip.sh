@@ -20,6 +20,7 @@ include "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 
 
 function pip_install() {
+  local forced=false
   local as_root=false
   local is_global=false
   local args=""
@@ -28,7 +29,7 @@ function pip_install() {
   local pip_version=""
 
   OPTIND=1
-  while getopts "a:c:gn:S:v:" opt; do
+  while getopts "a:c:f:gn:S:v:" opt; do
     case ${opt} in
       a)
         args="${OPTARG}"
@@ -36,11 +37,14 @@ function pip_install() {
       c)
         command_name="${OPTARG}"
         ;;
-      g)
-        is_global=true
-        ;;
       n)
         package_name="${OPTARG}"
+        ;;
+      f)
+        forced=${OPTARG}
+        ;;
+      g)
+        is_global=true
         ;;
       S)
         as_root=${OPTARG}
@@ -62,6 +66,8 @@ function pip_install() {
 
   local package="${@%.*}"
   local sudo=""
+
+  $forced                    && args+=' --ignore-installed'
   ! ${VERBOSE:-false}        && args+=' -q'
   [[ -z "${package_name}" ]] && package_name="${package}"
 
@@ -91,13 +97,15 @@ function pip_install() {
     fi
   fi
 
-  # Check if already installed
-  if ${sudo}pip${pip_version} list | grep -F "${package}" &> /dev/null || [[ -n "${command_name}" ]] && command -v ${command_name} &> /dev/null; then
-    pac_log_skip "Pip${pip_version}" "${package_name}"
-    return $BASH_EX_OK
+  if ! $forced ; then
+    # Check if already installed
+    if ${sudo}pip${pip_version} list | grep -F "${package}" &> /dev/null || [[ -n "${command_name}" ]] && command -v ${command_name} &> /dev/null; then
+      pac_log_skip "Pip${pip_version}" "${package_name}"
+      return $BASH_EX_OK
+    fi
   fi
 
-  pac_pre_install -S ${as_root} "${package_name}" "pip${pip_version}"
+  pac_pre_install -f $forced -S $as_root -- "${package_name}" "pip${pip_version}"
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   # Execute installation
@@ -119,7 +127,7 @@ function pip_install() {
     fi
   fi
 
-  pac_post_install -S ${as_root} "${package_name}" "pip${pip_version}"
+  pac_post_install -f $forced -S $as_root -- "${package_name}" "pip${pip_version}"
   res=$?
 
   return $res

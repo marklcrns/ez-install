@@ -87,10 +87,12 @@ function git_clone() {
     return $res
   fi
 
-  # Check if already installed
-  if [[ -n ${command_name} ]] && command -v ${command_name} &> /dev/null; then
-    pac_log_skip "Git" "${package_name}"
-    return $BASH_EX_OK
+  if $forced; then
+    # Check if already installed
+    if [[ -n ${command_name} ]] && command -v ${command_name} &> /dev/null; then
+      pac_log_skip "Git" "${package_name}"
+      return $BASH_EX_OK
+    fi
   fi
 
   # Validate git repo link
@@ -127,9 +129,10 @@ function git_clone() {
     fi
   fi
 
-  pac_pre_install -S ${as_root} "${package_name}" 'git'
+  pac_pre_install -f $forced -S $as_root "${package_name}" 'git'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
+  # DEPRECATED: For reference only
   # Execute cloning
   # clone_repo -a "${args}" -n "${package_name}" -o "${to}" -S $as_root -- "${from}"
   # res=$?
@@ -159,6 +162,7 @@ function git_clone() {
 }
 
 
+# DEPRECATED: For reference only
 function clone_repo() {
   local as_root=false
   local retry=${retry:-${GIT_AUTH_MAX_RETRY:-5}}

@@ -65,6 +65,7 @@ function curl_install() {
 
   local from="${@}"
   local sudo=""
+
   [[ -z "${args}" ]]         && args='-fSL'
   ! ${VERBOSE:-false}        && args+=' -s'
   [[ -z "${package_name}" ]] && package_name="${from}"
@@ -89,10 +90,12 @@ function curl_install() {
     return $res
   fi
 
-  # Check if already installed
-  if [[ -n ${command_name} ]] && command -v ${command_name} &> /dev/null; then
-    pac_log_skip "Curl" "${package_name}"
-    return $BASH_EX_OK
+  if ! $forced; then
+    # Check if already installed
+    if [[ -n ${command_name} ]] && command -v ${command_name} &> /dev/null; then
+      pac_log_skip "Curl" "${package_name}"
+      return $BASH_EX_OK
+    fi
   fi
 
   # Replace existing if forced
@@ -103,7 +106,7 @@ function curl_install() {
 
   local res=0
 
-  pac_pre_install -S ${as_root} "${package_name}" 'curl'
+  pac_pre_install -f $forced -S $as_root -- "${package_name}" 'curl'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   if $execute; then
@@ -126,7 +129,7 @@ function curl_install() {
     fi
   fi
 
-  pac_post_install -S ${as_root} "${package_name}" 'curl'
+  pac_post_install -f $forced -S $as_root -- "${package_name}" 'curl'
   res=$?
   return $res
 }
