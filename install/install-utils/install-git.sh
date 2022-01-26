@@ -102,6 +102,8 @@ function git_clone() {
     return $res
   fi
 
+  echo "OUT PRE: ${output_path}"
+
   # Resolve output_path
   local filename="$(basename -- "${from}" '.git')"
   if [[ -z "${output_path}" ]]; then
@@ -109,9 +111,11 @@ function git_clone() {
   fi
   # NOTE: ~ does not expand when `test -d`, i.e., [[ -d "${output_path}" ]]
   output_path=${output_path//\~/${HOME}}
-  if [[ -d "${output_path}" ]]; then
+  if [[ -d "${output_path}" ]] && ! is_git_repo "${output_path}"; then
     output_path="${output_path}/${filename}"
   fi
+
+  echo "OUT POST: ${output_path}"
 
   # Replace existing repo output_path dir if force
   if [[ -d "${output_path}" ]]; then

@@ -192,11 +192,13 @@ function apt_install() {
     return $res
   fi
 
-  # Check if package exists in apt repository
-  if ! apt-cache search --names-only "^${package}.*" | grep -F "${package}" &> /dev/null; then
-    pac_log_failed $BASH_EZ_EX_PAC_NOTFOUND 'Apt' "${package_name}" "Apt '${package_name}' does not exists in the apt repository"
-    return $BASH_EZ_EX_PAC_NOTFOUND
-  fi
+  # DEPRECATED: Does not cover every package. e.g. g++-multilib.
+  #             Let 'apt' throws an error if not existing.
+  # # Check if package exists in apt repository
+  # if ! apt-cache search --names-only "^${package}.*" | grep -F "${package}" &> /dev/null; then
+  #   pac_log_failed $BASH_EZ_EX_PAC_NOTFOUND 'Apt' "${package_name}" "Apt '${package_name}' does not exists in the apt repository"
+  #   return $BASH_EZ_EX_PAC_NOTFOUND
+  # fi
 
   if ! $forced; then
     # Check if already installed
