@@ -118,15 +118,19 @@ function select_package() {
       printf "\nMultiple '${package}' package detected\n\n"
       local i=
       while true; do
+        printf "0) SKIP INSTALL\n"
         for i in "${!matches[@]}"; do
           printf "$(($i+1))) ${matches[$i]}\n"
         done
         printf "\n"
         read -p "Please select from the matches (1-${#matches[@]}): "
         printf "\n"
-        if [[ "${REPLY}" =~ ^-?[0-9]+$  ]] && [[ "${REPLY}" -le "${#matches[@]}" ]]; then
-          select="${matches[$(($REPLY-1))]}"
-          break
+        if [[ "${REPLY}" =~ ^-?[0-9]+$  ]]; then
+          if [[ "${REPLY}" -le "${#matches[@]}" ]]; then
+            [[ "${REPLY}" -eq 0 ]] && return $BASH_EX_OK   # Skip
+            select="${matches[$(($REPLY-1))]}"
+            break
+          fi
         fi
       done
     fi

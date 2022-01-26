@@ -18,8 +18,10 @@ include "${EZ_INSTALL_HOME}/common/colors.sh"
 # TODO: fix 100% overflow
 prog_bar() {
   local w=50 p="${1}"; shift
+  local width=$(("${p}*${w}/100"))
+
   # create a string of spaces, then change them to dots
-  printf -v dots "%*s" "$(("${p}*${w}/100"))" ""
+  printf -v dots "%*s" "${width}" ""
   dots="${dots// /#}"
   # print those dots on a fixed-width space plus the percentage etc.
   printf "\r\e[K[%-*s] %3d%% %s" "${w}" "${dots}" "${p}" "${*}"

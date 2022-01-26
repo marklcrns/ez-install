@@ -67,7 +67,7 @@ function info() {
   local message="${1}"
 
   if ${VERBOSE}; then
-    log 'info' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}(): ${message}"
+    log 'info' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}():${BASH_LINENO[${depth}-1]} ${message}"
   else
     log 'info' "${message}"
   fi
@@ -97,7 +97,7 @@ function ok() {
   local message="${1}"
 
   if ${VERBOSE} && ${DEBUG}; then
-    log 'notice' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}(): ${message}"
+    log 'notice' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}():${BASH_LINENO[${depth}-1]} ${message}"
   else
     log 'notice' "${message}"
   fi
@@ -128,7 +128,7 @@ function skip() {
   local message="${1}"
 
   if ${VERBOSE} && ${DEBUG}; then
-    log 'notice' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}(): ${message}"
+    log 'notice' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}():${BASH_LINENO[${depth}-1]} ${message}"
   else
     log 'notice' "${message}"
   fi
@@ -159,7 +159,7 @@ function finish() {
   local message="${1}"
 
   if ${VERBOSE} && ${DEBUG}; then
-    log 'warn' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}(): ${message}"
+    log 'warn' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}():${BASH_LINENO[${depth}-1]} ${message}"
   else
     log 'warn' "${message}"
   fi
@@ -190,7 +190,7 @@ function warning() {
   local message="${1}"
 
   if ${VERBOSE} && ${DEBUG}; then
-    log 'warn' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}(): ${message}"
+    log 'warn' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}():${BASH_LINENO[${depth}-1]} ${message}"
   else
     log 'warn' "${message}"
   fi
@@ -220,7 +220,7 @@ function abort() {
   local message="${1}"
 
   if ${VERBOSE} && ${DEBUG}; then
-    log 'warn' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}(): ${message}"
+    log 'warn' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}():${BASH_LINENO[${depth}-1]} ${message}"
   else
     log 'warn' "${message}"
   fi
@@ -252,7 +252,7 @@ function error() {
   local exit_code=${2:-$BASH_EX_GENERAL}
 
   if ${VERBOSE} && ${DEBUG}; then
-    log 'error' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}(): ${message}"
+    log 'error' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}():${BASH_LINENO[${depth}-1]} ${message}"
   else
     log 'error' "${message}"
   fi
@@ -287,7 +287,7 @@ function execlog() {
   local res=0
 
   if ${VERBOSE} && ${DEBUG}; then
-    log 'debug' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}(): ${command}"
+    log 'debug' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}():${BASH_LINENO[${depth}-1]} ${message}"
   else
     log 'debug' "${command}"
   fi

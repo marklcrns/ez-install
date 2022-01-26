@@ -122,6 +122,18 @@ function pac_jsonify() {
   if [[ $res -ne $BASH_EX_OK ]]; then
     local selected=""
     if select_package "${_package}" selected "${root_package}"; then
+      if [[ -z "${selected}" ]]; then
+        warning "Package '${_package}' skipped!"
+
+        [[ ${depth} -eq 1 ]] && eval "${global_pac_var_name}='{'"
+        eval "${global_pac_var_name}+='\"package\":{'"
+        eval "${global_pac_var_name}+='\"name\":\"${_package}\",'"
+        eval "${global_pac_var_name}+='\"path\":null'"
+        [[ ${depth} -eq 1 ]] && eval "${global_pac_var_name}+='}'"
+        eval "${global_pac_var_name}+='}'"
+
+        return $BASH_EX_OK
+      fi
       # WARNING dangerous substitution! Replaces last occurrence (most recent addition only) of $_package
       local _replaced="$(eval "echo \"'\$${global_pac_var_name}'\"" | sed "s/\(.*\)${_package}/\1$(basename -- ${selected})/")"
       eval "${global_pac_var_name}=${_replaced}"
