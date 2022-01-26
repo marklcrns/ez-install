@@ -312,10 +312,14 @@ function pac_deploy_init() {
 function pac_pre_install() {
   local forced=false
   local as_root=false
+  local destination=""
 
   OPTIND=1
-  while getopts "f:S:" opt; do
+  while getopts "f:o:S:" opt; do
     case ${opt} in
+      o)
+        destination="${OPTARG}"
+        ;;
       f)
         forced=${OPTARG}
         ;;
@@ -340,6 +344,8 @@ function pac_pre_install() {
   local res=0
   local package_pre_path=""
 
+  [[ -z "${destination}" ]] && destination="${EZ_DOWNLOADS_DIR}"
+
   # Pre process global
   package_pre_path="${package}.pre"
   fetch_package package_pre_path
@@ -347,7 +353,7 @@ function pac_pre_install() {
     info "Executing ${package_pre_path}..."
     # Do not exit on unbound variables
     set -u
-    source "${package_pre_path}" -f $forced -S $as_root
+    source "${package_pre_path}" -o "${destination}" -f $forced -S $as_root
     res=$?
     set +u
 
@@ -370,7 +376,7 @@ function pac_pre_install() {
       info "Executing ${package_pre_path}..."
       # Do not exit on unbound variables
       set -u
-      source "${package_pre_path}" -f $forced -S $as_root
+      source "${package_pre_path}" -o "${destination}" -f $forced -S $as_root
       res=$?
       set +u
 
@@ -387,10 +393,14 @@ function pac_pre_install() {
 function pac_post_install() {
   local forced=false
   local as_root=false
+  local destination=""
 
   OPTIND=1
-  while getopts "f:S:" opt; do
+  while getopts "f:o:S:" opt; do
     case ${opt} in
+      o)
+        destination="${OPTARG}"
+        ;;
       f)
         forced=${OPTARG}
         ;;
@@ -415,6 +425,8 @@ function pac_post_install() {
   local res=0
   local package_post_path=""
 
+  [[ -z "${destination}" ]] && destination="${EZ_DOWNLOADS_DIR}"
+
   # Post process global
   package_post_path="${package}.post"
   fetch_package package_post_path
@@ -422,7 +434,7 @@ function pac_post_install() {
     info "Executing ${package_post_path}..."
     # Do not exit on unbound variables
     set -u
-    source "${package_post_path}" -f $forced -S $as_root
+    source "${package_post_path}" -o "${destination}" -f $forced -S $as_root
     res=$?
     set +u
 
@@ -445,7 +457,7 @@ function pac_post_install() {
       info "Executing ${package_post_path}..."
       # Do not exit on unbound variables
       set -u
-      source "${package_post_path}" -f $forced -S $as_root
+      source "${package_post_path}" -o "${destination}" -f $forced -S $as_root
       res=$?
       set +u
 

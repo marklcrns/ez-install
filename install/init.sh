@@ -20,8 +20,11 @@ include "${EZ_INSTALL_HOME}/common/sys.sh"
 
 function handle_package_args() {
   OPTIND=1
-  while getopts "e:f:S:" opt; do
+  while getopts "e:f:o:S:" opt; do
     case ${opt} in
+      o)
+        output_path="${OPTARG}"
+        ;;
       e)
         execute=${OPTARG}
         ;;

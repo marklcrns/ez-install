@@ -19,7 +19,6 @@ include "${EZ_INSTALL_HOME}/install/utils/actions.sh"
 include "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 
 
-# Specify destination directory
 function wget_install() {
   local execute=false
   local forced=false
@@ -27,6 +26,7 @@ function wget_install() {
   local args=""
   local command_name=""
   local package_name=""
+  local output_path=""
 
   OPTIND=1
   while getopts "a:c:e:f:o:n:S:" opt; do
@@ -44,7 +44,7 @@ function wget_install() {
         forced=${OPTARG}
         ;;
       o)
-        to="${OPTARG}"
+        output_path="${OPTARG}"
         ;;
       n)
         package_name="${OPTARG}"
@@ -68,10 +68,6 @@ function wget_install() {
   local sudo=""
   ! ${VERBOSE:-false}        && args+=' -q'
   [[ -z "${package_name}" ]] && package_name="${from}"
-  [[ -z "${to}" ]]           && to="${DESTINATION:-${EZ_DOWNLOADS_DIR}}/$(basename -- "${from}")"
-
-  # NOTE: ~ does not expand when test -d, i.e., [[ -d ${to} ]]
-  to=${to//\~/${HOME}}
 
   if $as_root; then
     if command -v sudo &> /dev/null; then
@@ -99,13 +95,24 @@ function wget_install() {
     fi
   fi
 
+  # Resolve output_path
+  local filename="$(basename -- "${from}")"
+  if [[ -z "${output_path}" ]]; then
+    output_path="${EZ_DOWNLOADS_DIR}/${filename}"
+  fi
+  # NOTE: ~ does not expand when `test -d`, i.e., [[ -d "${output_path}" ]]
+  output_path=${output_path//\~/${HOME}}
+  if [[ -d "${output_path}" ]]; then
+    output_path="${output_path}/${filename}"
+  fi
+
   # Replace existing if forced
-  if [[ -e "${to}" ]] && ! $forced; then
-    pac_log_skip "Wget" "${package_name}" "Wget '${package_name}' ${to} already exist"
+  if [[ -e "${output_path}" ]] && ! $forced; then
+    pac_log_skip "Wget" "${package_name}" "Wget '${package_name}' ${output_path} already exist"
     return $BASH_EX_OK
   fi
 
-  pac_pre_install -f $forced -S $as_root -- "${package_name}" 'wget'
+  pac_pre_install -o "${output_path}" -f $forced -S $as_root -- "${package_name}" 'wget'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   if $execute; then
@@ -118,24 +125,23 @@ function wget_install() {
       return $res
     fi
   else
-    # Create destination directory
-    if [[ ! -d "${to}" ]]; then
-      warning "Creating destination directory '${to}'"
-      execlog "mkdir -p ${to}"
+    # Create output_path directory
+    if [[ ! -d "$(dirname -- "${output_path}")" ]]; then
+      warning "Creating destination directory of '${output_path}'"
+      execlog "mkdir -p $(basename -- ${output_path})"
     fi
 
     # Execute installation
-    # NOTE: DO NOT SURROUND $from to permit shell command piping
-    if execlog "wget -O '${to}' ${args} -- '${from}'"; then
-      pac_log_success 'Wget' "${package_name}" "Wget '${from}' -> '${to}' successful"
+    if execlog "wget -O '${output_path}' ${args} -- '${from}'"; then
+      pac_log_success 'Wget' "${package_name}" "Wget '${from}' -> '${output_path}' successful"
     else
       res=$?
-      pac_log_failed $res 'Wget' "${package_name}" "Wget '${from}' -> '${to}' failed!"
+      pac_log_failed $res 'Wget' "${package_name}" "Wget '${from}' -> '${output_path}' failed!"
       return $res
     fi
   fi
 
-  pac_post_install -f $forced -S ${as_root} -- "${package_name}" 'wget'
+  pac_post_install -o "${output_path}" -f $forced -S ${as_root} -- "${package_name}" 'wget'
   res=$?
   return $res
 }

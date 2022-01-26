@@ -25,7 +25,7 @@ function git_clone() {
   local args=""
   local command_name=""
   local package_name=""
-  local to=""
+  local output_path=""
 
   OPTIND=1
   while getopts "a:c:f:n:o:S:" opt; do
@@ -43,7 +43,7 @@ function git_clone() {
         forced=${OPTARG}
         ;;
       o)
-        to="${OPTARG}"
+        output_path="${OPTARG}"
         ;;
       S)
         as_root=${OPTARG}
@@ -62,12 +62,8 @@ function git_clone() {
 
   local from="${@}"
   local sudo=""
-  ! ${VERBOSE:-false}        && args+=' -q'  # TODO: Useless, always quite
+  ! ${VERBOSE:-false}        && args+=' -q'
   [[ -z "${package_name}" ]] && package_name="${from}"
-  [[ -z "${to}" ]]           && to="${DESTINATION:-${EZ_DOWNLOADS_DIR}}/$(basename -- "${from}" '.git')"
-
-  # NOTE: ~ does not expand when test -d, i.e., [[ -d ${to} ]]
-  to=${to//\~/${HOME}}
 
   if $as_root; then
     if command -v sudo &> /dev/null; then
@@ -106,22 +102,33 @@ function git_clone() {
     return $res
   fi
 
-  # Replace existing repo destination dir if force
-  if [[ -d "${to}" ]]; then
+  # Resolve output_path
+  local filename="$(basename -- "${from}" '.git')"
+  if [[ -z "${output_path}" ]]; then
+    output_path="${EZ_DOWNLOADS_DIR}/${filename}"
+  fi
+  # NOTE: ~ does not expand when `test -d`, i.e., [[ -d "${output_path}" ]]
+  output_path=${output_path//\~/${HOME}}
+  if [[ -d "${output_path}" ]]; then
+    output_path="${output_path}/${filename}"
+  fi
+
+  # Replace existing repo output_path dir if force
+  if [[ -d "${output_path}" ]]; then
     if ${forced}; then
-      is_git_repo "${to}"
+      is_git_repo "${output_path}"
       res=$?
       if [[ $res -ne $BASH_EX_OK ]] ; then
-        pac_log_failed $res 'Git' "${package_name}" "Git clone '${package_name}' failed! '${to}' already exist and is not a git repository"
+        pac_log_failed $res 'Git' "${package_name}" "Git clone '${package_name}' failed! '${output_path}' already exist and is not a git repository"
         return $res
       fi
-      warning "Replacing '${to}' Git repository"
-      execlog "rm -rf '${to}'"
+      warning "Replacing '${output_path}' Git repository"
+      execlog "rm -rf '${output_path}'"
     else
-      is_git_repo "${to}"
+      is_git_repo "${output_path}"
       res=$?
       if [[ $res -ne $BASH_EX_OK ]] ; then
-        pac_log_failed $res 'Git' "${package_name}" "Git clone '${package_name}' failed! '${to}' already exist"
+        pac_log_failed $res 'Git' "${package_name}" "Git clone '${package_name}' failed! '${output_path}' already exist"
         return $res
       fi
       pac_log_skip "Git" "${package_name}"
@@ -129,46 +136,46 @@ function git_clone() {
     fi
   fi
 
-  pac_pre_install -f $forced -S $as_root "${package_name}" 'git'
+  pac_pre_install -o "${output_path}" -f $forced -S $as_root "${package_name}" 'git'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   # DEPRECATED: For reference only
   # Execute cloning
-  # clone_repo -a "${args}" -n "${package_name}" -o "${to}" -S $as_root -- "${from}"
+  # clone_repo -a "${args}" -n "${package_name}" -o "${output_path}" -S $as_root -- "${from}"
   # res=$?
   # if [[ $res -ne $BASH_EX_OK ]]; then
   #   if [[ $res -eq $BASH_SYS_EX_SOFTWARE ]]; then
   #     pac_log_failed $res 'Git' "${package_name}" "Git clone '${package_name}' failed! Authentication timeout"
   #   else
-  #     pac_log_failed $res 'Git' "${package_name}" "Git clone '${from}' -> '${to}' failed"
+  #     pac_log_failed $res 'Git' "${package_name}" "Git clone '${from}' -> '${output_path}' failed"
   #   fi
   #   return $res
   # fi
 
-  if execlog "${sudo}git clone ${args} -- "${from}" "${to}""; then
-    pac_log_success 'Git' "${package_name}" "Git '${to}' successful"
+  if execlog "${sudo}git clone ${args} -- "${from}" "${output_path}""; then
+    pac_log_success 'Git' "${package_name}" "Git '${output_path}' successful"
   else
     res=$?
-    pac_log_failed $res 'Git' "${package_name}" "Git '${to}' failed!"
+    pac_log_failed $res 'Git' "${package_name}" "Git '${output_path}' failed!"
     return $res
   fi
 
-  pac_post_install -S ${as_root} "${package_name}" 'git'
-  res=$?
-  if [[ $res -eq $BASH_EX_OK ]]; then
-    pac_log_success 'Git' "${package_name}" "Git clone '${from}' -> '${to}' successful"
-  fi
+  pac_post_install -o "${output_path}" -S ${as_root} "${package_name}" 'git'
+  res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
+
+  pac_log_success 'Git' "${package_name}" "Git clone '${from}' -> '${output_path}' successful"
   return $res
 }
 
 
 # DEPRECATED: For reference only
+# NOTE: Always quiet output
 function clone_repo() {
   local as_root=false
   local retry=${retry:-${GIT_AUTH_MAX_RETRY:-5}}
   local args=""
   local package_name=""
-  local to=""
+  local output_path=""
 
   OPTIND=1
   while getopts "fa:o:n:S:" opt; do
@@ -183,7 +190,7 @@ function clone_repo() {
         package_name="${OPTARG}"
         ;;
       o)
-        to="${OPTARG}"
+        output_path="${OPTARG}"
         ;;
       S)
         as_root=${OPTARG}
@@ -205,9 +212,9 @@ function clone_repo() {
   $as_root && sudo="sudo "
 
   # NOTE: do not set stderr to `local` inline to prevent overwritting exit code from subshell
-  info "Cloning '${from}' -> '${to}'"
-  stderr="$(${sudo}git clone ${args} -- "${from}" "${to}" 2>&1 > /dev/null; exit $?)"; res=$?
-  info "Execute: git clone ${args} -- ${from} ${to}"
+  info "Cloning '${from}' -> '${output_path}'"
+  stderr="$(${sudo}git clone ${args} -- "${from}" "${output_path}" 2>&1 > /dev/null; exit $?)"; res=$?
+  info "Execute: git clone ${args} -- ${from} ${output_path}"
 
   [[ $res -eq $BASH_EX_OK ]] || [[ -z "${stderr}" ]] && return $res
 
@@ -215,7 +222,7 @@ function clone_repo() {
     if [[ "${retry}" -ne $BASH_EX_OK ]]; then
       warning "Git authentication failed. Try again (${retry} remaining)\n"
       ((--retry))
-      clone_repo -a "${args}" -n "${package_name}" -o "${to}" -S $as_root -- "${from}"
+      clone_repo -a "${args}" -n "${package_name}" -o "${output_path}" -S $as_root -- "${from}"
       res=$?
       return $res
     else

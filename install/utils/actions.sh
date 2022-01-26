@@ -287,7 +287,7 @@ function execlog() {
   local res=0
 
   if ${VERBOSE} && ${DEBUG}; then
-    log 'debug' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}():${BASH_LINENO[${depth}-1]} ${message}"
+    log 'debug' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}():${BASH_LINENO[${depth}-1]} ${command}"
   else
     log 'debug' "${command}"
   fi
