@@ -35,14 +35,14 @@ function pac_batch_json_install() {
   local root_package_manager=""
 
   local res=0
-  local i=0
+  local idx=0
   for package in ${packages[@]}; do
     root_package="$(echo "${package}" | ${EZ_DEP_JQ} -crM ".package")"
     root_package_name="$(echo "${root_package}" | ${EZ_DEP_JQ} -crM ".name")"
 
-    prog_bar "$(("${i}*100/${width}"))"
+    prog_bar "$(("${idx}*100/${width}"))"
     echo "- ${root_package_name}"
-    ((++i))
+    ((++idx))
 
     pac_json_install "${root_package}"
     res=$?
@@ -60,7 +60,7 @@ function pac_batch_json_install() {
       fi
     fi
   done
-  prog_bar "$(("${i}*100/${width}"))"
+  prog_bar "$(("${idx}*100/${width}"))"
   echo ""
 }
 
@@ -89,8 +89,8 @@ function pac_json_install() {
 
   if [[ ${dependencies_ct} -gt 1 ]]; then
     # Recursive dependency install
-    for ((i=0; i<${dependencies_ct}; ++i)); do
-      dependencies="$(echo ${package} | ${EZ_DEP_JQ} -crM ".dependencies[${i}]")"
+    for ((_i=0; _i<${dependencies_ct}; ++_i)); do
+      dependencies="$(echo ${package} | ${EZ_DEP_JQ} -crM ".dependencies[${_i}]")"
       if ! is_json_property_null "${dependencies}"; then
         sub_package="$(echo "${dependencies}" | ${EZ_DEP_JQ} -crM ".package")"
         pac_json_install ${sub_package}
@@ -238,12 +238,12 @@ function pac_batch_install() {
   local packages=( "${@}" )
   local width="${#packages[@]}"
 
-  local i=1
+  local idx=1
   for package in ${packages[@]}; do
     pac_install -f $force -r $recursive -s $as_root -w $allow_dep_fail -- "${package}"
-    prog_bar "$(("${i}*100/${width}"))"
+    prog_bar "$(("${idx}*100/${width}"))"
     echo "- ${package}"
-    ((++i))
+    ((++idx))
   done
 }
 
