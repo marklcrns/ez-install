@@ -157,7 +157,6 @@ function has_pac_log_duplicate() {
 }
 
 
-# TODO: Excluded duplicates
 function pac_report() {
   local total_count=0
   local successful_count=0

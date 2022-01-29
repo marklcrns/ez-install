@@ -7,15 +7,10 @@
 # a utility by sourcing this script for efficient bash script writing.
 #
 ################################# Functions ###################################
-# TODO: Update me
 #
-# ok()       = Echo message in COLOR_GREEN characters.
-# finish()   = Echo message in COLOR_GREEN characters and exit with 0 exit code.
-# warning()  = Echo message in COLOR_YELLOW characters.
-# abort()    = Echo message in COLOR_YELLOW characters and exit with 0 exit code.
-# error()    = Echo message in COLOR_RED characters and exit with 1 exit code by
-#              default. Also accepts integer to override default exit code.
-# execlog()  = Execute string command with `eval` and log into LOG_FILE_PATH.
+# action()   = Echo message and log ${log} into LOG_FILE_PATH.
+# execlog()  = Execute string command with `eval` and log debug into
+#              LOG_FILE_PATH.
 #
 ################################################################################
 # Author : Mark Lucernas <https://github.com/marklcrns>
@@ -43,15 +38,29 @@ include "${EZ_INSTALL_HOME}/common/string.sh"
 include "${EZ_INSTALL_HOME}/install/const.sh"
 
 
-# Logs INFO message on VERBOSE.
-function info() {
+shopt -s expand_aliases
+
+alias info="action -l info"
+alias ok="action -l notice"
+alias warning="action -l warn"
+alias finish="action -l warn -e 0"
+alias error="action -l warn -e ${BASH_EX_GENERAL}"
+
+alias skip="ok"
+alias abort="finish"
+
+
+function action() {
   local depth=1
+  local log="info"
+  local exit_code=
+
   OPTIND=1
-  while getopts "d:" opt; do
+  while getopts "d:e:l:" opt; do
     case ${opt} in
-      d)
-        depth=${OPTARG}
-        ;;
+      d) depth=${OPTARG} ;;
+      e) exit_code=${OPTARG} ;;
+      l) log="${OPTARG}" ;;
       *)
         error "Invalid flag option(s)"
         exit $BASH_SYS_EX_USAGE
@@ -65,198 +74,15 @@ function info() {
   fi
 
   local message="${1}"
+  [[ -n "${2+x}" ]] && exit_code=${2}
 
   if ${VERBOSE}; then
-    log 'info' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}():${BASH_LINENO[${depth}-1]} ${message}"
+    log "${log}" "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}():${BASH_LINENO[${depth}-1]} ${message}"
   else
-    log 'info' "${message}"
-  fi
-}
-
-# Logs NOTICE message on VERBOSE.
-function ok() {
-  local depth=1
-  OPTIND=1
-  while getopts "d:" opt; do
-    case ${opt} in
-      d)
-        depth=${OPTARG}
-        ;;
-      *)
-        error "Invalid flag option(s)"
-        exit $BASH_SYS_EX_USAGE
-    esac
-  done
-  shift "$((OPTIND-1))"
-
-  if [[ -z "${1+x}" ]]; then
-    error "${BASH_SYS_MSG_USAGE_MISSARG}"
-    return $BASH_SYS_EX_USAGE
+    log "${log}" "${message}"
   fi
 
-  local message="${1}"
-
-  if ${VERBOSE} && ${DEBUG}; then
-    log 'notice' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}():${BASH_LINENO[${depth}-1]} ${message}"
-  else
-    log 'notice' "${message}"
-  fi
-}
-
-
-# Logs NOTICE message on VERBOSE.
-function skip() {
-  local depth=1
-  OPTIND=1
-  while getopts "d:" opt; do
-    case ${opt} in
-      d)
-        depth=${OPTARG}
-        ;;
-      *)
-        error "Invalid flag option(s)"
-        exit $BASH_SYS_EX_USAGE
-    esac
-  done
-  shift "$((OPTIND-1))"
-
-  if [[ -z "${1+x}" ]]; then
-    error "${BASH_SYS_MSG_USAGE_MISSARG}"
-    return $BASH_SYS_EX_USAGE
-  fi
-
-  local message="${1}"
-
-  if ${VERBOSE} && ${DEBUG}; then
-    log 'notice' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}():${BASH_LINENO[${depth}-1]} ${message}"
-  else
-    log 'notice' "${message}"
-  fi
-}
-
-
-# Logs WARN message on VERBOSE then exit 0.
-function finish() {
-  local depth=1
-  OPTIND=1
-  while getopts "d:" opt; do
-    case ${opt} in
-      d)
-        depth=${OPTARG}
-        ;;
-      *)
-        error "Invalid flag option(s)"
-        exit $BASH_SYS_EX_USAGE
-    esac
-  done
-  shift "$((OPTIND-1))"
-
-  if [[ -z "${1+x}" ]]; then
-    error "${BASH_SYS_MSG_USAGE_MISSARG}"
-    return $BASH_SYS_EX_USAGE
-  fi
-
-  local message="${1}"
-
-  if ${VERBOSE} && ${DEBUG}; then
-    log 'warn' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}():${BASH_LINENO[${depth}-1]} ${message}"
-  else
-    log 'warn' "${message}"
-  fi
-  exit 0
-}
-
-# Logs WARN message on VERBOSE.
-function warning() {
-  local depth=1
-  OPTIND=1
-  while getopts "d:" opt; do
-    case ${opt} in
-      d)
-        depth=${OPTARG}
-        ;;
-      *)
-        error "Invalid flag option(s)"
-        exit $BASH_SYS_EX_USAGE
-    esac
-  done
-  shift "$((OPTIND-1))"
-
-  if [[ -z "${1+x}" ]]; then
-    error "${BASH_SYS_MSG_USAGE_MISSARG}"
-    return $BASH_SYS_EX_USAGE
-  fi
-
-  local message="${1}"
-
-  if ${VERBOSE} && ${DEBUG}; then
-    log 'warn' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}():${BASH_LINENO[${depth}-1]} ${message}"
-  else
-    log 'warn' "${message}"
-  fi
-}
-
-# Logs WARN message on VERBOSE then exit 0.
-function abort() {
-  local depth=1
-  OPTIND=1
-  while getopts "d:" opt; do
-    case ${opt} in
-      d)
-        depth=${OPTARG}
-        ;;
-      *)
-        error "Invalid flag option(s)"
-        exit $BASH_SYS_EX_USAGE
-    esac
-  done
-  shift "$((OPTIND-1))"
-
-  if [[ -z "${1+x}" ]]; then
-    error "${BASH_SYS_MSG_USAGE_MISSARG}"
-    return $BASH_SYS_EX_USAGE
-  fi
-
-  local message="${1}"
-
-  if ${VERBOSE} && ${DEBUG}; then
-    log 'warn' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}():${BASH_LINENO[${depth}-1]} ${message}"
-  else
-    log 'warn' "${message}"
-  fi
-  exit 0
-}
-
-# Logs ERROR message to stderr on VERBOSE then exit $2.
-function error() {
-  local depth=1
-  OPTIND=1
-  while getopts "d:" opt; do
-    case ${opt} in
-      d)
-        depth=${OPTARG}
-        ;;
-      *)
-        error "Invalid flag option(s)"
-        exit $BASH_SYS_EX_USAGE
-    esac
-  done
-  shift "$((OPTIND-1))"
-
-  if [[ -z "${1+x}" ]]; then
-    error "${BASH_SYS_MSG_USAGE_MISSARG}"
-    return $BASH_SYS_EX_USAGE
-  fi
-
-  local message="${1}"
-  local exit_code=${2:-$BASH_EX_GENERAL}
-
-  if ${VERBOSE} && ${DEBUG}; then
-    log 'error' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}():${BASH_LINENO[${depth}-1]} ${message}"
-  else
-    log 'error' "${message}"
-  fi
-  return $exit_code
+  [[ $exit_code =~ ^[0-9]+$ ]] && exit $exit_code
 }
 
 
