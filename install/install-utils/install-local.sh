@@ -26,7 +26,7 @@ function local_install() {
   local package_name=""
 
   OPTIND=1
-  while getopts "c:f:n:S:" opt; do
+  while getopts "c:f:n:s:" opt; do
     case ${opt} in
       c)
         command_name="${OPTARG}"
@@ -37,7 +37,7 @@ function local_install() {
       f)
         forced=${OPTARG}
         ;;
-      S)
+      s)
         as_root=${OPTARG}
         ;;
       *)
@@ -65,10 +65,10 @@ function local_install() {
 
   local res=0
 
-  pac_pre_install -f $forced -S $as_root -- "${package_name}" 'local'
+  pac_pre_install -f $forced -s $as_root -- "${package_name}" 'local'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
-  pac_post_install -f $forced -S $as_root -- "${package_name}" 'local'
+  pac_post_install -f $forced -s $as_root -- "${package_name}" 'local'
   res=$?
   return $res
 }

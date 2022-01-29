@@ -28,7 +28,7 @@ function npm_install() {
   local package_name=""
 
   OPTIND=1
-  while getopts "a:c:f:n:lS:" opt; do
+  while getopts "a:c:f:n:ls:" opt; do
     case ${opt} in
       a)
         args="${OPTARG}"
@@ -45,7 +45,7 @@ function npm_install() {
       l)
         is_local=true
         ;;
-      S)
+      s)
         as_root=${OPTARG}
         ;;
       *)
@@ -107,7 +107,7 @@ function npm_install() {
     fi
   fi
 
-  pac_pre_install -f $forced -S $as_root -- "${package_name}" 'npm'
+  pac_pre_install -f $forced -s $as_root -- "${package_name}" 'npm'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   # Execute installation
@@ -131,7 +131,7 @@ function npm_install() {
     fi
   fi
 
-  pac_post_install -f $forced -S $as_root -- "${package_name}" 'npm'
+  pac_post_install -f $forced -s $as_root -- "${package_name}" 'npm'
   res=$?
   return $res
 }

@@ -29,7 +29,7 @@ function curl_install() {
   local output_path=""
 
   OPTIND=1
-  while getopts "a:c:e:f:o:n:S:" opt; do
+  while getopts "a:c:e:f:o:n:s:" opt; do
     case ${opt} in
       a)
         args="${OPTARG}"
@@ -49,7 +49,7 @@ function curl_install() {
       n)
         package_name="${OPTARG}"
         ;;
-      S)
+      s)
         as_root=${OPTARG}
         ;;
       *)
@@ -114,7 +114,7 @@ function curl_install() {
 
   local res=0
 
-  pac_pre_install -o "${output_path}" -f $forced -S $as_root -- "${package_name}" 'curl'
+  pac_pre_install -o "${output_path}" -f $forced -s $as_root -- "${package_name}" 'curl'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   if $execute; then
@@ -137,7 +137,7 @@ function curl_install() {
     fi
   fi
 
-  pac_post_install -o "${output_path}" -f $forced -S $as_root -- "${package_name}" 'curl'
+  pac_post_install -o "${output_path}" -f $forced -s $as_root -- "${package_name}" 'curl'
   res=$?
   return $res
 }

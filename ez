@@ -15,6 +15,7 @@ include "${EZ_INSTALL_HOME}/install/const.sh"
 include "${EZ_INSTALL_HOME}/install/utils/actions.sh"
 include "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 include "${EZ_INSTALL_HOME}/install/utils/pac-transform.sh"
+include "${EZ_INSTALL_HOME}/install/utils/pac-validate.sh"
 include "${EZ_INSTALL_HOME}/install/pac-install.sh"
 include "${EZ_INSTALL_HOME}/install/install.sh"
 include "${EZ_INSTALL_HOME}/install/common.sh"
@@ -54,14 +55,20 @@ OPTIONS:
   Flag option switches
 
     --generate         -c    Generate package(s) instead of install.
-    --json             -j    Parse package data as json.
-    --no-norecurse     -R    Prevent recursive package dependency installation.
-    --as-root          -S    Run package manager as root (sudo).
+    --force            -f    Force install/reinstall packages.
+    --no-force         -F    Do not force install/reinstall packages.
+    --recurse          -r    Recursively install package dependencies.
+    --no-recurse       -R    Prevent recursive package dependency installation.
+    --as-root          -s    Run package manager as root (sudo).
+    --no-root          -S    Prevent running package manager as root (sudo).
+    --allow-dep-fail   -w    Continue root package installation on dependency
+                             failure.
+    --no-dep-fail      -W    Do not allow package installation dependency
+                             failure.
 
     --skip-generate    -C    Skip auto generate prompt. When used with -c,
                              --generate, generate non-interactive base template.
-    --force            -f    Forced install/reinstall package.
-    --allow_dep_fail   -F    Continue package installation on dependency failure.
+    --json             -j    Parse package data as json.
     --quiet            -q    Suppress standard output. LOG_DEBUG_LEVEL=3.
     --debug            -x    Debug mode (print all log levels). LOG_DEBUG_LEVEL=7.
     --skip-confirm     -y    Skip confirmation.
@@ -71,10 +78,14 @@ OPTIONS:
 
 IN-LINE OPTIONS:
 
-  #root      Give package installation root privileges.
-  #noroot    Give no package installation root privileges.
-  #dep       Install package recursively.
-  #nodep     Do not install package dependencies.
+  #force          Force package installation.
+  #noforce        Do not force package installation.
+  #root           Give package installation root privileges.
+  #noroot         Give no package installation root privileges.
+  #dep            Install package recursively.
+  #nodep          Do not install package dependencies.
+  #allowdepfail   Allow package dependency installation failure.
+  #nodepfail      Do not allow package dependency installation failure.
 
   In-line options \`#opt\` supercedes the flag options but only for the specific
   package.
@@ -164,13 +175,17 @@ function handle_args() {
       --package-dir)    args="${args:-}-D ";;
       --generate)       args="${args:-}-c ";;
       --skip-generate)  args="${args:-}-C ";;
-      --force)          args="${args:-}-f ";;
-      --allow-dep-fail) args="${args:-}-F ";;
       --json)           args="${args:-}-j ";;
       --destination)    args="${args:-}-o ";;
       --quiet)          args="${args:-}-q ";;
+      --force)          args="${args:-}-f ";;
+      --no-force)       args="${args:-}-F ";;
+      --recurse)        args="${args:-}-r ";;
       --no-recurse)     args="${args:-}-R ";;
-      --as-root)        args="${args:-}-S ";;
+      --as-root)        args="${args:-}-s ";;
+      --no-root)        args="${args:-}-S ";;
+      --allow-dep-fail) args="${args:-}-w ";;
+      --no-dep-fail)    args="${args:-}-W ";;
       --version)        args="${args:-}-V ";;
       --debug)          args="${args:-}-x ";;
       --skip-confirm)   args="${args:-}-y ";;
@@ -186,22 +201,26 @@ function handle_args() {
 
   eval set -- ${args:-}
 
+  # Install configs
   [[ -z "${SKIP_CONFIRM+x}" ]]    && SKIP_CONFIRM=false
   [[ -z "${VERBOSE+x}" ]]         && VERBOSE=true
   [[ -z "${DEBUG+x}" ]]           && DEBUG=false
   [[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=4
   [[ -z "${ENABLE_COLORS+x}" ]]   && ENABLE_COLORS=true
   [[ -z "${SKIP_GENERATE+x}" ]]   && SKIP_GENERATE=false
-  [[ -z "${GENERATE+x}" ]]        && GENERATE=false
-  [[ -z "${FORCED+x}" ]]          && FORCED=false
-  [[ -z "${ALLOW_DEP_FAIL+x}" ]]  && ALLOW_DEP_FAIL=false
   [[ -z "${JSON+x}" ]]            && JSON=false
-  [[ -z "${RECURSIVE+x}" ]]       && RECURSIVE=true
-  [[ -z "${AS_ROOT+x}" ]]         && AS_ROOT=false
+  [[ -z "${GENERATE+x}" ]]        && GENERATE=false
   [[ -z "${DESTINATION+x}" ]]     && DESTINATION="${HOME}/Downloads"
 
+  # Package configs
+  [[ -z "${FORCE+x}" ]]          && FORCE=false
+  [[ -z "${RECURSIVE+x}" ]]      && RECURSIVE=true
+  [[ -z "${AS_ROOT+x}" ]]        && AS_ROOT=false
+  [[ -z "${ALLOW_DEP_FAIL+x}" ]] && ALLOW_DEP_FAIL=false
+  CONFIG=""
+
   OPTIND=1
-  while getopts "D:o:cCfFjqRSxyzhV" opt; do
+  while getopts "D:o:cCfFjqrRsSwWxyzhV" opt; do
     case ${opt} in
       D)
         LOCAL_PACKAGE_ROOT_DIR="${OPTARG}"
@@ -215,12 +234,6 @@ function handle_args() {
       C)
         SKIP_GENERATE=true
         ;;
-      f)
-        FORCED=true
-        ;;
-      F)
-        ALLOW_DEP_FAIL=true
-        ;;
       j)
         JSON=true
         error "JSON data parsing is currently not supported"
@@ -230,12 +243,14 @@ function handle_args() {
         VERBOSE=false
         LOG_DEBUG_LEVEL=3
         ;;
-      R)
-        RECURSIVE=false
-        ;;
-      S)
-        AS_ROOT=true
-        ;;
+      f) FORCE=true;           CONFIG="${CONFIG} -${opt}" ;;
+      F) FORCE=false;          CONFIG="${CONFIG} -${opt}" ;;
+      r) RECURSIVE=true;       CONFIG="${CONFIG} -${opt}" ;;
+      R) RECURSIVE=false;      CONFIG="${CONFIG} -${opt}" ;;
+      s) AS_ROOT=true;         CONFIG="${CONFIG} -${opt}" ;;
+      S) AS_ROOT=false;        CONFIG="${CONFIG} -${opt}" ;;
+      w) ALLOW_DEP_FAIL=true;  CONFIG="${CONFIG} -${opt}" ;;
+      W) ALLOW_DEP_FAIL=false; CONFIG="${CONFIG} -${opt}" ;;
       x)
         DEBUG=true
         LOG_DEBUG_LEVEL=7
@@ -305,6 +320,7 @@ function handle_args() {
 
 function _ctrl_c() {
   echo ""
+  pac_report
   log 'error' "$(basename -- "${BASH_SOURCE[1]}").${FUNCNAME[1]}(): Interrupted!" $BASH_EX_TERMCTRLC
 }
 
@@ -332,11 +348,11 @@ function _main () {
 
     # TODO: Fully support json configs
     if ! $JSON; then
-      validate_packages ${packages[@]}
+      validate_packages ${CONFIG} -- ${packages[@]}
       res=$?; [[ ${res} -ne $BASH_EX_OK ]] && return $res
 
       $DEBUG && $VERBOSE && echo "Jsonifying..."
-      pac_array_jsonify -f $FORCED -R $RECURSIVE -S $AS_ROOT -- packages
+      pac_array_jsonify ${CONFIG} -- packages
     fi
 
     if $DEBUG && $VERBOSE || $JSON; then
@@ -350,7 +366,7 @@ function _main () {
 
     warning "Installation in progress... Do not interrupt!"
 
-    pac_batch_json_install -F $ALLOW_DEP_FAIL -- "${packages[@]}"
+    pac_batch_json_install "${packages[@]}"
     res=$?; [[ $res -ne $BASH_EX_OK ]] && exit $res
 
     [[ -n "${packages+x}" ]] && pac_report
@@ -372,12 +388,12 @@ unset DEBUG
 unset LOG_DEBUG_LEVEL
 unset ENABLE_COLORS
 unset GENERATE
-unset FORCED
 unset ALLOW_DEP_FAIL
-unset SKIP_GENERATE
-unset JSON
+unset FORCE
 unset RECURSIVE
 unset AS_ROOT
+unset SKIP_GENERATE
+unset JSON
 unset DESTINATION
 unset PACKAGE_DIR
 unset PACKAGES

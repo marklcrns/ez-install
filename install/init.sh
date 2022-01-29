@@ -20,7 +20,7 @@ include "${EZ_INSTALL_HOME}/common/sys.sh"
 
 function handle_package_args() {
   OPTIND=1
-  while getopts "e:f:o:S:" opt; do
+  while getopts "e:f:o:s:" opt; do
     case ${opt} in
       o)
         output_path="${OPTARG}"
@@ -29,9 +29,9 @@ function handle_package_args() {
         execute=${OPTARG}
         ;;
       f)
-        forced=${OPTARG}
+        force=${OPTARG}
         ;;
-      S)
+      s)
         as_root=${OPTARG}
         ;;
       *)

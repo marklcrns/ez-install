@@ -65,7 +65,7 @@ OPTIONS:
     --update           -u    Update package manager repository before installation
                              (for apt, pkg, etc.).
     --quiet            -q    Suppress standard output. LOG_DEBUG_LEVEL=3.
-    --as_root          -S    Set package default privileges as root.
+    --as_root          -s    Set package default privileges as root.
     --debug            -x    Debug mode (print all log levels). LOG_DEBUG_LEVEL=7.
     --skip-confirm     -y    Skip confirmation.
     --no-colors        -z    Disable output colors.
@@ -96,7 +96,7 @@ function handle_args() {
       --pre)              args="${args:-}-p ";;
       --post)             args="${args:-}-P ";;
       --quiet)            args="${args:-}-q ";;
-      --as_root)          args="${args:-}-S ";;
+      --as_root)          args="${args:-}-s ";;
       --update)           args="${args:-}-u ";;
       --debug)            args="${args:-}-x ";;
       --skip-confirm)     args="${args:-}-y ";;
@@ -142,7 +142,7 @@ function handle_args() {
   UPDATE=false
 
   OPTIND=1
-  while getopts "a:A:c:d:D:m:n:o:ipPeEuGqSMxyzhV" opt; do
+  while getopts "a:A:c:d:D:m:n:o:ipPeEuGqsMxyzhV" opt; do
     case ${opt} in
       a)
         ARGS="${OPTARG}"
@@ -193,7 +193,7 @@ function handle_args() {
         VERBOSE=false
         LOG_DEBUG_LEVEL=3
         ;;
-      S)
+      s)
         AS_ROOT=true
         ;;
       u)

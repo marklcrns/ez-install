@@ -197,21 +197,19 @@ function parse_inline_opts() {
   local __package="${1%#*}"   # Strip #opts
   local __opts="${1##*#}"     # Strip package
 
+  [[ -z ${config+x} ]] && config=""
+
   if [[ "${__opts}" != "${__package}" ]]; then
     for __opt in ${__opts//,/ }; do
       case ${__opt} in
-        root)
-          as_root=true
-          ;;
-        noroot)
-          as_root=false
-          ;;
-        dep)
-          recursive=true
-          ;;
-        nodep)
-          recursive=false
-          ;;
+        force) force=true;                 strip_substr ' -F' config; config="${config} -f" ;;
+        noforce) force=false;              strip_substr ' -f' config; config="${config} -F" ;;
+        dep) recursive=true;               strip_substr ' -R' config; config="${config} -r" ;;
+        nodep) recursive=false;            strip_substr ' -r' config; config="${config} -R" ;;
+        root) as_root=true;                strip_substr ' -S' config; config="${config} -s" ;;
+        noroot) as_root=false;             strip_substr ' -s' config; config="${config} -S" ;;
+        allowdepfail) allow_dep_fail=true; strip_substr ' -W' config; config="${config} -w" ;;
+        nodepfail) allow_dep_fail=false;   strip_substr ' -w' config; config="${config} -W" ;;
       esac
     done
   fi

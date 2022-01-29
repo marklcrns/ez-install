@@ -29,7 +29,7 @@ function wget_install() {
   local output_path=""
 
   OPTIND=1
-  while getopts "a:c:e:f:o:n:S:" opt; do
+  while getopts "a:c:e:f:o:n:s:" opt; do
     case ${opt} in
       a)
         args="${OPTARG}"
@@ -49,7 +49,7 @@ function wget_install() {
       n)
         package_name="${OPTARG}"
         ;;
-      S)
+      s)
         as_root=${OPTARG}
         ;;
       *)
@@ -112,7 +112,7 @@ function wget_install() {
     return $BASH_EX_OK
   fi
 
-  pac_pre_install -o "${output_path}" -f $forced -S $as_root -- "${package_name}" 'wget'
+  pac_pre_install -o "${output_path}" -f $forced -s $as_root -- "${package_name}" 'wget'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   if $execute; then
@@ -141,7 +141,7 @@ function wget_install() {
     fi
   fi
 
-  pac_post_install -o "${output_path}" -f $forced -S ${as_root} -- "${package_name}" 'wget'
+  pac_post_install -o "${output_path}" -f $forced -s ${as_root} -- "${package_name}" 'wget'
   res=$?
   return $res
 }

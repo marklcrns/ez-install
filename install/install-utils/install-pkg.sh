@@ -28,7 +28,7 @@ function pkg_install() {
   local package_name=""
 
   OPTIND=1
-  while getopts "a:c:f:n:S:u" opt; do
+  while getopts "a:c:f:n:s:u" opt; do
     case ${opt} in
       a)
         args="${OPTARG}"
@@ -42,7 +42,7 @@ function pkg_install() {
       n)
         package_name="${OPTARG}"
         ;;
-      S)
+      s)
         as_root=${OPTARG}
         ;;
       u)
@@ -94,11 +94,11 @@ function pkg_install() {
   fi
 
   if $is_update; then
-    pkg_update -a "${args}" -S $as_root
+    pkg_update -a "${args}" -s $as_root
     res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
   fi
 
-  pac_pre_install -f $forced -S $as_root -- "${package_name}" 'pkg'
+  pac_pre_install -f $forced -s $as_root -- "${package_name}" 'pkg'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   # Execute installation
@@ -110,7 +110,7 @@ function pkg_install() {
     return $res
   fi
 
-  pac_post_install -f $forced -S $as_root -- "${package_name}" 'pkg'
+  pac_post_install -f $forced -s $as_root -- "${package_name}" 'pkg'
   res=$?
 
   return $res
@@ -122,12 +122,12 @@ function pkg_update() {
   local args=""
 
   OPTIND=1
-  while getopts "a:S:" opt; do
+  while getopts "a:s:" opt; do
     case ${opt} in
       a)
         args="${OPTARG}"
         ;;
-      S)
+      s)
         as_root=${OPTARG}
         ;;
     esac

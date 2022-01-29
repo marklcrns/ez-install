@@ -29,12 +29,12 @@ function install() {
   local package_name=""
   local destination=""
   local execute=false
-  local forced=false
+  local force=false
   local as_root=false
   local update=false
 
   OPTIND=1
-  while getopts "a:c:e:f:m:n:o:S:u:" opt; do
+  while getopts "a:c:e:f:m:n:o:s:u:" opt; do
     case ${opt} in
       a)
         args="${OPTARG}"
@@ -46,7 +46,7 @@ function install() {
         execute=${OPTARG}
         ;;
       f)
-        forced=${OPTARG}
+        force=${OPTARG}
         ;;
       m)
         package_manager="${OPTARG}"
@@ -58,7 +58,7 @@ function install() {
       o)
         destination="${OPTARG}"
         ;;
-      S)
+      s)
         as_root=${OPTARG}
         ;;
       u)
@@ -94,8 +94,8 @@ function install() {
       apt_install -a "${args}" \
                   -c "${command_name}" \
                   -n "${package_name}" \
-                  -f $forced \
-                  -S $as_root \
+                  -f $force \
+                  -s $as_root \
                   -u $update \
                   -- "${package}" \
       ;;
@@ -103,8 +103,8 @@ function install() {
       apt_add_repo -a "${args}" \
                    -c "${command_name}" \
                    -n "${package_name}" \
-                   -f $forced \
-                   -S $as_root \
+                   -f $force \
+                   -s $as_root \
                    -u $update \
                    -- "${package}" \
       ;;
@@ -112,8 +112,8 @@ function install() {
       pkg_install -a "${args}" \
                   -c "${command_name}" \
                   -n "${package_name}" \
-                  -f $forced \
-                  -S $as_root \
+                  -f $force \
+                  -s $as_root \
                   -u $update \
                   -- "${package}" \
       ;;
@@ -121,16 +121,16 @@ function install() {
       npm_install -a "${args}" \
                   -c "${command_name}" \
                   -n "${package_name}" \
-                  -f $forced \
-                  -S $as_root \
+                  -f $force \
+                  -s $as_root \
                   -- "${package}" \
       ;;
     pip)
       pip_install -a "${args}" \
                   -c "${command_name}" \
                   -n "${package_name}" \
-                  -f $forced \
-                  -S $as_root \
+                  -f $force \
+                  -s $as_root \
                   -- "${package}" \
       ;;
     pip2)
@@ -138,8 +138,8 @@ function install() {
                   -a "${args}" \
                   -c "${command_name}" \
                   -n "${package_name}" \
-                  -f $forced \
-                  -S $as_root \
+                  -f $force \
+                  -s $as_root \
                   -- "${package}" \
       ;;
     pip3)
@@ -147,8 +147,8 @@ function install() {
                   -a "${args}" \
                   -c "${command_name}" \
                   -n "${package_name}" \
-                  -f $forced \
-                  -S $as_root \
+                  -f $force \
+                  -s $as_root \
                   -- "${package}" \
       ;;
     curl)
@@ -157,8 +157,8 @@ function install() {
                    -n "${package_name}" \
                    -o "${destination}" \
                    -e $execute \
-                   -f $forced \
-                   -S $as_root \
+                   -f $force \
+                   -s $as_root \
                    -- "${package}" \
       ;;
     wget)
@@ -167,8 +167,8 @@ function install() {
                    -n "${package_name}" \
                    -o "${destination}" \
                    -e $execute \
-                   -f $forced \
-                   -S $as_root \
+                   -f $force \
+                   -s $as_root \
                    -- "${package}" \
       ;;
     git)
@@ -176,16 +176,16 @@ function install() {
                 -c "${command_name}" \
                 -n "${package_name}" \
                 -o "${destination}" \
-                -f $forced \
-                -S $as_root \
+                -f $force \
+                -s $as_root \
                 -- "${package}" \
       ;;
     local)
       # Do nothing but check if executable exists and trigger pre and post processes
       local_install -c "${command_name}" \
                     -n "${package_name}" \
-                    -f $forced \
-                    -S $as_root \
+                    -f $force \
+                    -s $as_root \
                     -- "${package}"
       ;;
     *)

@@ -82,10 +82,14 @@ See `ez -h` for more on options.
 ```
 IN-LINE OPTIONS:
 
-  #root      Give package installation root privileges.
-  #noroot    Give no package installation root privileges.
-  #dep       Install package recursively.
-  #nodep     Do not install package dependencies.
+  #force          Force package installation.
+  #noforce        Do not force package installation.
+  #root           Give package installation root privileges.
+  #noroot         Give no package installation root privileges.
+  #dep            Install package recursively.
+  #nodep          Do not install package dependencies.
+  #allowdepfail   Allow package dependency installation failure.
+  #nodepfail      Do not allow package dependency installation failure.
 
   In-line options `#opt` supercedes the flag options but only for the specific
   package.

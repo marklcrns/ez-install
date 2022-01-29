@@ -28,7 +28,7 @@ function git_clone() {
   local output_path=""
 
   OPTIND=1
-  while getopts "a:c:f:n:o:S:" opt; do
+  while getopts "a:c:f:n:o:s:" opt; do
     case ${opt} in
       a)
         args="${OPTARG}"
@@ -45,7 +45,7 @@ function git_clone() {
       o)
         output_path="${OPTARG}"
         ;;
-      S)
+      s)
         as_root=${OPTARG}
         ;;
       *)
@@ -140,12 +140,12 @@ function git_clone() {
     fi
   fi
 
-  pac_pre_install -o "${output_path}" -f $forced -S $as_root "${package_name}" 'git'
+  pac_pre_install -o "${output_path}" -f $forced -s $as_root "${package_name}" 'git'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   # DEPRECATED: For reference only
   # Execute cloning
-  # clone_repo -a "${args}" -n "${package_name}" -o "${output_path}" -S $as_root -- "${from}"
+  # clone_repo -a "${args}" -n "${package_name}" -o "${output_path}" -s $as_root -- "${from}"
   # res=$?
   # if [[ $res -ne $BASH_EX_OK ]]; then
   #   if [[ $res -eq $BASH_SYS_EX_SOFTWARE ]]; then
@@ -164,7 +164,7 @@ function git_clone() {
     return $res
   fi
 
-  pac_post_install -o "${output_path}" -S ${as_root} "${package_name}" 'git'
+  pac_post_install -o "${output_path}" -s ${as_root} "${package_name}" 'git'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   pac_log_success 'Git' "${package_name}" "Git clone '${from}' -> '${output_path}' successful"
@@ -182,7 +182,7 @@ function clone_repo() {
   local output_path=""
 
   OPTIND=1
-  while getopts "fa:o:n:S:" opt; do
+  while getopts "fa:o:n:s:" opt; do
     case ${opt} in
       f)
         forced=true
@@ -196,7 +196,7 @@ function clone_repo() {
       o)
         output_path="${OPTARG}"
         ;;
-      S)
+      s)
         as_root=${OPTARG}
         ;;
     esac
@@ -226,7 +226,7 @@ function clone_repo() {
     if [[ "${retry}" -ne $BASH_EX_OK ]]; then
       warning "Git authentication failed. Try again (${retry} remaining)\n"
       ((--retry))
-      clone_repo -a "${args}" -n "${package_name}" -o "${output_path}" -S $as_root -- "${from}"
+      clone_repo -a "${args}" -n "${package_name}" -o "${output_path}" -s $as_root -- "${from}"
       res=$?
       return $res
     else

@@ -19,6 +19,11 @@
 [[ -z "${ENABLE_COLORS+x}" ]]   && ENABLE_COLORS=true
 [[ -z "${SKIP_GENERATE+x}" ]]   && SKIP_GENERATE=false
 
+# Package configs
+[[ -z "${FORCE+x}" ]]           && FORCE=false
+[[ -z "${RECURSIVE+x}" ]]       && RECURSIVE=true
+[[ -z "${AS_ROOT+x}" ]]         && AS_ROOT=false
+
 [[ ! -d "${EZ_INSTALL_HOME:-}" ]]        && export EZ_INSTALL_HOME="$(realpath ${BASH_SOURCE%/*})"
 [[ ! -d "${PACKAGE_ROOT_DIR:-}" ]]       && PACKAGE_ROOT_DIR="$(realpath "${BASH_SOURCE%/*}/generate/packages")"
 [[ ! -d "${LOCAL_PACKAGE_ROOT_DIR:-}" ]] && LOCAL_PACKAGE_ROOT_DIR="${HOME}/.ez-install.d/packages"

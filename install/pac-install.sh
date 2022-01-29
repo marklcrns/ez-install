@@ -22,21 +22,6 @@ include "${EZ_INSTALL_HOME}/install/utils/progress-bar.sh"
 
 # TODO: Append package install status onto progress bar
 function pac_batch_json_install() {
-  local allow_dep_fail=false
-
-  OPTIND=1
-  while getopts "F:" opt; do
-    case ${opt} in
-      F)
-        allow_dep_fail=${OPTARG}
-        ;;
-      *)
-        error "Invalid flag option(s)"
-        exit $BASH_SYS_EX_USAGE
-    esac
-  done
-  shift "$((OPTIND-1))"
-
   if [[ -z "${@+x}" ]]; then
     error "${BASH_SYS_MSG_USAGE_MISSARG}"
     return $BASH_SYS_EX_USAGE
@@ -59,7 +44,7 @@ function pac_batch_json_install() {
     echo "- ${root_package_name}"
     ((++i))
 
-    pac_json_install -F $allow_dep_fail -- "${root_package}"
+    pac_json_install "${root_package}"
     res=$?
 
     # Report root package failure
@@ -81,86 +66,75 @@ function pac_batch_json_install() {
 
 
 function pac_json_install() {
-  local allow_dep_fail=false
-
-  OPTIND=1
-  while getopts "F:" opt; do
-    case ${opt} in
-      F)
-        allow_dep_fail=${OPTARG}
-        ;;
-      *)
-        error "Invalid flag option(s)"
-        exit $BASH_SYS_EX_USAGE
-    esac
-  done
-  shift "$((OPTIND-1))"
-
   if [[ -z "${1+x}" ]]; then
     error "${BASH_SYS_MSG_USAGE_MISSARG}"
     return $BASH_SYS_EX_USAGE
   fi
 
   local package="${1}"
+  is_json_property_null "${package}" && return $BASH_EX_OK
 
-  if [[ "${package}" != "null" ]] && [[ "${package}" != "." ]]; then
-    local package_name="$(echo ${package} | ${EZ_DEP_JQ} -crM ".name")"
-    local package_path="$(echo ${package} | ${EZ_DEP_JQ} -crM ".path")"
-    local as_root=$(echo ${package} | ${EZ_DEP_JQ} -crM ".as_root")
-    local forced=$(echo ${package} | ${EZ_DEP_JQ} -crM ".forced")
+  local package_path="$(echo ${package} | ${EZ_DEP_JQ} -crM ".path")"
+  is_json_property_null "${package_path}" && return $BASH_EX_OK
 
-    local res=
-    local sub_package=
-    local dependencies=
-    local dependencies_ct="$(echo ${package} | ${EZ_DEP_JQ} -crM ".dependencies | length")"
+  local package_name="$(echo ${package} | ${EZ_DEP_JQ} -crM ".name")"
+  local as_root=$(echo ${package} | ${EZ_DEP_JQ} -crM ".as_root")
+  local force=$(echo ${package} | ${EZ_DEP_JQ} -crM ".force")
+  local allow_dep_fail=$(echo ${package} | ${EZ_DEP_JQ} -crM ".allow_dep_fail")
 
-    if [[ ${dependencies_ct} -gt 1 ]]; then
-      # Recursive dependency install
-      for ((i=0; i<${dependencies_ct}; ++i)); do
-        dependencies="$(echo ${package} | ${EZ_DEP_JQ} -crM ".dependencies[${i}]")"
-        if [[ -n "${dependencies}" ]]; then
-          sub_package="$(echo "${dependencies}" | ${EZ_DEP_JQ} -crM ".package")"
-          pac_json_install ${sub_package}
-          res=$?
-          ! $allow_dep_fail && [[ $res -ne $BASH_EX_OK ]] && return $BASH_EZ_EX_DEP_FAILED # Abort immediately
-        fi
-      done
-    else
-      dependencies="$(echo ${package} | ${EZ_DEP_JQ} -crM ".dependencies")"
-      if [[ -n "${dependencies}" ]]; then
+  local res=
+  local sub_package=
+  local dependencies=
+  local dependencies_ct="$(echo ${package} | ${EZ_DEP_JQ} -crM ".dependencies | length")"
+
+  if [[ ${dependencies_ct} -gt 1 ]]; then
+    # Recursive dependency install
+    for ((i=0; i<${dependencies_ct}; ++i)); do
+      dependencies="$(echo ${package} | ${EZ_DEP_JQ} -crM ".dependencies[${i}]")"
+      if ! is_json_property_null "${dependencies}"; then
         sub_package="$(echo "${dependencies}" | ${EZ_DEP_JQ} -crM ".package")"
         pac_json_install ${sub_package}
         res=$?
         ! $allow_dep_fail && [[ $res -ne $BASH_EX_OK ]] && return $BASH_EZ_EX_DEP_FAILED # Abort immediately
       fi
+    done
+  else
+    dependencies="$(echo ${package} | ${EZ_DEP_JQ} -crM ".dependencies")"
+    if ! is_json_property_null "${dependencies}"; then
+      sub_package="$(echo "${dependencies}" | ${EZ_DEP_JQ} -crM ".package")"
+      pac_json_install ${sub_package}
+      res=$?
+      ! $allow_dep_fail && [[ $res -ne $BASH_EX_OK ]] && return $BASH_EZ_EX_DEP_FAILED # Abort immediately
     fi
-    pac_install -f $forced -S $as_root -- "${package_name}" "${package_path}"
-    res=$?
   fi
+
+  # Skip dependency installation
+  pac_install -f $force -r false -s $as_root -- "${package_name}" "${package_path}"
+  res=$?
   return $res
 }
 
 
 function pac_install() {
-  local forced=false
-  local allow_dep_fail=false
-  local recursive=false
-  local as_root=false
+  local force=${FORCE}
+  local recursive=${RECURSIVE}
+  local as_root=${AS_ROOT}
+  local allow_dep_fail=${ALLOW_DEP_FAIL}
 
   OPTIND=1
-  while getopts "f:F:R:S:" opt; do
+  while getopts "f:r:s:w:" opt; do
     case ${opt} in
       f)
-        forced=${OPTARG}
+        force=${OPTARG}
         ;;
-      F)
-        allow_dep_fail=${OPTARG}
-        ;;
-      R)
+      r)
         recursive=${OPTARG}
         ;;
-      S)
+      s)
         as_root=${OPTARG}
+        ;;
+      w)
+        allow_dep_fail=${OPTARG}
         ;;
       *)
         error "Invalid flag option(s)"
@@ -180,7 +154,7 @@ function pac_install() {
 
   if [[ -z "${package_path}" ]]; then
     local res=0
-    local package_dir="${package}"
+    local package_path="${package}"
     fetch_package package_path
     res=$?
 
@@ -204,51 +178,50 @@ function pac_install() {
     pac_log_skip 'N/A' "${package}"
     return $BASH_EX_OK
   elif [[ ! -f "${package_path}" ]]; then
-    echo "PACKAGE_PATH: ${package_path}"
     pac_log_failed $BASH_EZ_EX_PAC_NOTFOUND 'N/A' "${package}" "Package '${package}' not found"
     return $BASH_EZ_EX_PAC_NOTFOUND
   fi
 
   # Install dependencies
   if $recursive; then
-    local dependency_tracker="${EZ_INSTALL_HOME}/install/utils/dependency-tracker"
-    local dependencies="$(${dependency_tracker} -p "${package}" -d "${package_path}")"
+    local tmp="$(${EZ_DEP_METADATA_PARSER} "dependency" "${package_path}")"
+    local -a package_dependencies=( ${tmp//,/ } )
 
-    for dependency in ${dependencies}; do
+    for dependency in ${package_dependencies[@]}; do
       info "Installing ${package} dependency -- ${dependency}"
-      pac_install -f $forced -R $recursive -S $as_root -- "${dependency}"
+      pac_install -f $force -r $recursive -s $as_root -w $allow_dep_fail -- "${dependency}"
       local res=$?
       ! $allow_dep_fail && [[ $res -ne $BASH_EX_OK ]] && return $res # Abort immediately
     done
   fi
 
   info "Installing '${package}' from '${package_path}'"
-  source "${package_path}" -f $forced -S $as_root
+  source "${package_path}" -f $force -s $as_root
   res=$?
   return $res
 }
 
 
 function pac_batch_install() {
-  local forced=false
-  local allow_dep_fail=false
-  local recursive=false
-  local as_root=false
+  local force=${FORCE}
+  local recursive=${RECURSIVE}
+  local as_root=${AS_ROOT}
+  local allow_dep_fail=${ALLOW_DEP_FAIL}
 
   OPTIND=1
-  while getopts "f:F:R:S:" opt; do
+  while getopts "f:r:s:w:" opt; do
     case ${opt} in
       f)
-        forced=${OPTARG}
+        force=${OPTARG}
         ;;
-      F)
-        allow_dep_fail=${OPTARG}
-        ;;
-      R)
+      r)
         recursive=${OPTARG}
         ;;
-      S)
+      s)
         as_root=${OPTARG}
+        ;;
+      w)
+        allow_dep_fail=${OPTARG}
         ;;
       *)
         error "Invalid flag option(s)"
@@ -267,7 +240,7 @@ function pac_batch_install() {
 
   local i=1
   for package in ${packages[@]}; do
-    pac_install -f $forced -F $allow_dep_fail -R $recursive -S $as_root -- "${package}"
+    pac_install -f $force -r $recursive -s $as_root -w $allow_dep_fail -- "${package}"
     prog_bar "$(("${i}*100/${width}"))"
     echo "- ${package}"
     ((++i))
@@ -310,20 +283,20 @@ function pac_deploy_init() {
 
 
 function pac_pre_install() {
-  local forced=false
+  local force=false
   local as_root=false
   local destination=""
 
   OPTIND=1
-  while getopts "f:o:S:" opt; do
+  while getopts "f:o:s:" opt; do
     case ${opt} in
       o)
         destination="${OPTARG}"
         ;;
       f)
-        forced=${OPTARG}
+        force=${OPTARG}
         ;;
-      S)
+      s)
         as_root=${OPTARG}
         ;;
       *)
@@ -353,7 +326,7 @@ function pac_pre_install() {
     info "Executing ${package_pre_path}..."
     # Do not exit on unbound variables
     set -u
-    source "${package_pre_path}" -o "${destination}" -f $forced -S $as_root
+    source "${package_pre_path}" -o "${destination}" -f $force -s $as_root
     res=$?
     set +u
 
@@ -376,7 +349,7 @@ function pac_pre_install() {
       info "Executing ${package_pre_path}..."
       # Do not exit on unbound variables
       set -u
-      source "${package_pre_path}" -o "${destination}" -f $forced -S $as_root
+      source "${package_pre_path}" -o "${destination}" -f $force -s $as_root
       res=$?
       set +u
 
@@ -391,20 +364,20 @@ function pac_pre_install() {
 
 
 function pac_post_install() {
-  local forced=false
+  local force=false
   local as_root=false
   local destination=""
 
   OPTIND=1
-  while getopts "f:o:S:" opt; do
+  while getopts "f:o:s:" opt; do
     case ${opt} in
       o)
         destination="${OPTARG}"
         ;;
       f)
-        forced=${OPTARG}
+        force=${OPTARG}
         ;;
-      S)
+      s)
         as_root=${OPTARG}
         ;;
       *)
@@ -434,7 +407,7 @@ function pac_post_install() {
     info "Executing ${package_post_path}..."
     # Do not exit on unbound variables
     set -u
-    source "${package_post_path}" -o "${destination}" -f $forced -S $as_root
+    source "${package_post_path}" -o "${destination}" -f $force -s $as_root
     res=$?
     set +u
 
@@ -457,7 +430,7 @@ function pac_post_install() {
       info "Executing ${package_post_path}..."
       # Do not exit on unbound variables
       set -u
-      source "${package_post_path}" -o "${destination}" -f $forced -S $as_root
+      source "${package_post_path}" -o "${destination}" -f $force -s $as_root
       res=$?
       set +u
 
@@ -468,4 +441,16 @@ function pac_post_install() {
       pac_log_success "${package_manager}" "${package}.${package_manager_lower}.post"
     fi
   fi
+}
+
+
+function is_json_property_null() {
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  [[ "${package}" == 'null' ]] || [[ "${package}" == "." ]] \
+    && return $BASH_EX_OK \
+    || return $BASH_EX_GENERAL
 }

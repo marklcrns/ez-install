@@ -7,8 +7,8 @@ if [ "${0##*/}" == "${BASH_SOURCE[0]##*/}" ]; then
 fi
 
 # Header guard
-[[ -z "${UTILS_PAC_RESOLVER_SH_INCLUDED+x}" ]] \
-  && readonly UTILS_PAC_RESOLVER_SH_INCLUDED=1 \
+[[ -z "${UTILS_PAC_TRANSFORM_SH_INCLUDED+x}" ]] \
+  && readonly UTILS_PAC_TRANSFORM_SH_INCLUDED=1 \
   || return 0
 
 source "$(dirname -- $(realpath -- "${BASH_SOURCE[0]}"))/../../.ez-installrc"
@@ -21,22 +21,12 @@ include "${EZ_INSTALL_HOME}/install/common.sh"
 
 
 function pac_array_jsonify() {
-  local forced=false
-  local recursive=true
-  local as_root=false
+  local config=""
 
   OPTIND=1
-  while getopts "f:R:S:" opt; do
+  while getopts "fFrRsSwW" opt; do
     case ${opt} in
-      f)
-        forced=${OPTARG}
-        ;;
-      R)
-        recursive=${OPTARG}
-        ;;
-      S)
-        as_root=${OPTARG}
-        ;;
+      f|F|r|R|s|S|w|W) config="${config} -${opt}" ;;
       *)
         error "Invalid flag option(s)"
         exit $BASH_SYS_EX_USAGE
@@ -58,7 +48,7 @@ function pac_array_jsonify() {
   local package=
   for i in "${!pac_array[@]}"; do
     package="${pac_array[$i]}"
-    pac_jsonify -f $forced -R $recursive -S $as_root -- package
+    pac_jsonify ${config} -- package
     res=$?
 
     if [[ $res -ne $BASH_EX_OK ]]; then
@@ -73,22 +63,20 @@ function pac_array_jsonify() {
 
 
 function pac_jsonify() {
-  local forced=false
-  local recursive=true
-  local as_root=false
+  local force= recursive= as_root= allow_dep_fail=
+  local config=""
 
   OPTIND=1
-  while getopts "f:R:S:" opt; do
+  while getopts "fFrRsSwW" opt; do
     case ${opt} in
-      f)
-        forced=${OPTARG}
-        ;;
-      R)
-        recursive=${OPTARG}
-        ;;
-      S)
-        as_root=${OPTARG}
-        ;;
+      f) force=true;           config="${config} -${opt}" ;;
+      F) force=false;          config="${config} -${opt}" ;;
+      r) recursive=true;       config="${config} -${opt}" ;;
+      R) recursive=false;      config="${config} -${opt}" ;;
+      s) as_root=true;         config="${config} -${opt}" ;;
+      S) as_root=false;        config="${config} -${opt}" ;;
+      w) allow_dep_fail=true;  config="${config} -${opt}" ;;
+      W) allow_dep_fail=false; config="${config} -${opt}" ;;
       *)
         error "Invalid flag option(s)"
         exit $BASH_SYS_EX_USAGE
@@ -109,15 +97,26 @@ function pac_jsonify() {
 
   eval "local _package=\${$local_pac_var_name}"
 
+  # In-line opts config
   parse_inline_opts "${_package}"
+
   _package="${_package%#*}" # Strip #opts
 
-  info "Fetching: ${_package}"
-
-  local package_path="${_package}"
   local res=0
+  local package_path="${_package}"
   fetch_package package_path
   res=$?
+
+  # Package default config
+  [[ -z "${as_root}" ]]   && as_root="$(${EZ_DEP_METADATA_PARSER} "as-root" "${package_path}")"
+
+  # Global default config
+  [[ -z "${force}" ]]          && force=$FORCE
+  [[ -z "${recursive}" ]]      && recursive=$RECURSIVE
+  [[ -z "${as_root}" ]]        && as_root=$AS_ROOT
+  [[ -z "${allow_dep_fail}" ]] && allow_dep_fail=$ALLOW_DEP_FAIL
+
+  info "Fetching: ${_package}"
 
   if [[ $res -ne $BASH_EX_OK ]]; then
     local selected=""
@@ -150,7 +149,8 @@ function pac_jsonify() {
   eval "${global_pac_var_name}+='\"name\":\"${_package}\",'"
   eval "${global_pac_var_name}+='\"path\":\"${package_path}\",'"
   eval "${global_pac_var_name}+='\"as_root\":$as_root,'"
-  eval "${global_pac_var_name}+='\"forced\":$forced'"
+  eval "${global_pac_var_name}+='\"force\":$force,'"
+  eval "${global_pac_var_name}+='\"allow_dep_fail\":$allow_dep_fail'"
 
   if $recursive; then
     local tmp="$(${EZ_DEP_METADATA_PARSER} "dependency" "${package_path}")"
@@ -177,7 +177,7 @@ function pac_jsonify() {
         info "${indent}Dependency: ${dependency}"
         eval "${global_pac_var_name}+='{'"
 
-        pac_jsonify -f $forced -R $recursive -S $as_root -- "${global_pac_var_name}" dependency ${_package} $((depth+1))
+        pac_jsonify ${config} -- "${global_pac_var_name}" dependency "${_package}" $((depth+1))
         res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
         eval "${global_pac_var_name}+='}'"
@@ -193,181 +193,3 @@ function pac_jsonify() {
   eval "${global_pac_var_name}+='}'"
 }
 
-
-function validate_packages() {
-  local recursive=true
-  local as_root=false
-
-  OPTIND=1
-  while getopts "R:S:" opt; do
-    case ${opt} in
-      R)
-        recursive=${OPTARG}
-        ;;
-      S)
-        as_root=${OPTARG}
-        ;;
-      *)
-        error "Invalid flag option(s)"
-        exit $BASH_SYS_EX_USAGE
-    esac
-  done
-  shift "$((OPTIND-1))"
-
-  if [[ -z "${@+x}" ]]; then
-    error "${BASH_SYS_MSG_USAGE_MISSARG}"
-    return $BASH_SYS_EX_USAGE
-  fi
-
-  local packages=( "${@}" )
-
-  # Only continue with at least one valid package
-  local continue=false
-  local res=0
-  for package in ${packages[@]}; do
-    validate_package -R $RECURSIVE -S $AS_ROOT -- "${package}"
-    res=$?
-    if ! ${continue} && [[ ${res} -eq $BASH_EX_OK ]]; then
-      continue=true
-    fi
-  done
-  ! ${continue} && return ${res} || return $BASH_EX_OK
-}
-
-
-function validate_package() {
-  local recursive=true
-  local as_root=false
-
-  OPTIND=1
-  while getopts "R:S:" opt; do
-    case ${opt} in
-      R)
-        recursive=${OPTARG}
-        ;;
-      S)
-        as_root=${OPTARG}
-        ;;
-      *)
-        error "Invalid flag option(s)"
-        exit $BASH_SYS_EX_USAGE
-    esac
-  done
-  shift "$((OPTIND-1))"
-
-  if [[ -z "${1+x}" ]]; then
-    error "${BASH_SYS_MSG_USAGE_MISSARG}"
-    return $BASH_SYS_EX_USAGE
-  fi
-
-  parse_inline_opts "${1}"
-  local package="${1%#*}"   # Strip #opts
-
-  info "Validating packages..."
-
-  if $recursive; then
-    _validate_dependencies "${package}" $as_root
-    return $?
-  else
-    local res=
-    local package_path="${package}"
-    fetch_package package_path
-    res=$?
-
-    if [[ $res -ne $BASH_EX_OK ]]; then
-      if has_alternate_package "${package}"; then
-        ! $DEBUG && printf "${package} ${COLOR_YELLOW}(CHOOSE)${COLOR_NC}"
-      else
-        res=$?
-        if [[ $res -eq $BASH_EZ_EX_PAC_GENERATED ]]; then
-          ! $DEBUG && printf "${package} ${COLOR_BLUE}(GENERATE)${COLOR_NC}"
-        else
-          ! $DEBUG && printf "${package} ${COLOR_RED}(MISSING)${COLOR_NC}\n"
-          return $BASH_EZ_EX_PAC_NOTFOUND
-        fi
-      fi
-    else
-      ! $DEBUG && printf "${package}"
-    fi
-    ! $DEBUG && $as_root && printf " ${COLOR_GREEN}(ROOT)${COLOR_NC}"
-  fi
-
-  ! $DEBUG && printf "\n"
-  return $BASH_EX_OK
-}
-
-
-function _validate_dependencies() {
-  if [[ -z "${1+x}" ]]; then
-    error "${BASH_SYS_MSG_USAGE_MISSARG}"
-    return $BASH_SYS_EX_USAGE
-  fi
-
-  local _package="${1}"
-  local _as_root=${2:-false}
-  local _indent="${3:-}"
-
-  local _package_path="${_package}"
-  local _res=0
-  fetch_package _package_path
-  _res=$?
-
-  if [[ $_res -ne $BASH_EX_OK ]]; then
-    if has_alternate_package "${_package}"; then
-      ! $DEBUG && printf "${_package} ${COLOR_YELLOW}(CHOOSE)${COLOR_NC}"
-      ! $DEBUG && $_as_root && printf " ${COLOR_GREEN}(ROOT)${COLOR_NC}"
-      ! $DEBUG && printf "\n"
-      return $BASH_EX_OK
-    else
-      _res=$?
-      if [[ $_res -eq $BASH_EZ_EX_PAC_GENERATED ]]; then
-        ! $DEBUG && printf "${_package} ${COLOR_BLUE}(GENERATE)${COLOR_NC}"
-      else
-        ! $DEBUG && printf "${_package} ${COLOR_RED}(MISSING)${COLOR_NC}\n"
-        return $BASH_EZ_EX_PAC_NOTFOUND
-      fi
-    fi
-  else
-    ! $DEBUG && printf "${_package}"
-    ! $DEBUG && $_as_root && printf " ${COLOR_GREEN}(ROOT)${COLOR_NC}"
-    ! $DEBUG && printf "\n"
-  fi
-
-  local _tmp="$(${EZ_DEP_METADATA_PARSER} "dependency" "${_package_path}")"
-  local -a _package_dependencies=( ${_tmp//,/ } )
-  local _has_missing=false
-  local _next_indent=""
-
-  for i in "${!_package_dependencies[@]}"; do
-    if [[ $i -eq $((${#_package_dependencies[@]}-1)) ]]; then
-      ! $DEBUG && printf "${_indent}└──"
-      _next_indent="${_indent}   "
-    else
-      ! $DEBUG && printf "${_indent}├──"
-      _next_indent="${_indent}│  "
-    fi
-
-    if has_package "${_package_dependencies[$i]}"; then
-      _validate_dependencies "${_package_dependencies[$i]}" $_as_root "${_next_indent}"
-    else
-      if has_alternate_package ${_package_dependencies[$i]}; then
-        ! $DEBUG && printf "${_package_dependencies[$i]} ${COLOR_YELLOW}(CHOOSE)${COLOR_NC}"
-      else
-        _res=$?
-        if [[ $_res -eq $BASH_EZ_EX_PAC_GENERATED ]]; then
-          ! $DEBUG && printf "${_package_dependencies[$i]} ${COLOR_BLUE}(GENERATE)${COLOR_NC}"
-        else
-          ! $DEBUG && printf "${_package_dependencies[$i]} ${COLOR_RED}(MISSING)${COLOR_NC}\n"
-          _has_missing=true
-          continue
-        fi
-      fi
-      ! $DEBUG && $_as_root && printf " ${COLOR_GREEN}(ROOT)${COLOR_NC}"
-      ! $DEBUG && printf "\n"
-    fi
-  done
-
-  if ${_has_missing}; then
-    return $BASH_EZ_EX_PAC_NOTFOUND
-  fi
-}

@@ -30,7 +30,7 @@ function apt_add_repo() {
   local package_name=""
 
   OPTIND=1
-  while getopts "a:c:f:n:S:u:" opt; do
+  while getopts "a:c:f:n:s:u:" opt; do
     case ${opt} in
       a)
         args="${OPTARG}"
@@ -44,7 +44,7 @@ function apt_add_repo() {
       f)
         forced=${OPTARG}
         ;;
-      S)
+      s)
         as_root=${OPTARG}
         ;;
       u)
@@ -99,11 +99,11 @@ function apt_add_repo() {
   fi
 
   if $is_update; then
-    apt_update -S $as_root
+    apt_update -s $as_root
     res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
   fi
 
-  pac_pre_install -f $forced -S $as_root -- "${package_name}" 'apt-add'
+  pac_pre_install -f $forced -s $as_root -- "${package_name}" 'apt-add'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   # Execute installation
@@ -119,7 +119,7 @@ function apt_add_repo() {
   fi
   is_wsl && restore_nameserver
 
-  pac_post_install -f $forced -S $as_root -- "${package_name}" 'apt-add'
+  pac_post_install -f $forced -s $as_root -- "${package_name}" 'apt-add'
   res=$?
   return $res
 }
@@ -135,7 +135,7 @@ function apt_install() {
   local package_name=""
 
   OPTIND=1
-  while getopts "a:c:f:n:S:u:" opt; do
+  while getopts "a:c:f:n:s:u:" opt; do
     case ${opt} in
       a)
         args="${OPTARG}"
@@ -149,7 +149,7 @@ function apt_install() {
       f)
         forced=${OPTARG}
         ;;
-      S)
+      s)
         as_root=${OPTARG}
         ;;
       u)
@@ -211,11 +211,11 @@ function apt_install() {
   local res=0
 
   if $is_update; then
-    apt_update -S $as_root
+    apt_update -s $as_root
     res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
   fi
 
-  pac_pre_install -f $forced -S $as_root -- "${package_name}" 'apt'
+  pac_pre_install -f $forced -s $as_root -- "${package_name}" 'apt'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   # Execute installation
@@ -227,7 +227,7 @@ function apt_install() {
     return $res
   fi
 
-  pac_post_install -f $forced -S $as_root -- "${package_name}" 'apt'
+  pac_post_install -f $forced -s $as_root -- "${package_name}" 'apt'
   res=$?
 
   return $res
@@ -238,9 +238,9 @@ function apt_update() {
   local as_root=false
 
   OPTIND=1
-  while getopts "S:" opt; do
+  while getopts "s:" opt; do
     case ${opt} in
-      S)
+      s)
         as_root=${OPTARG}
         ;;
       *)
@@ -280,12 +280,12 @@ function apt_upgrade() {
   local args=""
 
   OPTIND=1
-  while getopts "S:" opt; do
+  while getopts "s:" opt; do
     case ${opt} in
       a)
         args="${OPTARG}"
         ;;
-      S)
+      s)
         as_root=${OPTARG}
         ;;
       *)
@@ -327,7 +327,7 @@ function apt_purge() {
   local package_name=""
 
   OPTIND=1
-  while getopts "a:c:n:u:S:" opt; do
+  while getopts "a:c:n:u:s:" opt; do
     case ${opt} in
       a)
         args="${OPTARG}"
@@ -338,7 +338,7 @@ function apt_purge() {
       n)
         package_name="${OPTARG}"
         ;;
-      S)
+      s)
         as_root=${OPTARG}
         ;;
       *)

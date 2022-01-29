@@ -29,7 +29,7 @@ function pip_install() {
   local pip_version=""
 
   OPTIND=1
-  while getopts "a:c:f:gn:S:v:" opt; do
+  while getopts "a:c:f:gn:s:v:" opt; do
     case ${opt} in
       a)
         args="${OPTARG}"
@@ -46,7 +46,7 @@ function pip_install() {
       g)
         is_global=true
         ;;
-      S)
+      s)
         as_root=${OPTARG}
         ;;
       v)
@@ -105,7 +105,7 @@ function pip_install() {
     fi
   fi
 
-  pac_pre_install -f $forced -S $as_root -- "${package_name}" "pip${pip_version}"
+  pac_pre_install -f $forced -s $as_root -- "${package_name}" "pip${pip_version}"
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
   # Execute installation
@@ -127,7 +127,7 @@ function pip_install() {
     fi
   fi
 
-  pac_post_install -f $forced -S $as_root -- "${package_name}" "pip${pip_version}"
+  pac_post_install -f $forced -s $as_root -- "${package_name}" "pip${pip_version}"
   res=$?
 
   return $res

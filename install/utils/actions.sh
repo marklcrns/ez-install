@@ -237,7 +237,7 @@ function error() {
         depth=${OPTARG}
         ;;
       *)
-        echo "Invalid flag option(s)"
+        error "Invalid flag option(s)"
         exit $BASH_SYS_EX_USAGE
     esac
   done
