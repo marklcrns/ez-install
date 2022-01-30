@@ -12,13 +12,13 @@ fi
   || return 0
 
 
-source "$(dirname -- $(realpath -- "${BASH_SOURCE[0]}"))/../.ez-installrc"
+source "$(dirname -- $(realpath -- "${BASH_SOURCE[0]}"))/../../.ez-installrc"
 source "${EZ_INSTALL_HOME}/common/include.sh"
 
 include "${EZ_INSTALL_HOME}/common/colors.sh"
-include "${EZ_INSTALL_HOME}/install/const.sh"
+include "${EZ_INSTALL_HOME}/const.sh"
 include "${EZ_INSTALL_HOME}/install/common.sh"
-include "${EZ_INSTALL_HOME}/install/utils/actions.sh"
+include "${EZ_INSTALL_HOME}/actions.sh"
 
 
 function i_batch_generate_template() {
@@ -51,9 +51,9 @@ function i_batch_generate_template() {
   for package in ${packages[@]}; do
     warning "Generating ${package}"
     if $SKIP_GENERATE; then
-      ${EZ_DEP_EZ_GEN} -E -D "${package_root_dir}" -- "${package}"
+      ${EZ_COMMAND_GEN} -E -D "${package_root_dir}" -- "${package}"
     else
-      ${EZ_DEP_EZ_GEN} -i -D "${package_root_dir}" -- "${package}"
+      ${EZ_COMMAND_GEN} -i -D "${package_root_dir}" -- "${package}"
     fi
   done
 }
@@ -209,7 +209,7 @@ function i_generate_template_main() {
   ! ${VERBOSE}                  && ez_gen_args+=" -q"
   ${DEBUG}                      && ez_gen_args+=" -x"
 
-  ${EZ_DEP_EZ_GEN} -D "${package_root_dir}" -y ${ez_gen_args} -- "${package}"
+  ${EZ_COMMAND_GEN} -D "${package_root_dir}" -y ${ez_gen_args} -- "${package}"
 
   res=$?
   return $res
@@ -313,7 +313,7 @@ function i_generate_template_pre() {
   ! ${VERBOSE}                  && ez_gen_args+=" -q"
   ${DEBUG}                      && ez_gen_args+=" -x"
 
-  ${EZ_DEP_EZ_GEN} -D "${package_root_dir}" -pyM ${ez_gen_args} -- "${package}"
+  ${EZ_COMMAND_GEN} -D "${package_root_dir}" -pyM ${ez_gen_args} -- "${package}"
 
   res=$?
   return $res
@@ -417,7 +417,7 @@ function i_generate_template_post() {
   ! ${VERBOSE}                  && ez_gen_args+=" -q"
   ${DEBUG}                      && ez_gen_args+=" -x"
 
-  ${EZ_DEP_EZ_GEN} -D "${package_root_dir}" -PyM ${ez_gen_args} -- "${package}"
+  ${EZ_COMMAND_GEN} -D "${package_root_dir}" -PyM ${ez_gen_args} -- "${package}"
 
   res=$?
   return $res

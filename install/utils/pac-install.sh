@@ -11,10 +11,10 @@ fi
   && readonly PACKAGE_PACKAGE_INSTALL_SH_INCLUDED=1 \
   || return 0
 
-
+source "$(dirname -- $(realpath -- "${BASH_SOURCE[0]}"))/../../.ez-installrc"
 source "${EZ_INSTALL_HOME}/common/include.sh"
 
-include "${EZ_INSTALL_HOME}/install/const.sh"
+include "${EZ_INSTALL_HOME}/const.sh"
 include "${EZ_INSTALL_HOME}/install/common.sh"
 include "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 include "${EZ_INSTALL_HOME}/install/utils/progress-bar.sh"
@@ -72,10 +72,10 @@ function pac_json_install() {
   fi
 
   local package="${1}"
-  is_json_property_null "${package}" && return $BASH_EX_OK
+  has_json_prop_val "${package}" && return $BASH_EX_OK
 
   local package_path="$(echo ${package} | ${EZ_DEP_JQ} -crM ".path")"
-  is_json_property_null "${package_path}" && return $BASH_EX_OK
+  has_json_prop_val "${package_path}" && return $BASH_EX_OK
 
   local package_name="$(echo ${package} | ${EZ_DEP_JQ} -crM ".name")"
   local as_root=$(echo ${package} | ${EZ_DEP_JQ} -crM ".as_root")
@@ -91,7 +91,7 @@ function pac_json_install() {
     # Recursive dependency install
     for ((_i=0; _i<${dependencies_ct}; ++_i)); do
       dependencies="$(echo ${package} | ${EZ_DEP_JQ} -crM ".dependencies[${_i}]")"
-      if ! is_json_property_null "${dependencies}"; then
+      if ! has_json_prop_val "${dependencies}"; then
         sub_package="$(echo "${dependencies}" | ${EZ_DEP_JQ} -crM ".package")"
         pac_json_install ${sub_package}
         res=$?
@@ -100,7 +100,7 @@ function pac_json_install() {
     done
   else
     dependencies="$(echo ${package} | ${EZ_DEP_JQ} -crM ".dependencies")"
-    if ! is_json_property_null "${dependencies}"; then
+    if ! has_json_prop_val "${dependencies}"; then
       sub_package="$(echo "${dependencies}" | ${EZ_DEP_JQ} -crM ".package")"
       pac_json_install ${sub_package}
       res=$?
@@ -184,7 +184,7 @@ function pac_install() {
 
   # Install dependencies
   if $recursive; then
-    local tmp="$(${EZ_DEP_METADATA_PARSER} "dependency" "${package_path}")"
+    local tmp="$(${EZ_INSTALL_METADATA_PARSER} "dependency" "${package_path}")"
     local -a package_dependencies=( ${tmp//,/ } )
 
     for dependency in ${package_dependencies[@]}; do
@@ -444,7 +444,7 @@ function pac_post_install() {
 }
 
 
-function is_json_property_null() {
+function has_json_prop_val() {
   if [[ -z "${1+x}" ]]; then
     error "${BASH_SYS_MSG_USAGE_MISSARG}"
     return $BASH_SYS_EX_USAGE

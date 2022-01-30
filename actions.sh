@@ -14,7 +14,7 @@
 #
 ################################################################################
 # Author : Mark Lucernas <https://github.com/marklcrns>
-# Date   : 2020-08-13
+# Date   : 2022-01-29
 ################################################################################
 
 
@@ -30,12 +30,12 @@ fi
   || return 0
 
 
-source "$(dirname -- $(realpath -- "${BASH_SOURCE[0]}"))/../../.ez-installrc"
+source "$(dirname -- $(realpath -- "${BASH_SOURCE[0]}"))/.ez-installrc"
 source "${EZ_INSTALL_HOME}/common/include.sh"
 
 include "${EZ_INSTALL_HOME}/common/log.sh"
 include "${EZ_INSTALL_HOME}/common/string.sh"
-include "${EZ_INSTALL_HOME}/install/const.sh"
+include "${EZ_INSTALL_HOME}/const.sh"
 
 
 function info()    { _action -l 'info' "${@}"; }

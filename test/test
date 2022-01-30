@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Source install utility functions
-source "${BASH_SOURCE%/*}/install/install.sh"
+source "${BASH_SOURCE%/*}/install/install-utils/install.sh"
 source "${BASH_SOURCE%/*}/install/pac-logger.sh"
 
 VERBOSE=true

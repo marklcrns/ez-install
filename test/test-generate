@@ -3,9 +3,9 @@
 source "${BASH_SOURCE%/*}/../.ez-installrc"
 source "${BASH_SOURCE%/*}/../common/include.sh"
 
-include "${BASH_SOURCE%/*}/../install/const.sh"
+include "${BASH_SOURCE%/*}/../const.sh"
 include "${BASH_SOURCE%/*}/../install/common.sh"
-include "${BASH_SOURCE%/*}/../generate/generate.sh"
+include "${BASH_SOURCE%/*}/../generate/utils/generate.sh"
 
 VERBOSE=true
 DEBUG=true

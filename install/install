@@ -1,0 +1,352 @@
+#!/usr/bin/env bash
+
+set -o pipefail
+set -o nounset
+
+source "$(dirname -- $(realpath -- "${BASH_SOURCE[0]}"))/../.ez-installrc"
+source "${EZ_INSTALL_HOME}/common/include.sh"
+
+###################################################### EXTERNAL DEPENDENCIES ###
+
+include "${EZ_INSTALL_HOME}/common/common.sh"
+include "${EZ_INSTALL_HOME}/common/array.sh"
+include "${EZ_INSTALL_HOME}/common/sys.sh"
+include "${EZ_INSTALL_HOME}/const.sh"
+include "${EZ_INSTALL_HOME}/actions.sh"
+include "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
+include "${EZ_INSTALL_HOME}/install/utils/pac-transform.sh"
+include "${EZ_INSTALL_HOME}/install/utils/pac-validate.sh"
+include "${EZ_INSTALL_HOME}/install/utils/pac-install.sh"
+include "${EZ_INSTALL_HOME}/install/install-utils/install.sh"
+include "${EZ_INSTALL_HOME}/install/common.sh"
+include "${EZ_INSTALL_HOME}/generate/utils/generate.sh"
+
+################################################## CONSTANT GLOBAL VARIABLES ###
+
+readonly EZ_INSTALL_VERSION="0.3 BETA"
+readonly SCRIPT_ARGS="${@}"
+
+############################################################### FLAG OPTIONS ###
+
+
+# TODO: Separate manual from usage. Also, auto generate exit codes.
+function usage() {
+  cat << EOF
+${SCRIPT_NAME} ${EZ_INSTALL_VERSION}
+
+COMMAND NAME:
+
+  ${SCRIPT_NAME} - Ez package installer.
+
+INSTALL USAGE:
+
+  ez ${SCRIPT_NAME} [options] package1 package2 ...
+
+INSTALL OPTIONS:
+
+  Flag option with arguments
+
+    --package-dir   -D    Directory to search packages from.
+                          Global default=\$PACKAGE_ROOT_DIR.
+                          Local default=\$LOCAL_PACKAGE_ROOT_DIR.
+    --destination   -o    Package output directory (for curl, wget, etc.).
+                          default=\$HOME/Downloads.
+
+  Flag option switches
+
+    --generate         -c    Generate package(s) instead of install.
+    --force            -f    Force install/reinstall packages.
+    --no-force         -F    Do not force install/reinstall packages.
+    --recurse          -r    Recursively install package dependencies.
+    --no-recurse       -R    Prevent recursive package dependency installation.
+    --as-root          -s    Run package manager as root (sudo).
+    --no-root          -S    Prevent running package manager as root (sudo).
+    --allow-dep-fail   -w    Continue root package installation on dependency
+                             failure.
+    --no-dep-fail      -W    Do not allow package installation dependency
+                             failure.
+
+    --skip-generate    -C    Skip auto generate prompt. When used with -c,
+                             --generate, generate non-interactive base template.
+    --json             -j    Parse package data as json.
+    --quiet            -q    Suppress standard output. LOG_DEBUG_LEVEL=3.
+    --debug            -x    Debug mode (print all log levels). LOG_DEBUG_LEVEL=7.
+    --skip-confirm     -y    Skip confirmation.
+    --no-colors        -z    Disable output colors.
+    --help             -h    Print usage.
+    --version          -V    Print install version.
+
+INSTALL IN-LINE OPTIONS:
+
+  #force          Force package installation.
+  #noforce        Do not force package installation.
+  #root           Give package installation root privileges.
+  #noroot         Give no package installation root privileges.
+  #dep            Install package recursively.
+  #nodep          Do not install package dependencies.
+  #allowdepfail   Allow package dependency installation failure.
+  #nodepfail      Do not allow package dependency installation failure.
+
+  In-line options \`#opt\` supercedes the flag options but only for the specific
+  package.
+
+  e.g., \`ez $SCRIPT_NAME -S package1#noroot package2 package3\` will try to install
+  all packages with root privileges except \`package1\`
+
+  e.g., \`ez $SCRIPT_NAME package1#root package2#nodep package3#root,nodep\` will try
+  to install \`package1\` as root, \`package2\` without its dependencies, and
+  \`package3\` as root and without its dependencies.
+
+INSTALL HOOKS:
+
+  Pre Installation
+
+    \`${SCRIPT_NAME}\` will automatically try to source <package>.pre first then
+    <package>.<package_manager>.pre from either \$LOCAL_PACKAGE_ROOT_DIR and
+    \$PACKAGE_ROOT_DIR before package installation. \$LOCAL_PACKAGE_DIR priority.
+    Best place to download dependencies or executing pre installation commands.
+
+  Post Installation
+
+    \`${SCRIPT_NAME}\` will automatically try to source <package>.post first then
+    <package>.<package_manager>.post from either \$LOCAL_PACKAGE_ROOT_DIR and
+    \$PACKAGE_ROOT_DIR after package installation. \$LOCAL_PACKAGE_DIR priority.
+    Best place for cleaning up files or executing post installation commands.
+
+EOF
+}
+
+
+function handle_args() {
+  local arg=
+  for arg in ${@}; do
+    local delim=""
+    case "${arg}" in
+      # translate --gnu-long-options to -g (short options)
+      --package-dir)    args="${args:-}-D ";;
+      --generate)       args="${args:-}-c ";;
+      --skip-generate)  args="${args:-}-C ";;
+      --json)           args="${args:-}-j ";;
+      --destination)    args="${args:-}-o ";;
+      --quiet)          args="${args:-}-q ";;
+      --force)          args="${args:-}-f ";;
+      --no-force)       args="${args:-}-F ";;
+      --recurse)        args="${args:-}-r ";;
+      --no-recurse)     args="${args:-}-R ";;
+      --as-root)        args="${args:-}-s ";;
+      --no-root)        args="${args:-}-S ";;
+      --allow-dep-fail) args="${args:-}-w ";;
+      --no-dep-fail)    args="${args:-}-W ";;
+      --version)        args="${args:-}-V ";;
+      --debug)          args="${args:-}-x ";;
+      --skip-confirm)   args="${args:-}-y ";;
+      --no-colors)      args="${args:-}-z ";;
+      --help)           args="${args:-}-h ";;
+      # pass through anything else
+      *)
+        [[ "${arg:0:1}" == "-" ]] || delim="\""
+        args="${args:-}${delim}${arg}${delim} "
+        ;;
+    esac
+  done
+
+  eval set -- ${args:-}
+
+  # Install configs
+  [[ -z "${SKIP_CONFIRM+x}" ]]    && SKIP_CONFIRM=false
+  [[ -z "${VERBOSE+x}" ]]         && VERBOSE=true
+  [[ -z "${DEBUG+x}" ]]           && DEBUG=false
+  [[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=4
+  [[ -z "${ENABLE_COLORS+x}" ]]   && ENABLE_COLORS=true
+  [[ -z "${SKIP_GENERATE+x}" ]]   && SKIP_GENERATE=false
+  [[ -z "${JSON+x}" ]]            && JSON=false
+  [[ -z "${GENERATE+x}" ]]        && GENERATE=false
+  [[ -z "${DESTINATION+x}" ]]     && DESTINATION="${HOME}/Downloads"
+
+  # Package configs
+  [[ -z "${FORCE+x}" ]]          && FORCE=false
+  [[ -z "${RECURSIVE+x}" ]]      && RECURSIVE=true
+  [[ -z "${AS_ROOT+x}" ]]        && AS_ROOT=false
+  [[ -z "${ALLOW_DEP_FAIL+x}" ]] && ALLOW_DEP_FAIL=false
+  CONFIG=""
+
+  OPTIND=1
+  while getopts "D:o:cCfFjqrRsSwWxyzhV" opt; do
+    case ${opt} in
+      D)
+        LOCAL_PACKAGE_ROOT_DIR="${OPTARG}"
+        ;;
+      o)
+        DESTINATION="${OPTARG}"
+        ;;
+      c)
+        GENERATE=true
+        ;;
+      C)
+        SKIP_GENERATE=true
+        ;;
+      j)
+        JSON=true
+        error "JSON data parsing is currently not supported"
+        exit $BASH_EX_GENERAL
+        ;;
+      q)
+        VERBOSE=false
+        LOG_DEBUG_LEVEL=3
+        ;;
+      f) FORCE=true;           CONFIG="${CONFIG} -${opt}" ;;
+      F) FORCE=false;          CONFIG="${CONFIG} -${opt}" ;;
+      r) RECURSIVE=true;       CONFIG="${CONFIG} -${opt}" ;;
+      R) RECURSIVE=false;      CONFIG="${CONFIG} -${opt}" ;;
+      s) AS_ROOT=true;         CONFIG="${CONFIG} -${opt}" ;;
+      S) AS_ROOT=false;        CONFIG="${CONFIG} -${opt}" ;;
+      w) ALLOW_DEP_FAIL=true;  CONFIG="${CONFIG} -${opt}" ;;
+      W) ALLOW_DEP_FAIL=false; CONFIG="${CONFIG} -${opt}" ;;
+      x)
+        DEBUG=true
+        LOG_DEBUG_LEVEL=7
+        ;;
+      y)
+        SKIP_CONFIRM=true
+        ;;
+      z)
+        ENABLE_COLORS=false
+        include "${EZ_INSTALL_HOME}/common/colors.sh"
+        ;;
+      h)
+        usage; exit $BASH_EX_OK
+        ;;
+      V)
+        echo "${SCRIPT_NAME} ${EZ_INSTALL_VERSION}"; exit $BASH_EX_OK
+        ;;
+      *)
+        usage
+        error "Invalid flag option(s)"
+        exit $BASH_SYS_EX_USAGE
+    esac
+  done
+  shift "$((OPTIND-1))"
+
+  if [[ -p /dev/stdin ]]; then
+    usage
+    error "Piped arguments not supported"
+    exit $BASH_SYS_EX_USAGE
+  fi
+
+  if [[ ! -t 0 && ! -p /dev/stdin ]]; then
+    usage
+    error "Stdin redirection not supported"
+    exit $BASH_SYS_EX_USAGE
+  fi
+
+  # Arguments from terminal
+  if [[ -t 0 ]]; then
+    if [[ -n "${@+x}" ]]; then
+      IFS=" " read -a PACKAGES <<< "${@}"
+    else
+      usage
+      error "No package(s) provided"
+      exit $BASH_SYS_EX_USAGE
+    fi
+  fi
+
+  local res=0
+
+  if [[ ! -d "${DESTINATION}" ]]; then
+    if execlog "mkdir -p '${DESTINATION}'"; then
+      ok "'${DESTINATION}' directory created"
+    else
+      res=$?
+      error "'${DESTINATION}' creation failed"
+      exit $BASH_SYS_EX_CANTCREAT
+    fi
+  fi
+
+  resolve_package_dir
+
+  return $BASH_EX_OK
+}
+
+############################################################# MAIN EXECUTION ###
+
+function _ctrl_c() {
+  echo ""
+  pac_report
+  log 'error' "$(basename -- "${BASH_SOURCE[1]}").${FUNCNAME[1]}(): Interrupted!" $BASH_EX_TERMCTRLC
+}
+
+
+function _main () {
+  local res=0
+
+  script_vars
+  handle_args "${SCRIPT_ARGS}"
+  res=$?
+  [[ $res -ne $BASH_EX_OK ]] && return $res
+
+  # Set up trap
+  if "${DEBUG}"; then
+    trap _ctrl_c INT TERM
+  fi
+
+  local -a packages=( ${PACKAGES[@]} )
+  array_unique packages
+
+  if $GENERATE; then
+    i_batch_generate_template ${packages[@]}
+  else
+    ! ${DEBUG} && echo -e "About to install the following packages:\n"
+
+    # TODO: Fully support json configs
+    if ! $JSON; then
+      validate_packages ${CONFIG} -- ${packages[@]}
+      res=$?; [[ ${res} -ne $BASH_EX_OK ]] && return $res
+
+      $DEBUG && $VERBOSE && echo "Jsonifying..."
+      pac_array_jsonify ${CONFIG} -- packages
+    fi
+
+    if $DEBUG && $VERBOSE || $JSON; then
+      for package in ${packages[@]}; do
+        echo "${package}" | ${EZ_DEP_JQ} -r ".package"
+      done
+    fi
+
+    confirm "\nYou are about to install the package(s) above. Continue? (Y/y): " \
+      || exit $BASH_EX_GENERAL
+
+    warning "Installation in progress... Do not interrupt!"
+
+    pac_batch_json_install "${packages[@]}"
+    res=$?; [[ $res -ne $BASH_EX_OK ]] && exit $res
+
+    [[ -n "${packages+x}" ]] && pac_report
+  fi
+
+  finish "Finished!"
+  return $BASH_EX_OK
+}
+
+
+res=0
+_main
+res=$?
+
+unset DOWNLOADS_DIR
+unset SKIP_CONFIRM
+unset VERBOSE
+unset DEBUG
+unset LOG_DEBUG_LEVEL
+unset ENABLE_COLORS
+unset GENERATE
+unset ALLOW_DEP_FAIL
+unset FORCE
+unset RECURSIVE
+unset AS_ROOT
+unset SKIP_GENERATE
+unset JSON
+unset DESTINATION
+unset PACKAGE_DIR
+unset PACKAGES
+
+exit $res

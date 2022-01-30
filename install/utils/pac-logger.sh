@@ -11,13 +11,13 @@ fi
   && readonly UTILS_PAC_LOGGER_SH_INCLUDED=1 \
   || return 0
 
-
+source "$(dirname -- $(realpath -- "${BASH_SOURCE[0]}"))/../../.ez-installrc"
 source "${EZ_INSTALL_HOME}/common/include.sh"
 
 include "${EZ_INSTALL_HOME}/common/colors.sh"
 include "${EZ_INSTALL_HOME}/common/string.sh"
-include "${EZ_INSTALL_HOME}/install/const.sh"
-include "${EZ_INSTALL_HOME}/install/utils/actions.sh"
+include "${EZ_INSTALL_HOME}/const.sh"
+include "${EZ_INSTALL_HOME}/actions.sh"
 
 
 [[ -z "${SUCCESSFUL_PACKAGES+x}" ]] && declare -a SUCCESSFUL_PACKAGES=()

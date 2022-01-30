@@ -18,7 +18,7 @@ Bash scripting knowledge.
   * [In-line Options](#in-line-options)
   * [Reporting](#reporting)
 * [Config](#config)
-* [Pre and Post Installation](#pre-and-post-installation)
+* [Pre and Post Installation Hooks](#pre-and-post-installation-hooks)
 * [Package Generator](#package-generator)
   * [Simple Package Generator Usage](#simple-package-generator-usage)
   * [Advanced Package Generator Usage](#advanced-package-generator-usage)
@@ -48,10 +48,8 @@ included in `$PATH` e.g., `/usr/local/bin`.
 ```bash
 mkdir -p $INSTALL_DIR
 ln -s ~/.ez-install/ez $INSTALL_DIR
-ln -s ~/.ez-install/generate/ez-gen $INSTALL_DIR
 
 # or simply run from root dir (will install in /usr/local/bin/)
-
 make
 ```
 
@@ -69,18 +67,19 @@ export EZ_INSTALL_HOME="${HOME}/.ez-install"
 ## Usage
 
 ```bash
-ez [options] package1 package2 package3 ...
+ez install [options] package1 package2 package3 ...
+ez gen [options] package
 ```
 
 ![Main Demo](./demo/ez_demo.gif)
 ![Dependency Demo](./demo/ez_dep_demo.gif)
 
-See `ez -h` for more on options.
+See `ez -h` for more on usage.
 
 ### In-line Options
 
 ```
-IN-LINE OPTIONS:
+INSTALL IN-LINE OPTIONS:
 
   #force          Force package installation.
   #noforce        Do not force package installation.
@@ -94,10 +93,10 @@ IN-LINE OPTIONS:
   In-line options `#opt` supercedes the flag options but only for the specific
   package.
 
-  e.g., `ez -S package1#noroot package2 package3` will try to install
+  e.g., `ez install -S package1#noroot package2 package3` will try to install
   all packages with root privileges except `package1`
 
-  e.g., `ez package1#root package2#nodep package3#root,nodep` will try
+  e.g., `ez install package1#root package2#nodep package3#root,nodep` will try
   to install `package1` as root, `package2` without its dependencies, and
   `package3` as root and without its dependencies.
 ```
@@ -121,45 +120,48 @@ For full list of exit codes, run `ez -h`.
 All custom packages, by default, are located in `~/.ez-install.d` and local rc
 file in `~/.ez-installrc`
 
-`ez` should install local custom packages over the global ones if existing. Same
-for the package's `.pre` and `.post` installations.
+`ez install` should install local custom packages over the global ones if
+existing. Same for the package hook `.pre` and `.post` installations.
 
 | Global Variable           | Description                                                    |
 |---------------------------|----------------------------------------------------------------|
 | `$LOCAL_PACKAGE_ROOT_DIR` | Local package directory. default=`$EZ_INSTALL_HOME/packages`   |
 | `$LOG_SYSLOG`             | Enables system logging using built-in `logger`. default=`true` |
 | `$LOG_FILELOG`            | Enables file logging `logger`. default=`true`                  |
-| `$EZ_DOWNLOADS_DIR`       | Default output directory. default=`$HOME/Downloads`              |
-| `$EZ_EDITOR`              | Default editor for `ez-gen`. default=`$EDITOR`                   |
+| `$EZ_DOWNLOADS_DIR`       | Default output directory. default=`$HOME/Downloads`            |
+| `$EZ_EDITOR`              | Default editor for `gen`. default=`$EDITOR`                    |
 
-> `$LOG_FILELOG` output can be found in `/tmp/%path%to%<INSTALL_DIR>%ez.log` for
-> `ez` or `/tmp/%path%to%<INSTALL_DIR>%ez-gen.log` for `ez-gen`
+> `$LOG_FILELOG` output can be found in
+> `/tmp/%path%to%<INSTALL_DIR>%install%ez.log` for `ez install` or
+> `/tmp/%path%to%<INSTALL_DIR>%gen%gen.log` for `ez gen`
 
-## Pre and Post Installation
+## Pre and Post Installation Hooks
 
 ```bash
-PRE INSTALLATION
+INSTALL HOOKS:
 
-  ez will automatically try to source <package>.pre first then <package>.<package_manager>.pre
-  from either $LOCAL_PACKAGE_ROOT_DIR and $PACKAGE_ROOT_DIR before package installation.
-  $LOCAL_PACKAGE_DIR priority. Best place to download dependencies or executing
-  pre installation commands.
+  Pre Installation
 
-POST INSTALLATION
+    `install` will automatically try to source <package>.pre first then
+    <package>.<package_manager>.pre from either $LOCAL_PACKAGE_ROOT_DIR and
+    $PACKAGE_ROOT_DIR before package installation. $LOCAL_PACKAGE_DIR priority.
+    Best place to download dependencies or executing pre installation commands.
 
-  ez will automatically try to source <package>.post first then <package>.<package_manager>.post
-  from either $LOCAL_PACKAGE_ROOT_DIR and $PACKAGE_ROOT_DIR after package installation.
-  $LOCAL_PACKAGE_DIR priority. Best place for cleaning up files or executing
-  post installation commands.
+  Post Installation
+
+    `install` will automatically try to source <package>.post first then
+    <package>.<package_manager>.post from either $LOCAL_PACKAGE_ROOT_DIR and
+    $PACKAGE_ROOT_DIR after package installation. $LOCAL_PACKAGE_DIR priority.
+    Best place for cleaning up files or executing post installation commands.
 ```
 
 ## Package Generator
 
-`ez-gen` makes it easy to create your own custom package installer. Although
+`ez gen` makes it easy to create your own custom package installer. Although
 package templates are purely written in Bash scripts, it only require little to
 no knowledge of bash.
 
-For more options, run `ez-gen -h`.
+For more options, run `ez gen -h`.
 
 See sample packages
 [here](https://github.com/marklcrns/ez-install/tree/main/generate/packages/ubuntu/20.04).
@@ -167,7 +169,7 @@ See sample packages
 ### Simple Package Generator Usage
 
 ```bash
-ez-gen -m apt git
+ez gen -m apt git
 ```
 
 Will generate
@@ -182,7 +184,7 @@ Then run `ez git.apt` to install the generated package
 ### Advanced Package Generator Usage
 
 ```bash
-ez-gen -m apt -d git git-lfs
+ez gen -m apt -d git git-lfs
 ```
 
 Will generate
@@ -199,15 +201,15 @@ feature runs `<package>.<package-manager>.pre` before the main package
 installation and then runs `<package>.<package-manager>.post` after.
 
 In our case, we need to add `git lfs install` in `git.apt.post` which we can
-generate with `ez-gen` as well
+generate with `gen` as well
 
 ```bash
-ez-gen -m apt -PS git-lfs
+ez gen -m apt -PS git-lfs
 ```
 
 Here, the `-P` flag tells it to generate a post package installation template
 and the `-S` flag to skip the main package installation since its already
-existing. Run `ez-gen -h` for more options.
+existing. Run `ez gen -h` for more options.
 
 Then open
 `$LOCAL_PACKAGE_ROOT_DIR/<OS_DISTRIB_ID>/<OS_DISTRIB_RELEASE>/git-lfs.apt.post`
@@ -219,12 +221,12 @@ Finally, run `ez git-lfs` and it will try to install `git` first, including its
 ### Sample Package Geneartor Usage For `git`, `curl`, and `wget`
 
 ```bash
-ez-gen -m git -a '--depth=1' -n fzf -o '~/.fzf' 'https://github.com/junegunn/fzf.git'
-ez-gen -e -m curl -d zsh -n oh-my-zsh 'https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh'
-ez-gen -e -m wget -d zsh -n oh-my-zsh 'https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh'
+ez gen -m git -a '--depth=1' -n fzf -o '~/.fzf' 'https://github.com/junegunn/fzf.git'
+ez gen -e -m curl -d zsh -n oh-my-zsh 'https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh'
+ez gen -e -m wget -d zsh -n oh-my-zsh 'https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh'
 ```
 
-See `ez-gen -h` for more on options.
+See `ez gen -h` for more on options.
 
 ### More Advanced Package Generator Usage
 
@@ -233,9 +235,9 @@ dotfiles](https://github.com/marklcrns/scripts/tree/master/tools/dotfiles) with
 package dependencies.
 
 ```bash
-ez-gen -d 'yarn,neovim,git-lfs' my-dotfiles
+ez gen -d 'yarn,neovim,git-lfs' my-dotfiles
 # or with escaped spaces between
-ez-gen -d 'yarn,\ neovim,\ git-lfs' my-dotfiles
+ez gen -d 'yarn,\ neovim,\ git-lfs' my-dotfiles
 ```
 
 Will generate
@@ -264,7 +266,7 @@ function _main() {
 Finally, to install `my-dotfiles`, simply run
 
 ```bash
-ez my-dotfiles
+ez install my-dotfiles
 ```
 
 The installation need to successfully install `yarn`, `neovim`, and `git-lfs`
@@ -274,22 +276,22 @@ first before proceeding to the `_main()` function above.
 `my-dotfiles#nodep` [in-line option](#in-line-options)
 
 > NOTE: [`.pre` and `.post`](#pre-and-post-installation) can also be used. See
-`ez-gen -h` for more on options
+`ez gen -h` for more on options
 
 ### Interactive Package Generator
 
-![Interactive Demo](./demo/ez-gen_demo.gif)
+![Interactive Demo](./demo/gen_demo.gif)
 
 ```bash
 # Optional package argument
-ez-gen -i [package]
+ez gen -i [package]
 
 # Will enter interactive mode but fill package name with 'test' automatically
-ez-gen -i test
+ez gen -i test
 
 # Will enter interactive mode but fill package name with 'test' and package
 # manager with 'apt' automatically
-ez-gen -i test.apt
+ez gen -i test.apt
 ```
 
 ## Built-in Install Functions
@@ -433,7 +435,7 @@ package manager. Only used for package existence checking and reporting.
 
 ## Contributing
 
-Anyone can contribute to share their tested packages installers using [`ez-gen
+Anyone can contribute to share their tested packages installers using [`gen
 --global`](#package-generator) and the [Built-in Install
 Functions](#built-in-install-functions) by issuing a PR.
 

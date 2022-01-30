@@ -14,8 +14,8 @@ fi
 
 source "${EZ_INSTALL_HOME}/common/include.sh"
 
-include "${EZ_INSTALL_HOME}/install/const.sh"
-include "${EZ_INSTALL_HOME}/install/utils/actions.sh"
+include "${EZ_INSTALL_HOME}/const.sh"
+include "${EZ_INSTALL_HOME}/actions.sh"
 include "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 
 

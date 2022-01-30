@@ -11,6 +11,7 @@ fi
   && readonly UTILS_PROGRESS_BAR_SH_INCLUDED=1 \
   || return 0
 
+source "$(dirname -- $(realpath -- "${BASH_SOURCE[0]}"))/../../.ez-installrc"
 source "${EZ_INSTALL_HOME}/common/include.sh"
 
 include "${EZ_INSTALL_HOME}/common/colors.sh"

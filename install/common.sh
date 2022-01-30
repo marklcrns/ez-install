@@ -17,8 +17,8 @@ source "${EZ_INSTALL_HOME}/common/include.sh"
 include "${EZ_INSTALL_HOME}/common/sys.sh"
 include "${EZ_INSTALL_HOME}/common/colors.sh"
 include "${EZ_INSTALL_HOME}/common/log.sh"
-include "${EZ_INSTALL_HOME}/install/const.sh"
-include "${EZ_INSTALL_HOME}/install/install.sh"
+include "${EZ_INSTALL_HOME}/const.sh"
+include "${EZ_INSTALL_HOME}/install/install-utils/install.sh"
 
 
 function resolve_package_dir() {
@@ -177,7 +177,7 @@ function has_alternate_package() {
   if ! $SKIP_GENERATE; then
     ! $DEBUG && printf "\n"
     warning "Generating ${package}"
-    ${EZ_DEP_EZ_GEN} -i ${package}
+    ${EZ_COMMAND_GEN} -i ${package}
     res=$?
     [[ $res -eq $BASH_EX_OK ]] && return $BASH_EZ_EX_PAC_GENERATED || return $res
   fi

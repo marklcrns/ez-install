@@ -9,10 +9,10 @@ source "${EZ_INSTALL_HOME}/common/include.sh"
 ###################################################### EXTERNAL DEPENDENCIES ###
 
 include "${EZ_INSTALL_HOME}/common/common.sh"
-include "${EZ_INSTALL_HOME}/generate/generate.sh"
+include "${EZ_INSTALL_HOME}/generate/utils/generate.sh"
 include "${EZ_INSTALL_HOME}/install/common.sh"
-include "${EZ_INSTALL_HOME}/install/const.sh"
-include "${EZ_INSTALL_HOME}/install/utils/actions.sh"
+include "${EZ_INSTALL_HOME}/const.sh"
+include "${EZ_INSTALL_HOME}/actions.sh"
 
 ################################################## CONSTANT GLOBAL VARIABLES ###
 
@@ -27,15 +27,15 @@ function usage() {
 cat <<- EOF
 ${SCRIPT_NAME} ${EZ_GEN_VERSION}
 
-NAME:
+COMMAND NAME:
 
-  ez-gen - package generator for ez-install, a universal Bash package installer.
+  ${SCRIPT_NAME} - Ez package generator.
 
-USAGE:
+GEN USAGE:
 
-  ${SCRIPT_NAME} [options] package
+  ez ${SCRIPT_NAME} [options] package
 
-OPTIONS:
+GEN OPTIONS:
 
   Flag option with arguments
 
@@ -70,7 +70,7 @@ OPTIONS:
     --skip-confirm     -y    Skip confirmation.
     --no-colors        -z    Disable output colors.
     --help             -h    Print usage.
-    --version          -V    Print ez-gen version.
+    --version          -V    Print gen version.
 
 EOF
 }
@@ -214,7 +214,7 @@ function handle_args() {
         usage; exit 0
         ;;
       V)
-        echo "${SCRIPT_NAME} ${VERSION}"; exit $BASH_EX_OK
+        echo "${SCRIPT_NAME} ${EZ_GEN_VERSION}"; exit $BASH_EX_OK
         ;;
       *)
         usage
@@ -343,7 +343,7 @@ function generate_template_main() {
   if execlog "echo -n '' > '${file_path}' && chmod +x '${file_path}'"; then
     while IFS= read -r line; do
       eval "echo \"${line}\" >> '${file_path}'"
-    done < "${EZ_INSTALL_HOME}/generate/pac_template.txt"
+    done < "${EZ_INSTALL_HOME}/generate/utils/pac_template.txt"
     res=$?
   else
     error "${file_path} package creation failed!"
@@ -370,7 +370,7 @@ function generate_template_pre() {
   if execlog "echo -n '' > '${file_path}' && chmod +x '${file_path}'"; then
     while IFS= read -r line; do
       eval "echo \"${line}\" >> '${file_path}'"
-    done < "${EZ_INSTALL_HOME}/generate/pac_pre_template.txt"
+    done < "${EZ_INSTALL_HOME}/generate/utils/pac_pre_template.txt"
     res=$?
   else
     error "${file_path} package creation failed!"
@@ -397,7 +397,7 @@ function generate_template_post() {
   if execlog "echo -n '' > '${file_path}' && chmod +x '${file_path}'"; then
     while IFS= read -r line; do
       eval "echo \"${line}\" >> '${file_path}'"
-    done < "${EZ_INSTALL_HOME}/generate/pac_post_template.txt"
+    done < "${EZ_INSTALL_HOME}/generate/utils/pac_post_template.txt"
     res=$?
   else
     error "${file_path} package creation failed!"

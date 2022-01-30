@@ -10,10 +10,10 @@ set -o nounset
 source "$(dirname -- $(realpath -- "${BASH_SOURCE[0]}"))/../.ez-installrc"
 source "${EZ_INSTALL_HOME}/common/include.sh"
 
-include "${EZ_INSTALL_HOME}/install/const.sh"
+include "${EZ_INSTALL_HOME}/const.sh"
 include "${EZ_INSTALL_HOME}/install/common.sh"
-include "${EZ_INSTALL_HOME}/install/install.sh"
-include "${EZ_INSTALL_HOME}/install/pac-install.sh"
+include "${EZ_INSTALL_HOME}/install/install-utils/install.sh"
+include "${EZ_INSTALL_HOME}/install/utils/pac-install.sh"
 include "${EZ_INSTALL_HOME}/common/sys.sh"
 
 [[ -z "${RUN_AS_SU+x}" ]] && RUN_AS_SU=false

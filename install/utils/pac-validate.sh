@@ -16,7 +16,7 @@ source "${EZ_INSTALL_HOME}/common/include.sh"
 
 include "${EZ_INSTALL_HOME}/common/colors.sh"
 include "${EZ_INSTALL_HOME}/common/log.sh"
-include "${EZ_INSTALL_HOME}/install/const.sh"
+include "${EZ_INSTALL_HOME}/const.sh"
 include "${EZ_INSTALL_HOME}/install/common.sh"
 
 
@@ -93,7 +93,7 @@ function validate_package() {
   res=$?
 
   # Package default config
-  [[ -z "${as_root}" ]]   && as_root="$(${EZ_DEP_METADATA_PARSER} "as-root" "${package_path}")"
+  [[ -z "${as_root}" ]]   && as_root="$(${EZ_INSTALL_METADATA_PARSER} "as-root" "${package_path}")"
 
   # Global default config
   [[ -z "${force}" ]]          && force=$FORCE
@@ -169,7 +169,7 @@ function _validate_dependencies() {
   _res=$?
 
   # Package default configs
-  [[ -z "${as_root}" ]]   && as_root="$(${EZ_DEP_METADATA_PARSER} "as-root" "${_package_path}")"
+  [[ -z "${as_root}" ]]   && as_root="$(${EZ_INSTALL_METADATA_PARSER} "as-root" "${_package_path}")"
 
   # Global default configs
   [[ -z "${force}" ]]          && force=$FORCE
@@ -204,7 +204,7 @@ function _validate_dependencies() {
     ! $DEBUG && printf "\n"
   fi
 
-  local _tmp="$(${EZ_DEP_METADATA_PARSER} "dependency" "${_package_path}")"
+  local _tmp="$(${EZ_INSTALL_METADATA_PARSER} "dependency" "${_package_path}")"
   local -a _package_dependencies=( ${_tmp//,/ } )
   local _has_missing=false
   local _next_indent=""
