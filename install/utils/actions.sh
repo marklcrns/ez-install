@@ -74,7 +74,7 @@ function _action() {
   [[ -n "${2+x}" ]] && exit_code=${2}
   depth=$(($depth+1))   # offset wrapper functions
 
-  if ${VERBOSE}; then
+  if ${DEBUG}; then
     log "${log}" "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}():${BASH_LINENO[${depth}-1]} ${message}"
   else
     log "${log}" "${message}"
@@ -110,7 +110,7 @@ function execlog() {
   local output=""
   local res=0
 
-  if ${VERBOSE} && ${DEBUG}; then
+  if ${DEBUG}; then
     log 'debug' "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}():${BASH_LINENO[${depth}-1]} ${command}"
   else
     log 'debug' "${command}"
