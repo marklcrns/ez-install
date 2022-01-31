@@ -9,6 +9,7 @@ source "${EZ_INSTALL_HOME}/common/include.sh"
 ###################################################### EXTERNAL DEPENDENCIES ###
 
 include "${EZ_INSTALL_HOME}/common/common.sh"
+include "${EZ_INSTALL_HOME}/common/array.sh"
 include "${EZ_INSTALL_HOME}/generate/utils/generate.sh"
 include "${EZ_INSTALL_HOME}/install/common.sh"
 include "${EZ_INSTALL_HOME}/const.sh"
@@ -56,16 +57,20 @@ GEN OPTIONS:
   Flag option switches
 
     --execute          -e    Pipe package with \`| sh\` to execute. (for curl, wget).
-    --skip-edit        -E    Do not edit file(s) after generating.
-    --interactive      -i    Run interactive mode.
+    --no-execute       -E    Do not pipe package with \`| sh\` to execute. (for curl, wget).
+    --force            -f    Force package installation.
+    --no-force         -f    Do not force package installation.
     --pre              -p    Generate package pre installation.
     --post             -P    Generate package post installation.
-    --skip-main        -M    Skip main package generation. Requires --pre and/or
-                             --post flag(s) to be active.
     --update           -u    Update package manager repository before installation
                              (for apt, pkg, etc.).
-    --quiet            -q    Suppress standard output. LOG_DEBUG_LEVEL=3.
     --as_root          -s    Set package default privileges as root.
+    --no_root          -S    Do not set package default privileges as root.
+    --interactive      -i    Run interactive mode.
+    --skip-main        -M    Skip main package generation. Requires --pre and/or
+                             --post flag(s) to be active.
+    --quiet            -q    Suppress standard output. LOG_DEBUG_LEVEL=3.
+    --skip-edit        -t    Do not edit file(s) after generating.
     --debug            -x    Debug mode (print all log levels). LOG_DEBUG_LEVEL=7.
     --skip-confirm     -y    Skip confirmation.
     --no-colors        -z    Disable output colors.
@@ -86,10 +91,12 @@ function handle_args() {
       --dependency)       args="${args:-}-d ";;
       --package-dir)      args="${args:-}-D ";;
       --execute)          args="${args:-}-e ";;
+      --no-execute)       args="${args:-}-E ";;
+      --force)            args="${args:-}-f ";;
+      --no-force)         args="${args:-}-F ";;
       --package-manager)  args="${args:-}-m ";;
       --package-name)     args="${args:-}-n ";;
       --destination)      args="${args:-}-o ";;
-      --skip-edit)        args="${args:-}-E ";;
       --global)           args="${args:-}-G ";;
       --interactive)      args="${args:-}-i ";;
       --skip-main)        args="${args:-}-M ";;
@@ -97,7 +104,10 @@ function handle_args() {
       --post)             args="${args:-}-P ";;
       --quiet)            args="${args:-}-q ";;
       --as_root)          args="${args:-}-s ";;
+      --no_root)          args="${args:-}-S ";;
+      --skip-edit)        args="${args:-}-t ";;
       --update)           args="${args:-}-u ";;
+      --no-update)        args="${args:-}-U ";;
       --debug)            args="${args:-}-x ";;
       --skip-confirm)     args="${args:-}-y ";;
       --no-colors)        args="${args:-}-z ";;
@@ -125,7 +135,6 @@ function handle_args() {
   AUTHOR=""
   COMMAND_NAME=""
   DEPENDENCIES=""
-  FILE=""
   PACKAGE_MANAGER=""
   PACKAGE_NAME=""
   DESTINATION=""
@@ -135,77 +144,49 @@ function handle_args() {
   GENERATE_PRE=false
   GENERATE_POST=false
   AS_ROOT=false
+  ALLOW_DEP_FAIL=false
   SKIP_MAIN=false
   SKIP_EDIT=false
   EXECUTE=false
+  FORCE=false
   GLOBAL=false
   UPDATE=false
 
+  CONFIG=""
+
   OPTIND=1
-  while getopts "a:A:c:d:D:m:n:o:ipPeEuGqsMxyzhV" opt; do
+  while getopts "a:A:c:d:m:n:o:eEfFsSuUwWD:GiMpPtqxyzhV" opt; do
     case ${opt} in
-      a)
-        ARGS="${OPTARG}"
-        ;;
-      A)
-        AUTHOR="${OPTARG}"
-        ;;
-      c)
-        COMMAND_NAME="${OPTARG}"
-        ;;
-      d)
-        DEPENDENCIES="${OPTARG}"
-        ;;
-      D)
-        GEN_PACKAGE_ROOT_DIR="${OPTARG}"
-        ;;
-      m)
-        PACKAGE_MANAGER="$(echo "${OPTARG}" | awk '{print tolower($0)}')"
-        ;;
-      n)
-        PACKAGE_NAME="${OPTARG}"
-        ;;
-      o)
-        DESTINATION="${OPTARG}"
-        ;;
-      i)
-        INTERACTIVE=true
-        ;;
-      p)
-        GENERATE_PRE=true
-        ;;
-      P)
-        GENERATE_POST=true
-        ;;
-      e)
-        EXECUTE=true
-        ;;
-      E)
-        SKIP_EDIT=true
-        ;;
-      G)
-        GLOBAL=true
-        ;;
-      M)
-        SKIP_MAIN=true
-        ;;
-      q)
-        VERBOSE=false
-        LOG_DEBUG_LEVEL=3
-        ;;
-      s)
-        AS_ROOT=true
-        ;;
-      u)
-        UPDATE=true
-        ;;
-      x)
-        DEBUG=true
-        LOG_DEBUG_LEVEL=7
-        ;;
-      y)
-        SKIP_CONFIRM=true
-        ;;
+      # For single package
+      a) ARGS="${OPTARG}" ;;
+      c) COMMAND_NAME="${OPTARG}" ;;
+      d) DEPENDENCIES="${OPTARG}" ;;
+      n) PACKAGE_NAME="${OPTARG}" ;;
+      # Inherited by multiple packages
+      A) AUTHOR="${OPTARG}";          CONFIG="${CONFIG} -${opt} ${OPTARG}" ;;
+      m) PACKAGE_MANAGER="${OPTARG}"; CONFIG="${CONFIG} -${opt} ${OPTARG}" ;;
+      o) DESTINATION="${OPTARG}";     CONFIG="${CONFIG} -${opt} ${OPTARG}" ;;
+      # TODO: Add in-line package opts for flag switches
+      e) EXECUTE=true;                CONFIG="${CONFIG} -${opt}" ;;
+      E) EXECUTE=false;               CONFIG="${CONFIG} -${opt}" ;;
+      e) FORCE=true;                  CONFIG="${CONFIG} -${opt}" ;;
+      E) FORCE=false;                 CONFIG="${CONFIG} -${opt}" ;;
+      s) AS_ROOT=true;                CONFIG="${CONFIG} -${opt}" ;;
+      S) AS_ROOT=false;               CONFIG="${CONFIG} -${opt}" ;;
+      u) UPDATE=true;                 CONFIG="${CONFIG} -${opt}" ;;
+      U) UPDATE=false;                CONFIG="${CONFIG} -${opt}" ;;
+      w) ALLOW_DEP_FAIL=true;         CONFIG="${CONFIG} -${opt}" ;;
+      W) ALLOW_DEP_FAIL=false;        CONFIG="${CONFIG} -${opt}" ;;
+      D) GEN_PACKAGE_ROOT_DIR="${OPTARG}" ;;
+      G) GLOBAL=true ;;
+      i) INTERACTIVE=true ;;
+      M) SKIP_MAIN=true ;;
+      p) GENERATE_PRE=true ;;
+      P) GENERATE_POST=true ;;
+      t) SKIP_EDIT=true ;;
+      q) VERBOSE=false; LOG_DEBUG_LEVEL=3 ;;
+      x) DEBUG=true; LOG_DEBUG_LEVEL=7 ;;
+      y) SKIP_CONFIRM=true ;;
       z)
         ENABLE_COLORS=false
         include "${EZ_INSTALL_HOME}/common/colors.sh"
@@ -224,7 +205,7 @@ function handle_args() {
   done
   shift "$((OPTIND-1))"
 
-  if ! $INTERACTIVE && [[ -z "${1+x}" ]] && [[ "${PACKAGE_MANAGER}" != "local" ]]; then
+  if ! $INTERACTIVE && [[ -z "${@+x}" ]] && [[ "${PACKAGE_MANAGER}" != "local" ]]; then
     usage
     error "${BASH_SYS_MSG_USAGE_MISSARG}"
     exit $BASH_SYS_EX_USAGE
@@ -240,9 +221,17 @@ function handle_args() {
     fi
   fi
 
-  PACKAGE="${1:-${PACKAGE_NAME}}"
-  PACKAGE_NAME="${PACKAGE_NAME:-${PACKAGE}}"
-  FILE="${PACKAGE_NAME:-${PACKAGE}}"
+  # Arguments from terminal into $PACKAGES
+  if [[ -t 0 ]]; then
+    if [[ -n "${@+x}" ]]; then
+      IFS=" " read -a PACKAGES <<< "${@}"
+      readonly PACKAGES
+    else
+      usage
+      error "No package(s) provided"
+      exit $BASH_SYS_EX_USAGE
+    fi
+  fi
 
   if $GLOBAL; then
     GEN_PACKAGE_ROOT_DIR="${PACKAGE_ROOT_DIR}"
@@ -259,154 +248,6 @@ function handle_args() {
   return $BASH_EX_OK
 }
 
-######################################################## FUNCTION DEFINITION ###
-
-function check_package() {
-  if [[ -z "${1+x}" ]]; then
-    error "${BASH_SYS_MSG_USAGE_MISSARG}"
-    return $BASH_SYS_EX_USAGE
-  fi
-
-  local package="${1:-}"
-
-  if [[ -z "${@+x}" ]]; then
-    error "${BASH_SYS_MSG_USAGE_MISSARG}"
-    return $BASH_SYS_EX_USAGE
-  fi
-
-  [[ -e "${package}" ]] && return 0 || return $BASH_EX_GENERAL
-}
-
-
-function give_exec_permission() {
-  if [[ -z "${1+x}" ]]; then
-    error "${BASH_SYS_MSG_USAGE_MISSARG}"
-    return $BASH_SYS_EX_USAGE
-  fi
-
-  local file_path="${1}"
-  local res=0
-
-  if [[ -e "${file_path}" ]]; then
-    if eval "chmod +x '${file_path}'"; then
-      finish "${file_path} package created!"
-      return $BASH_EX_OK
-    fi
-    res=$?
-  else
-    res=$BASH_EZ_EX_PAC_NOTFOUND
-  fi
-
-  error "${file_path} package creation failed!"
-  return $res
-}
-
-
-function open_editor_package() {
-  if [[ -z "${1+x}" ]]; then
-    error "${BASH_SYS_MSG_USAGE_MISSARG}"
-    return $BASH_SYS_EX_USAGE
-  fi
-
-  local file_path="${1}"
-  local editor="${EZ_EDITOR:-${EDITOR}}"
-
-  if [[ -z "${editor}" ]]; then
-    error "No \$EDITOR specified to edit package"
-  fi
-
-  $SKIP_EDIT && return $BASH_EX_OK
-
-  if check_package "${file_path}"; then
-    if prompt_confirm "Do you wish to edit '${file_path}' now? (y/N): "; then
-      ${editor} "${file_path}"
-    fi
-    return $BASH_EX_OK
-  fi
-  return $BASH_EZ_EX_PAC_EXIST
-}
-
-
-function generate_template_main() {
-  if [[ -z "${1+x}" ]]; then
-    error "${BASH_SYS_MSG_USAGE_MISSARG}"
-    return $BASH_SYS_EX_USAGE
-  fi
-
-  local file_path="${1}"
-  local res=0
-
-  if check_package "${file_path}" && ! $SKIP_CONFIRM; then
-    confirm "'${file_path}' already exist. Continue? (Y/y): " || return $BASH_EZ_EX_PAC_EXIST
-  fi
-
-  if execlog "echo -n '' > '${file_path}' && chmod +x '${file_path}'"; then
-    while IFS= read -r line; do
-      eval "echo \"${line}\" >> '${file_path}'"
-    done < "${EZ_INSTALL_HOME}/generate/utils/pac_template.txt"
-    res=$?
-  else
-    error "${file_path} package creation failed!"
-    res=$BASH_SYS_EX_CANTCREAT
-  fi
-
-  return $res
-}
-
-
-function generate_template_pre() {
-  if [[ -z "${1+x}" ]]; then
-    error "${BASH_SYS_MSG_USAGE_MISSARG}"
-    return $BASH_SYS_EX_USAGE
-  fi
-
-  local file_path="${1}.pre"
-  local res=0
-
-  if check_package "${file_path}" && ! $SKIP_CONFIRM; then
-    confirm "'${file_path}' already exist. Continue? (Y/y): " || return $BASH_EZ_EX_PAC_EXIST
-  fi
-
-  if execlog "echo -n '' > '${file_path}' && chmod +x '${file_path}'"; then
-    while IFS= read -r line; do
-      eval "echo \"${line}\" >> '${file_path}'"
-    done < "${EZ_INSTALL_HOME}/generate/utils/pac_pre_template.txt"
-    res=$?
-  else
-    error "${file_path} package creation failed!"
-    res=$BASH_SYS_EX_CANTCREAT
-  fi
-
-  return $res
-}
-
-
-function generate_template_post() {
-  if [[ -z "${1+x}" ]]; then
-    error "${BASH_SYS_MSG_USAGE_MISSARG}"
-    return $BASH_SYS_EX_USAGE
-  fi
-
-  local file_path="${1}.post"
-  local res=0
-
-  if check_package "${file_path}" && ! $SKIP_CONFIRM; then
-    confirm "'${file_path}' already exist. Continue? (Y/y): " || return $BASH_EZ_EX_PAC_EXIST
-  fi
-
-  if execlog "echo -n '' > '${file_path}' && chmod +x '${file_path}'"; then
-    while IFS= read -r line; do
-      eval "echo \"${line}\" >> '${file_path}'"
-    done < "${EZ_INSTALL_HOME}/generate/utils/pac_post_template.txt"
-    res=$?
-  else
-    error "${file_path} package creation failed!"
-    res=$BASH_SYS_EX_CANTCREAT
-  fi
-
-  return $res
-}
-
 ############################################################# MAIN EXECUTION ###
 
 function _main() {
@@ -417,62 +258,90 @@ function _main() {
   res=$?
   [[ $res -ne $BASH_EX_OK ]] && return $res
 
-  if $INTERACTIVE; then
-    local main="true"
-    local pre=""
-    local post=""
+  local -a packages=( ${PACKAGES[@]} )
+  array_unique packages
 
-    ! $SKIP_MAIN && prompt_boolean main "Generate main package (default=true)? "
-    prompt_boolean pre "Generate pre package (default=false)? "
-    prompt_boolean post "Generate post package (default=false)? "
+  for package in ${packages[@]}; do
+    local config="${CONFIG}"
+    local args=""
+    local command_name=""
+    local dependencies=""
+    local package_name=""
 
-    $main && i_generate_template_main -D "${GEN_PACKAGE_ROOT_DIR}" "${PACKAGE}"
-    $pre && i_generate_template_pre -D "${GEN_PACKAGE_ROOT_DIR}" "${PACKAGE}"
-    $post && i_generate_template_post -D "${GEN_PACKAGE_ROOT_DIR}" "${PACKAGE}"
-  else
-    if [[ -z "${PACKAGE_MANAGER}" ]]; then
-      local file_path="${GEN_PACKAGE_DIR}/${FILE}"
+    if [[ ${#PACKAGES[@]} -eq 1 ]]; then
+      args="${ARGS}"
+      command_name="${COMMAND_NAME}"
+      dependencies="${DEPENDENCIES}"
+      package_name="${PACKAGE_NAME:-${package}}"
     else
-      local file_path="${GEN_PACKAGE_DIR}/${FILE}.${PACKAGE_MANAGER}"
+      package_name="${package}"
     fi
 
-    if [[ ! -d "${GEN_PACKAGE_DIR}" ]]; then
-      if execlog "mkdir -p '${GEN_PACKAGE_DIR}'"; then
-        ok "'${GEN_PACKAGE_DIR}' directory created"
+    [[ -z "${args}" ]]         && config="${config} -a ${args}"
+    [[ -z "${command_name}" ]] && config="${config} -c ${command_name}"
+    [[ -z "${dependencies}" ]] && config="${config} -d ${dependencies}"
+    [[ -z "${package}" ]]      && config="${config} -p ${package}"
+    [[ -z "${package_name}" ]] && config="${config} -n ${package_name}"
+
+    if $INTERACTIVE; then
+      local main="true"
+      local pre=""
+      local post=""
+
+      warning "Generating ${package}"
+      ! $SKIP_MAIN && prompt_boolean main "Generate main package (default=true)? "
+      prompt_boolean pre "Generate pre package (default=false)? "
+      prompt_boolean post "Generate post package (default=false)? "
+
+      $main && i_generate_template_main -D "${GEN_PACKAGE_ROOT_DIR}" "${package}"
+      $pre  && i_generate_template_pre  -D "${GEN_PACKAGE_ROOT_DIR}" "${package}"
+      $post && i_generate_template_post -D "${GEN_PACKAGE_ROOT_DIR}" "${package}"
+    else
+      if [[ -z "${PACKAGE_MANAGER}" ]]; then
+        local file_path="${GEN_PACKAGE_DIR}/${package_name}"
       else
-        res=$?
-        error "'${GEN_PACKAGE_DIR}' creation failed"
-        return $BASH_SYS_EX_CANTCREAT
+        local file_path="${GEN_PACKAGE_DIR}/${package_name}.${PACKAGE_MANAGER}"
       fi
-    fi
 
-    local continue=""
-    if $GENERATE_PRE || $GENERATE_POST; then
-      if ! $SKIP_MAIN && confirm "Would you like to generate the main package template? (Y/y): "; then
-        generate_template_main "${file_path}"
+      if [[ ! -d "${GEN_PACKAGE_DIR}" ]]; then
+        if execlog "mkdir -p '${GEN_PACKAGE_DIR}'"; then
+          ok "'${GEN_PACKAGE_DIR}' directory created"
+        else
+          res=$?
+          error "'${GEN_PACKAGE_DIR}' creation failed"
+          return $BASH_SYS_EX_CANTCREAT
+        fi
+      fi
+
+      local continue=""
+      if $GENERATE_PRE || $GENERATE_POST; then
+        if ! $SKIP_MAIN && confirm "Would you like to generate the main package template? (Y/y): "; then
+          generate_template_main ${config} -- "${file_path}"
+          res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
+          open_editor_package -E ${SKIP_EDIT} -- "${file_path}"
+          finish "Package generated in to '${file_path}'"
+        fi
+        if $GENERATE_PRE; then
+          generate_template_pre ${config} -- "${file_path}.pre"
+          res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
+          open_editor_package -E ${SKIP_EDIT} -- "${file_path}.pre"
+          finish "Package generated in to '${file_path}.pre'"
+        fi
+        if $GENERATE_POST; then
+          generate_template_post ${config} -- "${file_path}.post"
+          res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
+          open_editor_package -E ${SKIP_EDIT} -- "${file_path}.post"
+          finish "Package generated in to '${file_path}.post'"
+        fi
+      else
+        generate_template_main ${config} -- "${file_path}"
         res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
-        open_editor_package "${file_path}"
+        open_editor_package -E ${SKIP_EDIT} -- "${file_path}"
         finish "Package generated in to '${file_path}'"
       fi
-      if $GENERATE_PRE; then
-        generate_template_pre "${file_path}"
-        res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
-        open_editor_package "${file_path}.pre"
-        finish "Package generated in to '${file_path}.pre'"
-      fi
-      if $GENERATE_POST; then
-        generate_template_post "${file_path}"
-        res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
-        open_editor_package "${file_path}.post"
-        finish "Package generated in to '${file_path}.post'"
-      fi
-    else
-      generate_template_main "${file_path}"
-      res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
-      open_editor_package "${file_path}"
-      finish "Package generated in to '${file_path}'"
     fi
-  fi
+  done
+
   return $res
 }
 
@@ -490,7 +359,6 @@ unset ARGS
 unset AUTHOR
 unset COMMAND_NAME
 unset DEPENDENCIES
-unset FILE
 unset PACKAGE
 unset PACKAGE_MANAGER
 unset PACKAGE_NAME
@@ -500,7 +368,10 @@ unset GENERATE_PRE
 unset GENERATE_POST
 unset SKIP_MAIN
 unset SKIP_EDIT
+unset AS_ROOT
+unset ALLOW_DEP_FAIL
 unset EXECUTE
+unset FORCE
 unset GLOBAL
 unset UPDATE
 

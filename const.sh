@@ -19,12 +19,7 @@ include "${EZ_INSTALL_HOME}/common/const.sh"
 include "${EZ_INSTALL_HOME}/actions.sh"
 
 
-# General
-
-readonly EZ_SUPPORTED_PACKAGE_MANAGER='apt apt-add npm pip pip2 pip3 pkg curl wget git local'
-
 # Exit Codes
-
 readonly BASH_EZ_EX__BASE=201             # Ez special exit codes start
 readonly BASH_EZ_EX_PAC_NOTFOUND=201      # Package not found
 readonly BASH_EZ_EX_PACMAN_NOTFOUND=202   # Package manager not supported
@@ -36,11 +31,13 @@ readonly BASH_EZ_EX_COMMAND_NOTFOUND=207  # Ez command not found
 readonly BASH_EZ_EX__MAX=207              # Ez special exit codes end
 
 # Exit Messages
-
 readonly BASH_EZ_MSG_PAC_NOTFOUND='Package not found'
 readonly BASH_EZ_MSG_PACMAN_NOTFOUND='Package manager not found'
 readonly BASH_SYS_MSG_USAGE_MISSARG='Missing argument'
 readonly BASH_SYS_MSG_USAGE_INVREFVAR='Invalid reference to variable'
+
+# Ez Install
+readonly EZ_SUPPORTED_PACKAGE_MANAGER='apt apt-add npm pip pip2 pip3 pkg curl wget git local'
 
 # Ez sub commands
 readonly EZ_COMMAND_GEN="${EZ_INSTALL_HOME}/generate/gen"

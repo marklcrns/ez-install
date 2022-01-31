@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 
-# '${PACKAGE}' Post Installation
+# '${package}' Post Installation
 
 source \"\${EZ_INSTALL_HOME}/install/init.sh\"
 
 function _main() {
-  local force=false
-  local as_root=${AS_ROOT}
+  local force=$force
+  local as_root=$as_root
   local output_path=\"\"
   handle_package_args \${@}
 
-  local package=\"${FILE}\"
-  local package_manager=\"${PACKAGE_MANAGER}\"
+  local package=\"${package}\"
+  local package_manager=\"${package_manager}\"
 
   # function install()
   #
@@ -41,7 +41,7 @@ function _main() {
   #
   # Post installation:
   #
-  #   install() will automatically try to source ${FILE%.*}.post first then ${FILE%.*}.${PACKAGE_MANAGER:-<package_manager>}.post
+  #   install() will automatically try to source ${package%.*}.post first then ${package%.*}.${package_manager:-<package_manager>}.post
   #   from either \$LOCAL_PACKAGE_DIR and \$PACKAGE_DIR after package installation.
   #   \$LOCAL_PACKAGE_DIR priority. Best place for cleaning up files or executing
   #   post installation commands.

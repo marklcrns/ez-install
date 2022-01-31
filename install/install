@@ -239,10 +239,11 @@ function handle_args() {
     exit $BASH_SYS_EX_USAGE
   fi
 
-  # Arguments from terminal
+  # Arguments from terminal into $PACKAGES
   if [[ -t 0 ]]; then
     if [[ -n "${@+x}" ]]; then
       IFS=" " read -a PACKAGES <<< "${@}"
+      readonly PACKAGES
     else
       usage
       error "No package(s) provided"
@@ -269,13 +270,6 @@ function handle_args() {
 
 ############################################################# MAIN EXECUTION ###
 
-function _ctrl_c() {
-  echo ""
-  pac_report
-  log 'error' "$(basename -- "${BASH_SOURCE[1]}").${FUNCNAME[1]}(): Interrupted!" $BASH_EX_TERMCTRLC
-}
-
-
 function _main () {
   local res=0
 
@@ -283,11 +277,6 @@ function _main () {
   handle_args "${SCRIPT_ARGS}"
   res=$?
   [[ $res -ne $BASH_EX_OK ]] && return $res
-
-  # Set up trap
-  if "${DEBUG}"; then
-    trap _ctrl_c INT TERM
-  fi
 
   local -a packages=( ${PACKAGES[@]} )
   array_unique packages
@@ -342,6 +331,7 @@ unset GENERATE
 unset ALLOW_DEP_FAIL
 unset FORCE
 unset RECURSIVE
+unset ALLOW_DEP_FAIL
 unset AS_ROOT
 unset SKIP_GENERATE
 unset JSON

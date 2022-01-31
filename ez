@@ -156,13 +156,14 @@ function _ctrl_c() {
 
 
 function _main () {
-  local res=0
+  # Set up trap
+  if "${DEBUG}"; then
+    trap _ctrl_c INT TERM
+  fi
 
   script_vars
   handle_args ${SCRIPT_ARGS}
-  res=$?
-
-  return $res
+  return $?
 }
 
 

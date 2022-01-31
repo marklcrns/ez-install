@@ -21,6 +21,98 @@ include "${EZ_INSTALL_HOME}/install/common.sh"
 include "${EZ_INSTALL_HOME}/actions.sh"
 
 
+function generate_template_main() {
+  generate_template "${@}" "${EZ_INSTALL_HOME}/generate/utils/pac_template.txt"
+  return $?
+}
+function generate_template_pre() {
+  generate_template "${@}" "${EZ_INSTALL_HOME}/generate/utils/pac_pre_template.txt"
+  return $?
+}
+function generate_template_post() {
+  generate_template "${@}" "${EZ_INSTALL_HOME}/generate/utils/pac_post_template.txt"
+  return $?
+}
+
+function generate_template() {
+  local args=""
+  local author=""
+  local command_name=""
+  local dependencies=""
+  local package_manager=""
+  local package_name=""
+  local destination=""
+  local package=""
+  local execute=false
+  local force=false
+  local as_root=false
+  local allow_dep_fail=false
+  local update=false
+
+  OPTIND=1
+  while getopts "a:A:c:d:e:f:m:n:o:p:s:u:w:" opt; do
+    case ${opt} in
+      a) args="${OPTARG}" ;;
+      A) author="${OPTARG}" ;;
+      c) command_name="${OPTARG}" ;;
+      c) dependencies="${OPTARG}" ;;
+      m) package_manager="${OPTARG}"; to_lower package_manager ;;
+      n) package_name="${OPTARG}" ;;
+      o) destination="${OPTARG}" ;;
+      p) package="${OPTARG}" ;;
+      e) execute=true ;;
+      E) execute=false ;;
+      f) force=true ;;
+      F) force=false ;;
+      s) as_root=true ;;
+      S) as_root=false ;;
+      u) update=true ;;
+      U) update=false ;;
+      w) allow_dep_fail=true ;;
+      W) allow_dep_fail=false ;;
+      *)
+        error "Invalid flag option(s)"
+        exit $BASH_SYS_EX_USAGE
+    esac
+  done
+  shift "$((OPTIND-1))"
+
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  if [[ -z "${2+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  local file_path="${1}"
+  local template_path="${2}"
+
+  # Fallbacks for required fields
+  [[ -z "${package}" ]] && package="$(basename -- ${file_path%.*})"
+  [[ -z "${package_name}" ]] && package_name="${package}"
+
+  if check_package "${file_path}" && ! $SKIP_CONFIRM; then
+    confirm "'${file_path}' already exist. Continue? (Y/y): " || return $BASH_EZ_EX_PAC_EXIST
+  fi
+
+  local res=0
+  if execlog "echo -n '' > '${file_path}' && chmod +x '${file_path}'"; then
+    while IFS= read -r line; do
+      eval "echo \"${line}\" >> '${file_path}'"
+    done < "${template_path}"
+    res=$?
+  else
+    error "${file_path} package creation failed!"
+    res=$BASH_SYS_EX_CANTCREAT
+  fi
+
+  return $res
+}
+
+
 function i_batch_generate_template() {
   local package_dir=""
   local package_root_dir=""
@@ -50,7 +142,7 @@ function i_batch_generate_template() {
 
   for package in ${packages[@]}; do
     warning "Generating ${package}"
-    if $SKIP_GENERATE; then
+    if $SKIP_EDIT; then
       ${EZ_COMMAND_GEN} -E -D "${package_root_dir}" -- "${package}"
     else
       ${EZ_COMMAND_GEN} -i -D "${package_root_dir}" -- "${package}"
@@ -97,7 +189,7 @@ function i_generate_template_main() {
   local author=""
   local dependencies=""
   local package_name=""
-  local executable_name=""
+  local command_name=""
   local output_dir=""
   local execute=""
   local update=""
@@ -108,14 +200,15 @@ function i_generate_template_main() {
   local matches=()
 
   echo -e "\nGenerating main package installer..."
-  echo -e "\n${indent}${COLOR_HI_BLACK}Press [enter] to skip optionals.${COLOR_NC}\n"
+  echo -e "\n${indent}${COLOR_HI_BLACK}Press [enter] to skip optionals.${COLOR_NC}"
 
   while true; do
+    echo ""
     prompt_input author "${indent}Author: "
-    prompt_input package "${indent}Package: "
+    prompt_input package "${indent}*Package: "
     prompt_input dependencies "${indent}Dependencies (',' separator): "
     prompt_package_manager package_manager "${indent}Package manager: "
-    prompt_input executable_name "${indent}Executable name: "
+    prompt_input command_name "${indent}Executable name: "
     prompt_input package_name "${indent}Package name: "
 
     if [[ -n ${package_manager} ]]; then
@@ -125,11 +218,11 @@ function i_generate_template_main() {
         # Curl, wget git packages
         while [[ -z "${package_name}" ]]; do
           package_name="${package%.*}"
-          prompt_input package_name "${indent}Package name (required): "
+          prompt_input package_name "${indent}*Package name: "
         done
         package=""
         while [[ -z "${package}" ]]; do
-          prompt_input package "${indent}${indent}Package Url (required): "
+          prompt_input package "${indent}${indent}*Package Url: "
         done
         prompt_dir output_dir "${indent}${indent}Output directory: "
         if [[ ${package_manager} == "curl" ]] \
@@ -165,19 +258,20 @@ function i_generate_template_main() {
       done
     fi
 
-    local file_path="${package_dir}/${package_name}"
-    [[ -n "${package_manager}" ]] && file_path+=".${package_manager}"
+    if [[ -n "${package}" ]]; then
+      local file_path="${package_dir}/${package_name}"
+      [[ -n "${package_manager}" ]] && file_path+=".${package_manager}"
 
-    if [[ -e "${file_path}" ]]; then
+      if [[ -e "${file_path}" ]]; then
+        echo ""
+        warning "About to overwrite '${file_path}'"
+      fi
       echo ""
-      warning "About to overwrite '${file_path}'"
-    fi
-    echo ""
 
-    if [[ -n "${package}" ]] && prompt_confirm "${COLOR_YELLOW}Are you ok with these? (y/N):${COLOR_NC} "; then
-      break
+      prompt_confirm "${COLOR_YELLOW}Are you ok with these? (y/N):${COLOR_NC} " && break
     else
-      if ! prompt_confirm "${COLOR_YELLOW}Start over? (y/N):${COLOR_NC} "; then
+      echo ""
+      if ! prompt_confirm "${COLOR_YELLOW}Missing required field(s). Start over? (y/N):${COLOR_NC} "; then
         return $BASH_SYS_EX_CANTCREAT
       fi
       package=""
@@ -185,7 +279,7 @@ function i_generate_template_main() {
       package_manager=""
       author=""
       dependencies=""
-      executable_name=""
+      command_name=""
       output_dir=""
       execute=""
       update=""
@@ -198,7 +292,7 @@ function i_generate_template_main() {
   local ez_gen_args=
   [[ -n "${author}" ]]          && ez_gen_args+=" -A '${author// /\\ }'"
   [[ -n "${dependencies}" ]]    && ez_gen_args+=" -d '${dependencies// /\\ }'"
-  [[ -n "${executable_name}" ]] && ez_gen_args+=" -c '${executable_name// /\\ }'"
+  [[ -n "${command_name}" ]]    && ez_gen_args+=" -c '${command_name// /\\ }'"
   [[ -n "${package_name}" ]]    && ez_gen_args+=" -n '${package_name// /\\ }'"
   [[ -n "${package_manager}" ]] && ez_gen_args+=" -m '${package_manager// /\\ }'"
   [[ -n "${output_dir}" ]]      && ez_gen_args+=" -o '${output_dir// /\\ }'"
@@ -261,10 +355,9 @@ function i_generate_template_pre() {
   echo -e "\n${indent}${COLOR_HI_BLACK}All optional. Press [enter] to skip.${COLOR_NC}\n"
 
   while true; do
-    prompt_input package_name "${indent}Package name: "; package="${package_name}"
+    prompt_input package_name "${indent}*Package name: "; package="${package_name}"
     prompt_package_manager package_manager "${indent}Package manager: "
     prompt_boolean as_root "${indent}As root (default=false): "
-    echo ""
 
     if [[ -d "${package_dir}" ]]; then
       matches=(
@@ -283,19 +376,20 @@ function i_generate_template_pre() {
       done
     fi
 
-    local file_path="${package_dir}/${package_name}"
-    [[ -n "${package_manager}" ]] && file_path+=".${package_manager}"
+    if [[ -n "${package}" ]]; then
+      local file_path="${package_dir}/${package_name}"
+      [[ -n "${package_manager}" ]] && file_path+=".${package_manager}"
 
-    if [[ -e "${file_path}.pre" ]]; then
+      if [[ -e "${file_path}.pre" ]]; then
+        echo ""
+        warning "About to overwrite '${file_path}.pre'"
+      fi
       echo ""
-      warning "About to overwrite '${file_path}.pre'"
-    fi
-    echo ""
 
-    if [[ -n "${package}" ]] && prompt_confirm "${COLOR_YELLOW}Are you ok with these? (y/N):${COLOR_NC} "; then
-      break
+      prompt_confirm "${COLOR_YELLOW}Are you ok with these? (y/N):${COLOR_NC} " && break
     else
-      if ! prompt_confirm "${COLOR_YELLOW}Start over? (y/N):${COLOR_NC} "; then
+      echo ""
+      if ! prompt_confirm "${COLOR_YELLOW}Missing required field(s). Start over? (y/N):${COLOR_NC} "; then
         return $BASH_SYS_EX_CANTCREAT
       fi
       package=""
@@ -365,10 +459,9 @@ function i_generate_template_post() {
   echo -e "\n${indent}${COLOR_HI_BLACK}All optional. Press [enter] to skip.${COLOR_NC}\n"
 
   while true; do
-    prompt_input package_name "${indent}Package name: "; package="${package_name}"
+    prompt_input package_name "${indent}*Package name: "; package="${package_name}"
     prompt_package_manager package_manager "${indent}Package manager: "
     prompt_boolean as_root "${indent}As root (default=false): "
-    echo ""
 
     if [[ -d "${package_dir}" ]]; then
       matches=(
@@ -387,19 +480,20 @@ function i_generate_template_post() {
       done
     fi
 
-    local file_path="${package_dir}/${package_name}"
-    [[ -n "${package_manager}" ]] && file_path+=".${package_manager}"
+    if [[ -n "${package}" ]]; then
+      local file_path="${package_dir}/${package_name}"
+      [[ -n "${package_manager}" ]] && file_path+=".${package_manager}"
 
-    if [[ -e "${file_path}.post" ]]; then
+      if [[ -e "${file_path}.post" ]]; then
+        echo ""
+        warning "About to overwrite '${file_path}.post'"
+      fi
       echo ""
-      warning "About to overwrite '${file_path}.post'"
-    fi
-    echo ""
 
-    if [[ -n "${package}" ]] && prompt_confirm "${COLOR_YELLOW}Are you ok with these? (y/N):${COLOR_NC} "; then
-      break
+      prompt_confirm "${COLOR_YELLOW}Are you ok with these? (y/N):${COLOR_NC} " && break
     else
-      if ! prompt_confirm "${COLOR_YELLOW}Start over? (y/N):${COLOR_NC} "; then
+      echo ""
+      if ! prompt_confirm "${COLOR_YELLOW}Missing required field(s). Start over? (y/N):${COLOR_NC} "; then
         return $BASH_SYS_EX_CANTCREAT
       fi
       package=""
@@ -551,5 +645,87 @@ function is_package_manager_supported() {
   done
 
   return $BASH_EZ_EX_PACMAN_NOTFOUND
+}
+
+
+function check_package() {
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  local package="${1:-}"
+
+  if [[ -z "${@+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  [[ -e "${package}" ]] && return 0 || return $BASH_EX_GENERAL
+}
+
+
+function give_exec_permission() {
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  local file_path="${1}"
+  local res=0
+
+  if [[ -e "${file_path}" ]]; then
+    if eval "chmod +x '${file_path}'"; then
+      finish "${file_path} package created!"
+      return $BASH_EX_OK
+    fi
+    res=$?
+  else
+    res=$BASH_EZ_EX_PAC_NOTFOUND
+  fi
+
+  error "${file_path} package creation failed!"
+  return $res
+}
+
+
+function open_editor_package() {
+  local skip_edit=false
+
+  OPTIND=1
+  while getopts "E:" opt; do
+    case ${opt} in
+      E)
+        skip_edit=${OPTARG}
+        ;;
+      *)
+        error "Invalid flag option(s)"
+        exit $BASH_SYS_EX_USAGE
+    esac
+  done
+  shift "$((OPTIND-1))"
+
+
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  local file_path="${1}"
+  local editor="${EZ_EDITOR:-${EDITOR}}"
+
+  if [[ -z "${editor}" ]]; then
+    error "No \$EDITOR specified to edit package"
+  fi
+
+  $skip_edit && return $BASH_EX_OK
+
+  if check_package "${file_path}"; then
+    if prompt_confirm "Do you wish to edit '${file_path}' now? (y/N): "; then
+      ${editor} "${file_path}"
+    fi
+    return $BASH_EX_OK
+  fi
+  return $BASH_EZ_EX_PAC_EXIST
 }
 

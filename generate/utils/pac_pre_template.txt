@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 
-# '${PACKAGE}' Pre Installation
+# '${package}' Pre Installation
 
 source \"\${EZ_INSTALL_HOME}/install/init.sh\"
 
 function _main() {
-  local force=false
-  local as_root=${AS_ROOT}
+  local force=$force
+  local as_root=$as_root
   local output_path=\"\"
   handle_package_args \${@}
 
-  local package=\"${FILE}\"
-  local package_manager=\"${PACKAGE_MANAGER}\"
+  local package=\"${package}\"
+  local package_manager=\"${package_manager}\"
 
   # function install()
   #
@@ -41,7 +41,7 @@ function _main() {
   #
   # Pre installation:
   #
-  #   install() will automatically try to source ${FILE%.*}.pre first then ${FILE%.*}.${PACKAGE_MANAGER:-<package_manager>}.pre
+  #   install() will automatically try to source ${package%.*}.pre first then ${package%.*}.${package_manager:-<package_manager>}.pre
   #   from either \$LOCAL_PACKAGE_DIR and \$PACKAGE_DIR before package installation.
   #   \$LOCAL_PACKAGE_DIR priority. Best place to download dependencies or executing
   #   pre installation commands.
