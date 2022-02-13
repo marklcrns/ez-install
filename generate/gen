@@ -158,10 +158,10 @@ function handle_args() {
   while getopts "a:A:c:d:m:n:o:eEfFsSuUwWD:GiMpPtqxyzhV" opt; do
     case ${opt} in
       # For single package
-      a) ARGS="${OPTARG}" ;;
-      c) COMMAND_NAME="${OPTARG}" ;;
-      d) DEPENDENCIES="${OPTARG}" ;;
-      n) PACKAGE_NAME="${OPTARG}" ;;
+      a) ARGS="${OPTARG}";;
+      c) COMMAND_NAME="${OPTARG}";;
+      d) DEPENDENCIES="${OPTARG}";;
+      n) PACKAGE_NAME="${OPTARG}";;
       # Inherited by multiple packages
       A) AUTHOR="${OPTARG}";          CONFIG="${CONFIG} -${opt} ${OPTARG}" ;;
       m) PACKAGE_MANAGER="${OPTARG}"; CONFIG="${CONFIG} -${opt} ${OPTARG}" ;;
@@ -277,11 +277,12 @@ function _main() {
       package_name="${package}"
     fi
 
-    [[ -z "${args}" ]]         && config="${config} -a ${args}"
-    [[ -z "${command_name}" ]] && config="${config} -c ${command_name}"
-    [[ -z "${dependencies}" ]] && config="${config} -d ${dependencies}"
-    [[ -z "${package}" ]]      && config="${config} -p ${package}"
-    [[ -z "${package_name}" ]] && config="${config} -n ${package_name}"
+    [[ -n "${args}" ]]         && config="${config} -a ${args}"
+    [[ -n "${command_name}" ]] && config="${config} -c ${command_name}"
+    [[ -n "${dependencies}" ]] && config="${config} -d ${dependencies}"
+    [[ -n "${package}" ]]      && config="${config} -p ${package}"
+    [[ -n "${package_name}" ]] && config="${config} -n ${package_name}"
+    ${SKIP_EDIT}               && config="${config} -t"
 
     if $INTERACTIVE; then
       local main="true"
@@ -293,9 +294,9 @@ function _main() {
       prompt_boolean pre "Generate pre package (default=false)? "
       prompt_boolean post "Generate post package (default=false)? "
 
-      $main && i_generate_template_main -D "${GEN_PACKAGE_ROOT_DIR}" "${package}"
-      $pre  && i_generate_template_pre  -D "${GEN_PACKAGE_ROOT_DIR}" "${package}"
-      $post && i_generate_template_post -D "${GEN_PACKAGE_ROOT_DIR}" "${package}"
+      $main && i_generate_template_main -D "${GEN_PACKAGE_DIR}" -t ${SKIP_EDIT} "${package}"
+      $pre  && i_generate_template_pre  -D "${GEN_PACKAGE_DIR}" -t ${SKIP_EDIT} "${package}"
+      $post && i_generate_template_post -D "${GEN_PACKAGE_DIR}" -t ${SKIP_EDIT} "${package}"
     else
       if [[ -z "${PACKAGE_MANAGER}" ]]; then
         local file_path="${GEN_PACKAGE_DIR}/${package_name}"
@@ -318,26 +319,18 @@ function _main() {
         if ! $SKIP_MAIN && confirm "Would you like to generate the main package template? (Y/y): "; then
           generate_template_main ${config} -- "${file_path}"
           res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
-          open_editor_package -E ${SKIP_EDIT} -- "${file_path}"
-          finish "Package generated in to '${file_path}'"
         fi
         if $GENERATE_PRE; then
           generate_template_pre ${config} -- "${file_path}.pre"
           res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
-          open_editor_package -E ${SKIP_EDIT} -- "${file_path}.pre"
-          finish "Package generated in to '${file_path}.pre'"
         fi
         if $GENERATE_POST; then
           generate_template_post ${config} -- "${file_path}.post"
           res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
-          open_editor_package -E ${SKIP_EDIT} -- "${file_path}.post"
-          finish "Package generated in to '${file_path}.post'"
         fi
       else
         generate_template_main ${config} -- "${file_path}"
         res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
-        open_editor_package -E ${SKIP_EDIT} -- "${file_path}"
-        finish "Package generated in to '${file_path}'"
       fi
     fi
   done

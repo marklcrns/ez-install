@@ -48,18 +48,20 @@ function generate_template() {
   local as_root=false
   local allow_dep_fail=false
   local update=false
+  local skip_edit=false
 
   OPTIND=1
-  while getopts "a:A:c:d:e:f:m:n:o:p:s:u:w:" opt; do
+  while getopts "a:A:c:d:m:n:o:p:eEfFsSuUwWt" opt; do
     case ${opt} in
-      a) args="${OPTARG}" ;;
-      A) author="${OPTARG}" ;;
-      c) command_name="${OPTARG}" ;;
-      c) dependencies="${OPTARG}" ;;
-      m) package_manager="${OPTARG}"; to_lower package_manager ;;
-      n) package_name="${OPTARG}" ;;
-      o) destination="${OPTARG}" ;;
-      p) package="${OPTARG}" ;;
+      # Sed removes all trailing and leading 'quotes' and "double-quotes"
+      a) args="$(sed -e "s/^[\"']*//" -e "s/[\"']*$//" <<< "${OPTARG}")" ;;
+      A) author="$(sed -e "s/^[\"']*//" -e "s/[\"']*$//" <<< "${OPTARG}")" ;;
+      c) command_name="$(sed -e "s/^[\"']*//" -e "s/[\"']*$//" <<< "${OPTARG}")" ;;
+      d) dependencies="$(sed -e "s/^[\"']*//" -e "s/[\"']*$//" <<< "${OPTARG}")" ;;
+      m) package_manager="$(sed -e "s/^[\"']*//" -e "s/[\"']*$//" <<< "${OPTARG}")"; to_lower package_manager ;;
+      n) package_name="$(sed -e "s/^[\"']*//" -e "s/[\"']*$//" <<< "${OPTARG}")" ;;
+      o) destination="$(sed -e "s/^[\"']*//" -e "s/[\"']*$//" <<< "${OPTARG}")" ;;
+      p) package="$(sed -e "s/^[\"']*//" -e "s/[\"']*$//" <<< "${OPTARG}")" ;;
       e) execute=true ;;
       E) execute=false ;;
       f) force=true ;;
@@ -70,6 +72,7 @@ function generate_template() {
       U) update=false ;;
       w) allow_dep_fail=true ;;
       W) allow_dep_fail=false ;;
+      t) skip_edit=true ;;
       *)
         error "Invalid flag option(s)"
         exit $BASH_SYS_EX_USAGE
@@ -89,10 +92,13 @@ function generate_template() {
 
   local file_path="${1}"
   local template_path="${2}"
+  [[ -z "${package}" ]] && package="$(basename -- ${file_path})"
+  package="${package%.*}"
 
   # Fallbacks for required fields
-  [[ -z "${package}" ]] && package="$(basename -- ${file_path%.*})"
   [[ -z "${package_name}" ]] && package_name="${package}"
+
+  # Clean data of excess quotes double-quotes
 
   if check_package "${file_path}" && ! $SKIP_CONFIRM; then
     confirm "'${file_path}' already exist. Continue? (Y/y): " || return $BASH_EZ_EX_PAC_EXIST
@@ -109,57 +115,21 @@ function generate_template() {
     res=$BASH_SYS_EX_CANTCREAT
   fi
 
+  ! ${skip_edit} && open_editor_package "${file_path}"
+  ok "Package generated '${file_path}'"
   return $res
-}
-
-
-function i_batch_generate_template() {
-  local package_dir=""
-  local package_root_dir=""
-
-  OPTIND=1
-  while getopts "D:" opt; do
-    case ${opt} in
-      D)
-        package_root_dir="${OPTARG}"
-        ;;
-      *)
-        error "Invalid flag option(s)"
-        exit $BASH_SYS_EX_USAGE
-    esac
-  done
-  shift "$((OPTIND-1))"
-
-  if [[ -z "${@+x}" ]]; then
-    error "${BASH_SYS_MSG_USAGE_MISSARG}"
-    return $BASH_SYS_EX_USAGE
-  fi
-
-  resolve_package_dir
-  [[ -z "${package_root_dir}" ]] && package_root_dir="${LOCAL_PACKAGE_ROOT_DIR}"
-
-  local packages=( "${@}" )
-
-  for package in ${packages[@]}; do
-    warning "Generating ${package}"
-    if $SKIP_EDIT; then
-      ${EZ_COMMAND_GEN} -E -D "${package_root_dir}" -- "${package}"
-    else
-      ${EZ_COMMAND_GEN} -i -D "${package_root_dir}" -- "${package}"
-    fi
-  done
 }
 
 
 function i_generate_template_main() {
   local package_dir=""
+  local skip_edit=false
 
   OPTIND=1
-  while getopts "D:" opt; do
+  while getopts "D:t:" opt; do
     case ${opt} in
-      D)
-        package_root_dir="${OPTARG}"
-        ;;
+      D) package_root_dir="${OPTARG}" ;;
+      t) skip_edit="${OPTARG}" ;;
       *)
         error "Invalid flag option(s)"
         exit $BASH_SYS_EX_USAGE
@@ -190,7 +160,7 @@ function i_generate_template_main() {
   local dependencies=""
   local package_name=""
   local command_name=""
-  local output_dir=""
+  local destination=""
   local execute=""
   local update=""
   local as_root=""
@@ -224,7 +194,7 @@ function i_generate_template_main() {
         while [[ -z "${package}" ]]; do
           prompt_input package "${indent}${indent}*Package Url: "
         done
-        prompt_dir output_dir "${indent}${indent}Output directory: "
+        prompt_dir destination "${indent}${indent}Destination Path: "
         if [[ ${package_manager} == "curl" ]] \
           || [[ ${package_manager} == "wget" ]]; then
           prompt_boolean execute "${indent}${indent}Shell execute (default=false): "
@@ -280,7 +250,7 @@ function i_generate_template_main() {
       author=""
       dependencies=""
       command_name=""
-      output_dir=""
+      destination=""
       execute=""
       update=""
       args=""
@@ -290,20 +260,27 @@ function i_generate_template_main() {
 
   # Escape whitespaces
   local ez_gen_args=
+  [[ -n "${args}" ]]            && ez_gen_args+=" -a '${args// /\\ }'"
   [[ -n "${author}" ]]          && ez_gen_args+=" -A '${author// /\\ }'"
-  [[ -n "${dependencies}" ]]    && ez_gen_args+=" -d '${dependencies// /\\ }'"
   [[ -n "${command_name}" ]]    && ez_gen_args+=" -c '${command_name// /\\ }'"
+  [[ -n "${dependencies}" ]]    && ez_gen_args+=" -d '${dependencies// /\\ }'"
   [[ -n "${package_name}" ]]    && ez_gen_args+=" -n '${package_name// /\\ }'"
   [[ -n "${package_manager}" ]] && ez_gen_args+=" -m '${package_manager// /\\ }'"
-  [[ -n "${output_dir}" ]]      && ez_gen_args+=" -o '${output_dir// /\\ }'"
-  [[ -n "${args}" ]]            && ez_gen_args+=" -a '${args// /\\ }'"
-  ${update:-false}              && ez_gen_args+=" -u"
-  ${execute:-false}             && ez_gen_args+=" -e"
-  ${as_root:-false}             && ez_gen_args+=" -S"
+  [[ -n "${destination}" ]]     && ez_gen_args+=" -o '${destination// /\\ }'"
+  ${update:-false}              && ez_gen_args+=" -u" || ez_gen_args+=" -U"
+  ${execute:-false}             && ez_gen_args+=" -e" || ez_gen_args+=" -E"
+  ${as_root:-false}             && ez_gen_args+=" -s" || ez_gen_args+=" -S"
+  ${skip_edit:-false}           && ez_gen_args+=" -t"
   ! ${VERBOSE}                  && ez_gen_args+=" -q"
   ${DEBUG}                      && ez_gen_args+=" -x"
 
-  ${EZ_COMMAND_GEN} -D "${package_root_dir}" -y ${ez_gen_args} -- "${package}"
+  if [[ -z "${package_manager}" ]]; then
+    local file_path="${package_root_dir}/${package}"
+  else
+    local file_path="${package_root_dir}/${package}.${package_manager}"
+  fi
+
+  generate_template_main ${ez_gen_args} -- "${file_path}"
 
   res=$?
   return $res
@@ -311,118 +288,23 @@ function i_generate_template_main() {
 
 
 function i_generate_template_pre() {
-  local package_dir=""
-
-  OPTIND=1
-  while getopts "D:" opt; do
-    case ${opt} in
-      D)
-        package_root_dir="${OPTARG}"
-        ;;
-      *)
-        error "Invalid flag option(s)"
-        exit $BASH_SYS_EX_USAGE
-    esac
-  done
-  shift "$((OPTIND-1))"
-
-  if [[ -z "${1+x}" ]]; then
-    error "${BASH_SYS_MSG_USAGE_MISSARG}"
-    return $BASH_SYS_EX_USAGE
-  fi
-
-  resolve_package_dir
-
-  if [[ -z "${package_root_dir}" ]]; then
-    package_root_dir=${LOCAL_PACKAGE_ROOT_DIR}
-    package_dir="${LOCAL_PACKAGE_DIR}"
-  else
-    local distrib_id="${OS_DISTRIB_ID}"; to_lower distrib_id
-    local distrib_release="${OS_DISTRIB_RELEASE}"
-    package_dir="${package_root_dir}/${distrib_id}/${distrib_release}"
-  fi
-
-  local package="${1##*#}"
-  local package_name="${package%.*}"
-  local package_manager="$([[ "${package##*.}" != "${package}" ]] && echo "${package##*.}")"
-
-  local as_root=""
-  local indent="  "
-  local res=0
-  local matches=()
-
-  echo -e "\nGenerating .pre package installer..."
-  echo -e "\n${indent}${COLOR_HI_BLACK}All optional. Press [enter] to skip.${COLOR_NC}\n"
-
-  while true; do
-    prompt_input package_name "${indent}*Package name: "; package="${package_name}"
-    prompt_package_manager package_manager "${indent}Package manager: "
-    prompt_boolean as_root "${indent}As root (default=false): "
-
-    if [[ -d "${package_dir}" ]]; then
-      matches=(
-        $(find "${package_dir}" -type f \
-          ! -name "*${package_name}*.post" \
-          -name "${package_name}?${package_manager}.pre"
-        )
-      )
-    fi
-
-    if [[ -n "${matches+x}" ]]; then
-      echo -e "\nSimilar package(s) found:\n"
-      local i=
-      for i in "${!matches[@]}"; do
-        printf "$(($i+1))) ${matches[$i]}\n"
-      done
-    fi
-
-    if [[ -n "${package}" ]]; then
-      local file_path="${package_dir}/${package_name}"
-      [[ -n "${package_manager}" ]] && file_path+=".${package_manager}"
-
-      if [[ -e "${file_path}.pre" ]]; then
-        echo ""
-        warning "About to overwrite '${file_path}.pre'"
-      fi
-      echo ""
-
-      prompt_confirm "${COLOR_YELLOW}Are you ok with these? (y/N):${COLOR_NC} " && break
-    else
-      echo ""
-      if ! prompt_confirm "${COLOR_YELLOW}Missing required field(s). Start over? (y/N):${COLOR_NC} "; then
-        return $BASH_SYS_EX_CANTCREAT
-      fi
-      package=""
-      package_name=""
-      package_manager=""
-      echo ""
-    fi
-  done
-
-  # Escape whitespaces
-  local ez_gen_args=
-  [[ -n "${package_name}" ]]    && ez_gen_args+=" -n '${package_name// /\\ }'"
-  [[ -n "${package_manager}" ]] && ez_gen_args+=" -m '${package_manager// /\\ }'"
-  ${as_root:-false}             && ez_gen_args+=" -S"
-  ! ${VERBOSE}                  && ez_gen_args+=" -q"
-  ${DEBUG}                      && ez_gen_args+=" -x"
-
-  ${EZ_COMMAND_GEN} -D "${package_root_dir}" -pyM ${ez_gen_args} -- "${package}"
-
-  res=$?
-  return $res
+  i_generate_template_hook "${@}" 'pre'
+  return $?
+}
+function i_generate_template_post() {
+  i_generate_template_hook "${@}" 'post'
+  return $?
 }
 
-
-function i_generate_template_post() {
+i_generate_template_hook() {
   local package_dir=""
+  local skip_edit=false
 
   OPTIND=1
-  while getopts "D:" opt; do
+  while getopts "D:t:" opt; do
     case ${opt} in
-      D)
-        package_root_dir="${OPTARG}"
-        ;;
+      D) package_root_dir="${OPTARG}" ;;
+      t) skip_edit="${OPTARG}" ;;
       *)
         error "Invalid flag option(s)"
         exit $BASH_SYS_EX_USAGE
@@ -431,6 +313,11 @@ function i_generate_template_post() {
   shift "$((OPTIND-1))"
 
   if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  if [[ -z "${2+x}" ]]; then
     error "${BASH_SYS_MSG_USAGE_MISSARG}"
     return $BASH_SYS_EX_USAGE
   fi
@@ -449,6 +336,16 @@ function i_generate_template_post() {
   local package="${1##*#}"
   local package_name="${package%.*}"
   local package_manager="$([[ "${package##*.}" != "${package}" ]] && echo "${package##*.}")"
+  local hook="${2}"; to_lower hook
+
+  if [[ "${hook}" == 'pre' ]]; then
+    local hook_counter='post'
+  elif [[ "${hook}" == 'post' ]]; then
+    local hook_counter='pre'
+  else
+    error "${BASH_SYS_MSG_USAGE_INVARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
 
   local as_root=""
   local indent="  "
@@ -466,8 +363,8 @@ function i_generate_template_post() {
     if [[ -d "${package_dir}" ]]; then
       matches=(
         $(find "${package_dir}" -type f \
-          ! -name "*${package_name}*.pre" \
-          -name "${package_name}?${package_manager}.post"
+          ! -name "*${package_name}*.${hook_counter}" \
+          -name "${package_name}?${package_manager}.${hook}"
         )
       )
     fi
@@ -484,9 +381,9 @@ function i_generate_template_post() {
       local file_path="${package_dir}/${package_name}"
       [[ -n "${package_manager}" ]] && file_path+=".${package_manager}"
 
-      if [[ -e "${file_path}.post" ]]; then
+      if [[ -e "${file_path}.${hook}" ]]; then
         echo ""
-        warning "About to overwrite '${file_path}.post'"
+        warning "About to overwrite '${file_path}.${hook}'"
       fi
       echo ""
 
@@ -507,11 +404,22 @@ function i_generate_template_post() {
   local ez_gen_args=
   [[ -n "${package_name}" ]]    && ez_gen_args+=" -n '${package_name// /\\ }'"
   [[ -n "${package_manager}" ]] && ez_gen_args+=" -m '${package_manager// /\\ }'"
-  ${as_root:-false}             && ez_gen_args+=" -S"
+  ${as_root:-false}             && ez_gen_args+=" -s" || ez_gen_args+=" -S"
+  ${skip_edit:-false}           && ez_gen_args+=" -t"
   ! ${VERBOSE}                  && ez_gen_args+=" -q"
   ${DEBUG}                      && ez_gen_args+=" -x"
 
-  ${EZ_COMMAND_GEN} -D "${package_root_dir}" -PyM ${ez_gen_args} -- "${package}"
+  if [[ -z "${package_manager}" ]]; then
+    local file_path="${package_root_dir}/${package}.${hook}"
+  else
+    local file_path="${package_root_dir}/${package}.${package_manager}.${hook}"
+  fi
+
+  if [[ ${hook} == 'pre' ]]; then
+    generate_template_pre ${ez_gen_args} -- "${file_path}"
+  else
+    generate_template_post ${ez_gen_args} -- "${file_path}"
+  fi
 
   res=$?
   return $res
@@ -690,22 +598,6 @@ function give_exec_permission() {
 
 
 function open_editor_package() {
-  local skip_edit=false
-
-  OPTIND=1
-  while getopts "E:" opt; do
-    case ${opt} in
-      E)
-        skip_edit=${OPTARG}
-        ;;
-      *)
-        error "Invalid flag option(s)"
-        exit $BASH_SYS_EX_USAGE
-    esac
-  done
-  shift "$((OPTIND-1))"
-
-
   if [[ -z "${1+x}" ]]; then
     error "${BASH_SYS_MSG_USAGE_MISSARG}"
     return $BASH_SYS_EX_USAGE
@@ -718,8 +610,6 @@ function open_editor_package() {
     error "No \$EDITOR specified to edit package"
   fi
 
-  $skip_edit && return $BASH_EX_OK
-
   if check_package "${file_path}"; then
     if prompt_confirm "Do you wish to edit '${file_path}' now? (y/N): "; then
       ${editor} "${file_path}"
@@ -728,4 +618,46 @@ function open_editor_package() {
   fi
   return $BASH_EZ_EX_PAC_EXIST
 }
+
+
+
+
+
+# DEPRECATED: For reference only
+# function i_batch_generate_template() {
+#   local package_dir=""
+#   local package_root_dir=""
+
+#   OPTIND=1
+#   while getopts "D:" opt; do
+#     case ${opt} in
+#       D)
+#         package_root_dir="${OPTARG}"
+#         ;;
+#       *)
+  #         error "Invalid flag option(s)"
+  #         exit $BASH_SYS_EX_USAGE
+  #     esac
+  #   done
+  #   shift "$((OPTIND-1))"
+
+#   if [[ -z "${@+x}" ]]; then
+#     error "${BASH_SYS_MSG_USAGE_MISSARG}"
+#     return $BASH_SYS_EX_USAGE
+#   fi
+
+#   resolve_package_dir
+#   [[ -z "${package_root_dir}" ]] && package_root_dir="${LOCAL_PACKAGE_ROOT_DIR}"
+
+#   local packages=( "${@}" )
+
+#   for package in ${packages[@]}; do
+#     warning "Generating ${package}"
+#     if $SKIP_EDIT; then
+#       ${EZ_COMMAND_GEN} -E -D "${package_root_dir}" -- "${package}"
+#     else
+#       ${EZ_COMMAND_GEN} -i -D "${package_root_dir}" -- "${package}"
+#     fi
+#   done
+# }
 

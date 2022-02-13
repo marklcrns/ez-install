@@ -34,6 +34,7 @@ readonly BASH_EZ_EX__MAX=207              # Ez special exit codes end
 readonly BASH_EZ_MSG_PAC_NOTFOUND='Package not found'
 readonly BASH_EZ_MSG_PACMAN_NOTFOUND='Package manager not found'
 readonly BASH_SYS_MSG_USAGE_MISSARG='Missing argument'
+readonly BASH_SYS_MSG_USAGE_INVARG='Invalid argument'
 readonly BASH_SYS_MSG_USAGE_INVREFVAR='Invalid reference to variable'
 
 # Ez Install
