@@ -82,7 +82,7 @@ function _main() {
   # Pro tip: keep this package as is and add additional commands in the package's
   #          '.pre' and '.post' scripts
 
-  install -a \"\${args}\" \\
+  install -a \"'\${args}'\" \\
           -c \"\${executable_name}\" \\
           -n \"\${package_name}\" \\
           -m \"\${package_manager}\" \\

@@ -13,17 +13,14 @@ include "${EZ_INSTALL_HOME}/actions.sh"
 
 
 if [[ -z "${1+x}" ]]; then
-  error "${BASH_SYS_MSG_USAGE_MISSARG}"
   exit $BASH_SYS_EX_USAGE
 fi
 if [[ "${2+x}" ]]; then
   FILE="${2}"
   if [[ ! -f "${FILE}" ]]; then
-    error "Missing ${FILE} file" 1
     exit $BASH_EZ_EX_PAC_NOTFOUND
   fi
 else
-  error "${BASH_SYS_MSG_USAGE_MISSARG}"
   exit $BASH_SYS_EX_USAGE
 fi
 

@@ -321,7 +321,7 @@ res=0
 _main
 res=$?
 
-unset DOWNLOADS_DIR
+unset EZ_DOWNLOADS_DIR
 unset SKIP_CONFIRM
 unset VERBOSE
 unset DEBUG

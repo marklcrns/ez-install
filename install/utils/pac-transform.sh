@@ -107,15 +107,6 @@ function pac_jsonify() {
   fetch_package package_path
   res=$?
 
-  # Package default config
-  [[ -z "${as_root}" ]]   && as_root="$(${EZ_INSTALL_METADATA_PARSER} "as-root" "${package_path}")"
-
-  # Global default config
-  [[ -z "${force}" ]]          && force=$FORCE
-  [[ -z "${recursive}" ]]      && recursive=$RECURSIVE
-  [[ -z "${as_root}" ]]        && as_root=$AS_ROOT
-  [[ -z "${allow_dep_fail}" ]] && allow_dep_fail=$ALLOW_DEP_FAIL
-
   info "Fetching: ${_package}"
 
   if [[ $res -ne $BASH_EX_OK ]]; then
@@ -143,6 +134,14 @@ function pac_jsonify() {
       return $BASH_EZ_EX_PAC_NOTFOUND
     fi
   fi
+
+  # Package default config
+  [[ -z "${as_root}" ]]        && as_root="$(${EZ_INSTALL_METADATA_PARSER} "as-root" "${package_path}")"
+  # Global default config
+  [[ -z "${force}" ]]          && force=$FORCE
+  [[ -z "${recursive}" ]]      && recursive=$RECURSIVE
+  [[ -z "${as_root}" ]]        && as_root=$AS_ROOT
+  [[ -z "${allow_dep_fail}" ]] && allow_dep_fail=$ALLOW_DEP_FAIL
 
   [[ ${depth} -eq 1 ]] && eval "${global_pac_var_name}='{'"
   eval "${global_pac_var_name}+='\"package\":{'"

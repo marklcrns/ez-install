@@ -50,10 +50,13 @@ function generate_template() {
   local update=false
   local skip_edit=false
 
+  echo "${@}"
+
   OPTIND=1
   while getopts "a:A:c:d:m:n:o:p:eEfFsSuUwWt" opt; do
     case ${opt} in
       # Sed removes all trailing and leading 'quotes' and "double-quotes"
+      # TODO: FIX args with whitespaces
       a) args="$(sed -e "s/^[\"']*//" -e "s/[\"']*$//" <<< "${OPTARG}")" ;;
       A) author="$(sed -e "s/^[\"']*//" -e "s/[\"']*$//" <<< "${OPTARG}")" ;;
       c) command_name="$(sed -e "s/^[\"']*//" -e "s/[\"']*$//" <<< "${OPTARG}")" ;;
@@ -93,7 +96,12 @@ function generate_template() {
   local file_path="${1}"
   local template_path="${2}"
   [[ -z "${package}" ]] && package="$(basename -- ${file_path})"
-  package="${package%.*}"
+
+  if [[ ${package_manager} != "curl" ]] \
+    && [[ ${package_manager} != "wget" ]] \
+    && [[ ${package_manager} != "git" ]]; then
+    package="${package%.*}"
+  fi
 
   # Fallbacks for required fields
   [[ -z "${package_name}" ]] && package_name="${package}"
