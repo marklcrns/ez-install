@@ -2,11 +2,15 @@
 
 # 'taskwarrior' Post Installation
 
+set -o pipefail
+set -o nounset
+
 source "${EZ_INSTALL_HOME}/install/init.sh"
 
 function _main() {
-  local forced=false
+  local force=false
   local as_root=false
+  local output_path=""
   handle_package_args ${@}
 
   local package="taskwarrior"
@@ -46,7 +50,7 @@ function _main() {
   #   post installation commands.
 
   # TODO: Start post process here
-  cd ${DOWNLOADS_DIR}/taskwarrior
+  cd ${output_path}
   cmake -DCMAKE_BUILD_TYPE=release .
   make
   sudo make install

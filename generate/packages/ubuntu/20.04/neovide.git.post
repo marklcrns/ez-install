@@ -2,6 +2,9 @@
 
 # 'neovide' Post Installation
 
+set -o pipefail
+set -o nounset
+
 source "${EZ_INSTALL_HOME}/install/init.sh"
 
 function _main() {
@@ -47,7 +50,7 @@ function _main() {
   #   post installation commands.
 
   # TODO: Start post process here
-  if cd "${output_path}" && ~/.cargo/bin/cargo build --release; then
+  if cd ${output_path} && ~/.cargo/bin/cargo build --release; then
     cp target/release/neovide ${HOME}/.local/bin/
   fi
   return $?
