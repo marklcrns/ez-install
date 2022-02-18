@@ -310,7 +310,7 @@ function i_generate_template_post() {
   return $?
 }
 
-i_generate_template_hook() {
+function i_generate_template_hook() {
   local author=""
   local package_manager=""
   local package_name=""
@@ -651,46 +651,4 @@ function open_editor_package() {
   fi
   return $BASH_EZ_EX_PAC_EXIST
 }
-
-
-
-
-
-# DEPRECATED: For reference only
-# function i_batch_generate_template() {
-#   local package_dir=""
-#   local package_root_dir=""
-
-#   OPTIND=1
-#   while getopts "D:" opt; do
-#     case ${opt} in
-#       D)
-#         package_root_dir="${OPTARG}"
-#         ;;
-#       *)
-  #         error "Invalid flag option(s)"
-  #         exit $BASH_SYS_EX_USAGE
-  #     esac
-  #   done
-  #   shift "$((OPTIND-1))"
-
-#   if [[ -z "${@+x}" ]]; then
-#     error "${BASH_SYS_MSG_USAGE_MISSARG}"
-#     return $BASH_SYS_EX_USAGE
-#   fi
-
-#   resolve_package_dir
-#   [[ -z "${package_root_dir}" ]] && package_root_dir="${LOCAL_PACKAGE_ROOT_DIR}"
-
-#   local packages=( "${@}" )
-
-#   for package in ${packages[@]}; do
-#     warning "Generating ${package}"
-#     if $SKIP_EDIT; then
-#       ${EZ_COMMAND_GEN} -E -D "${package_root_dir}" -- "${package}"
-#     else
-#       ${EZ_COMMAND_GEN} -i -D "${package_root_dir}" -- "${package}"
-#     fi
-#   done
-# }
 

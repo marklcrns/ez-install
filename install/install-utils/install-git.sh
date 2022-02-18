@@ -139,19 +139,6 @@ function git_clone() {
   pac_pre_install -o "${output_path}" -f $forced -s $as_root "${package_name}" 'git'
   res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
 
-  # DEPRECATED: For reference only
-  # Execute cloning
-  # clone_repo -a "${args}" -n "${package_name}" -o "${output_path}" -s $as_root -- "${from}"
-  # res=$?
-  # if [[ $res -ne $BASH_EX_OK ]]; then
-  #   if [[ $res -eq $BASH_SYS_EX_SOFTWARE ]]; then
-  #     pac_log_failed $res 'Git' "${package_name}" "Git clone '${package_name}' failed! Authentication timeout"
-  #   else
-  #     pac_log_failed $res 'Git' "${package_name}" "Git clone '${from}' -> '${output_path}' failed"
-  #   fi
-  #   return $res
-  # fi
-
   if execlog "${sudo}git clone ${args} -- "${from}" "${output_path}""; then
     pac_log_success 'Git' "${package_name}" "Git clone '${from}' -> '${output_path}' successful"
   else
@@ -162,74 +149,6 @@ function git_clone() {
 
   pac_post_install -o "${output_path}" -s ${as_root} "${package_name}" 'git'
   res=$?
-  return $res
-}
-
-
-# DEPRECATED: For reference only
-# NOTE: Always quiet output
-function clone_repo() {
-  local as_root=false
-  local retry=${retry:-${GIT_AUTH_MAX_RETRY:-5}}
-  local args=""
-  local package_name=""
-  local output_path=""
-
-  OPTIND=1
-  while getopts "fa:o:n:s:" opt; do
-    case ${opt} in
-      f)
-        forced=true
-        ;;
-      a)
-        args="${OPTARG}"
-        ;;
-      n)
-        package_name="${OPTARG}"
-        ;;
-      o)
-        output_path="${OPTARG}"
-        ;;
-      s)
-        as_root=${OPTARG}
-        ;;
-    esac
-  done
-  shift "$((OPTIND-1))"
-
-  if [[ -z "${@+x}" ]]; then
-    error "${BASH_SYS_MSG_USAGE_MISSARG}"
-    return $BASH_SYS_EX_USAGE
-  fi
-
-  local from="${@}"
-  local stderr=""
-  local sudo=""
-  local res=0
-
-  $as_root && sudo="sudo "
-
-  # NOTE: do not set stderr to `local` inline to prevent overwritting exit code from subshell
-  info "Cloning '${from}' -> '${output_path}'"
-  stderr="$(${sudo}git clone ${args} -- "${from}" "${output_path}" 2>&1 > /dev/null; exit $?)"; res=$?
-  info "Execute: git clone ${args} -- ${from} ${output_path}"
-
-  [[ $res -eq $BASH_EX_OK ]] || [[ -z "${stderr}" ]] && return $res
-
-  if [[ "${stderr}" =~ 'Authentication failed' ]]; then
-    if [[ "${retry}" -ne $BASH_EX_OK ]]; then
-      warning "Git authentication failed. Try again (${retry} remaining)\n"
-      ((--retry))
-      clone_repo -a "${args}" -n "${package_name}" -o "${output_path}" -s $as_root -- "${from}"
-      res=$?
-      return $res
-    else
-      error "Git authentication timeout!"
-      return $BASH_SYS_EX_SOFTWARE
-    fi
-  else
-    pac_log_failed $res 'Git' "${package_name}" "${stderr}"
-  fi
   return $res
 }
 
@@ -290,4 +209,73 @@ function is_git_repo() {
   fi
   return $BASH_SYS_EX_CANTCREAT
 }
+
+
+
+# DEPRECATED: For reference only
+# NOTE: Always quiet output
+# function clone_repo() {
+#   local as_root=false
+#   local retry=${retry:-${GIT_AUTH_MAX_RETRY:-5}}
+#   local args=""
+#   local package_name=""
+#   local output_path=""
+
+#   OPTIND=1
+#   while getopts "fa:o:n:s:" opt; do
+#     case ${opt} in
+#       f)
+#         forced=true
+#         ;;
+#       a)
+#         args="${OPTARG}"
+#         ;;
+#       n)
+#         package_name="${OPTARG}"
+#         ;;
+#       o)
+#         output_path="${OPTARG}"
+#         ;;
+#       s)
+#         as_root=${OPTARG}
+#         ;;
+#     esac
+#   done
+#   shift "$((OPTIND-1))"
+
+#   if [[ -z "${@+x}" ]]; then
+#     error "${BASH_SYS_MSG_USAGE_MISSARG}"
+#     return $BASH_SYS_EX_USAGE
+#   fi
+
+#   local from="${@}"
+#   local stderr=""
+#   local sudo=""
+#   local res=0
+
+#   $as_root && sudo="sudo "
+
+#   # NOTE: do not set stderr to `local` inline to prevent overwritting exit code from subshell
+#   info "Cloning '${from}' -> '${output_path}'"
+#   stderr="$(${sudo}git clone ${args} -- "${from}" "${output_path}" 2>&1 > /dev/null; exit $?)"; res=$?
+#   info "Execute: git clone ${args} -- ${from} ${output_path}"
+
+#   [[ $res -eq $BASH_EX_OK ]] || [[ -z "${stderr}" ]] && return $res
+
+#   if [[ "${stderr}" =~ 'Authentication failed' ]]; then
+#     if [[ "${retry}" -ne $BASH_EX_OK ]]; then
+#       warning "Git authentication failed. Try again (${retry} remaining)\n"
+#       ((--retry))
+#       clone_repo -a "${args}" -n "${package_name}" -o "${output_path}" -s $as_root -- "${from}"
+#       res=$?
+#       return $res
+#     else
+#       error "Git authentication timeout!"
+#       return $BASH_SYS_EX_SOFTWARE
+#     fi
+#   else
+#     pac_log_failed $res 'Git' "${package_name}" "${stderr}"
+#   fi
+#   return $res
+# }
 
