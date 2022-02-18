@@ -380,8 +380,8 @@ function _main() {
         i_generate_template_hook "${config_hook}" -- "${file_path}" "${hook}"
       else
         $generate_main && prompt_boolean generate_main "Generate main package (default=${generate_main})? "
-        ! $generate_pre prompt_boolean generate_pre "Generate pre package (default=${generate_pre})? "
-        ! $generate_pre prompt_boolean generate_post "Generate post package (default=${generate_post})? "
+        ! $generate_pre && prompt_boolean generate_pre "Generate pre package (default=${generate_pre})? "
+        ! $generate_post && prompt_boolean generate_post "Generate post package (default=${generate_post})? "
 
         $generate_main && i_generate_template_main "${config_hook}" -- "${file_path}"
         $generate_pre  && i_generate_template_pre  "${config_hook}" -- "${file_path}"

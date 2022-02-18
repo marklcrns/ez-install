@@ -196,7 +196,7 @@ function i_generate_template_main() {
     echo ""
     prompt_input author "${indent}Author: "
     prompt_input package "${indent}*Package: "
-    prompt_input dependencies "${indent}Dependencies (',' separator): "
+    prompt_input dependencies "${indent}Dependencies (',' delimiter): "
     prompt_package_manager package_manager "${indent}Package manager: "
     prompt_input command_name "${indent}Executable name: "
     prompt_input package_name "${indent}Package name: "
@@ -505,7 +505,7 @@ function prompt_boolean() {
   local _boolean_var_name="${1}"
   eval "local _boolean=\${$1}"
 
-  local _default=
+  local _default="${_boolean}"
   if [[ -z "${_boolean}" ]] || [[ "${_boolean}" != 'true' ]] && [[ "${_boolean}" != 'false' ]]; then
     _default=false
   fi

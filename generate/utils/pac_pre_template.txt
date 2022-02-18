@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # ---
-# package: ${package_name}.pre
+# package: ${package_name}
 # package-manager: ${package_manager}
 # as-root: $as_root
 # author: ${author}
