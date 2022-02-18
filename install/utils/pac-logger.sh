@@ -73,7 +73,7 @@ function _pac_log() {
   if [[ -n "${message}" ]]; then
     ${message_command} -d 3 "${message}"
   else
-    ${message_command} -d 3 "${manager} '${package}' package installation failed"
+    ${message_command} -d 3 "${manager} '${package}' package installation ${status}"
   fi
 
   local log=""

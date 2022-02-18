@@ -9,7 +9,6 @@ source "${EZ_INSTALL_HOME}/common/include.sh"
 include "${EZ_INSTALL_HOME}/common/colors.sh"
 include "${EZ_INSTALL_HOME}/common/log.sh"
 include "${EZ_INSTALL_HOME}/const.sh"
-include "${EZ_INSTALL_HOME}/actions.sh"
 
 
 if [[ -z "${1+x}" ]]; then

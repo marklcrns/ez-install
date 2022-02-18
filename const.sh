@@ -38,7 +38,7 @@ readonly BASH_SYS_MSG_USAGE_INVARG='Invalid argument'
 readonly BASH_SYS_MSG_USAGE_INVREFVAR='Invalid reference to variable'
 
 # Ez Install
-readonly EZ_SUPPORTED_PACKAGE_MANAGER='apt apt-add npm pip pip2 pip3 pkg curl wget git local'
+readonly EZ_SUPPORTED_PACKAGE_MANAGER='apt-add apt npm pip pip2 pip3 pkg curl wget git local'
 
 # Ez sub commands
 readonly EZ_COMMAND_GEN="${EZ_INSTALL_HOME}/generate/gen"

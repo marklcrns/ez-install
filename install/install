@@ -24,7 +24,8 @@ include "${EZ_INSTALL_HOME}/generate/utils/generate.sh"
 ################################################## CONSTANT GLOBAL VARIABLES ###
 
 readonly EZ_INSTALL_VERSION="0.3 BETA"
-readonly SCRIPT_ARGS="${@}"
+readonly SCRIPT_ARGS="$@"
+readonly SCRIPT_ARGS_NUM=$#
 
 ############################################################### FLAG OPTIONS ###
 
@@ -118,40 +119,6 @@ EOF
 
 
 function handle_args() {
-  local arg=
-  for arg in ${@}; do
-    local delim=""
-    case "${arg}" in
-      # translate --gnu-long-options to -g (short options)
-      --package-dir)    args="${args:-}-D ";;
-      --generate)       args="${args:-}-c ";;
-      --skip-generate)  args="${args:-}-C ";;
-      --json)           args="${args:-}-j ";;
-      --destination)    args="${args:-}-o ";;
-      --quiet)          args="${args:-}-q ";;
-      --force)          args="${args:-}-f ";;
-      --no-force)       args="${args:-}-F ";;
-      --recurse)        args="${args:-}-r ";;
-      --no-recurse)     args="${args:-}-R ";;
-      --as-root)        args="${args:-}-s ";;
-      --no-root)        args="${args:-}-S ";;
-      --allow-dep-fail) args="${args:-}-w ";;
-      --no-dep-fail)    args="${args:-}-W ";;
-      --version)        args="${args:-}-V ";;
-      --debug)          args="${args:-}-x ";;
-      --skip-confirm)   args="${args:-}-y ";;
-      --no-colors)      args="${args:-}-z ";;
-      --help)           args="${args:-}-h ";;
-      # pass through anything else
-      *)
-        [[ "${arg:0:1}" == "-" ]] || delim="\""
-        args="${args:-}${delim}${arg}${delim} "
-        ;;
-    esac
-  done
-
-  eval set -- ${args:-}
-
   # Install configs
   [[ -z "${SKIP_CONFIRM+x}" ]]    && SKIP_CONFIRM=false
   [[ -z "${VERBOSE+x}" ]]         && VERBOSE=true
@@ -170,62 +137,111 @@ function handle_args() {
   [[ -z "${ALLOW_DEP_FAIL+x}" ]] && ALLOW_DEP_FAIL=false
   CONFIG=""
 
-  OPTIND=1
-  while getopts "D:o:cCfFjqrRsSwWxyzhV" opt; do
-    case ${opt} in
-      D)
-        LOCAL_PACKAGE_ROOT_DIR="${OPTARG}"
-        ;;
-      o)
-        DESTINATION="${OPTARG}"
-        ;;
-      c)
-        GENERATE=true
-        ;;
-      C)
-        SKIP_GENERATE=true
-        ;;
+  #== parse options ==#
+  # Ref: https://www.uxora.com/unix/shell-script/22-handle-long-options-with-getopts
+
+  # Especially useful when relaying script args with group quoted OPTARG
+  eval set -- ${@:-}
+
+  local -A long_opts_map
+  long_opts_map=(
+    ['packagedir']=D
+    ['generate']=c
+    ['skipgenerate']=C
+    ['json']=j
+    ['destination']=o
+    ['quiet']=q
+    ['force']=f
+    ['noforce']=F
+    ['recurse']=r
+    ['norecurse']=R
+    ['asroot']=s
+    ['noroot']=S
+    ['allowdepfail']=w
+    ['nodepfail']=W
+    ['version']=V
+    ['debug']=x
+    ['skipconfirm']=y
+    ['nocolors']=z
+    ['help']=h
+  )
+
+  local script_opts=':D:o:cCfFjqrRsSwWxyzhV-:'
+  local script_args="$@"
+  local script_args_num=$#
+
+  local OPTIND=1
+  while getopts ${script_opts} OPTION; do
+    #== translate long options to short ==#
+    if [[ "x$OPTION" == "x-" ]]; then
+      LONG_OPTION=$OPTARG
+      LONG_OPTARG=$(echo $LONG_OPTION | grep "=" | cut -d'=' -f2)
+      LONG_OPTIND=-1
+
+      [[ "x$LONG_OPTARG" = "x" ]] && LONG_OPTIND=$OPTIND || LONG_OPTION=$(echo $OPTARG | cut -d'=' -f1)
+      [[ $LONG_OPTIND -ne -1 ]] && eval LONG_OPTARG="\$$LONG_OPTIND"
+
+      OPTION=${long_opts_map[$LONG_OPTION]}
+      [[ "x$OPTION" = "x" ]] &&  OPTION="?" OPTARG="-$LONG_OPTION"
+
+      if [[ $( echo "${script_opts}" | grep -c "${OPTION}:" ) -eq 1 ]]; then
+        # OPTION followed by another option instead of argument will be omitted.
+        if [[ "x${LONG_OPTARG}" = "x" ]] || [[ "${LONG_OPTARG}" = -* ]]; then
+          OPTION=":" OPTARG="-$LONG_OPTION"
+        else
+          OPTARG="$LONG_OPTARG";
+          if [[ $LONG_OPTIND -ne -1 ]]; then
+            [[ $OPTIND -le $script_args_num ]] && OPTIND=$(( $OPTIND+1 ))
+            shift $OPTIND
+            OPTIND=1
+          fi
+        fi
+      fi
+    fi
+
+    # OPTION followed by another option instead of argument will be omitted.
+    if [[ "x${OPTION}" != "x:" ]] && [[ "x${OPTION}" != "x?" ]] && [[ "${OPTARG:-}" = -* ]]; then
+      OPTARG="$OPTION" OPTION=":"
+    fi
+
+    #== manage options ==#
+    case "$OPTION" in
+      D) LOCAL_PACKAGE_ROOT_DIR="${OPTARG}" ;;
+      o) DESTINATION="${OPTARG}" ;;
+      f) FORCE=true;           CONFIG="${CONFIG} -${OPTION}" ;;
+      F) FORCE=false;          CONFIG="${CONFIG} -${OPTION}" ;;
+      r) RECURSIVE=true;       CONFIG="${CONFIG} -${OPTION}" ;;
+      R) RECURSIVE=false;      CONFIG="${CONFIG} -${OPTION}" ;;
+      s) AS_ROOT=true;         CONFIG="${CONFIG} -${OPTION}" ;;
+      S) AS_ROOT=false;        CONFIG="${CONFIG} -${OPTION}" ;;
+      w) ALLOW_DEP_FAIL=true;  CONFIG="${CONFIG} -${OPTION}" ;;
+      W) ALLOW_DEP_FAIL=false; CONFIG="${CONFIG} -${OPTION}" ;;
+      c) GENERATE=true ;;
+      C) SKIP_GENERATE=true ;;
+      y) SKIP_CONFIRM=true ;;
+      q) VERBOSE=false; LOG_DEBUG_LEVEL=3 ;;
+      x) DEBUG=true; LOG_DEBUG_LEVEL=7 ;;
       j)
         JSON=true
         error "JSON data parsing is currently not supported"
         exit $BASH_EX_GENERAL
         ;;
-      q)
-        VERBOSE=false
-        LOG_DEBUG_LEVEL=3
-        ;;
-      f) FORCE=true;           CONFIG="${CONFIG} -${opt}" ;;
-      F) FORCE=false;          CONFIG="${CONFIG} -${opt}" ;;
-      r) RECURSIVE=true;       CONFIG="${CONFIG} -${opt}" ;;
-      R) RECURSIVE=false;      CONFIG="${CONFIG} -${opt}" ;;
-      s) AS_ROOT=true;         CONFIG="${CONFIG} -${opt}" ;;
-      S) AS_ROOT=false;        CONFIG="${CONFIG} -${opt}" ;;
-      w) ALLOW_DEP_FAIL=true;  CONFIG="${CONFIG} -${opt}" ;;
-      W) ALLOW_DEP_FAIL=false; CONFIG="${CONFIG} -${opt}" ;;
-      x)
-        DEBUG=true
-        LOG_DEBUG_LEVEL=7
-        ;;
-      y)
-        SKIP_CONFIRM=true
-        ;;
       z)
         ENABLE_COLORS=false
         include "${EZ_INSTALL_HOME}/common/colors.sh"
         ;;
-      h)
-        usage; exit $BASH_EX_OK
-        ;;
-      V)
-        echo "${SCRIPT_NAME} ${EZ_INSTALL_VERSION}"; exit $BASH_EX_OK
-        ;;
+      h) usage; exit $BASH_EX_OK ;;
+      V) echo "${SCRIPT_NAME} ${EZ_INSTALL_VERSION}"; exit $BASH_EX_OK ;;
+      \?) echo "An invalid option has been entered: ${OPTARG:-}" ;;
+      :) echo "The additional argument for option ${OPTARG:-} was omitted." ;;
       *)
         usage
         error "Invalid flag option(s)"
         exit $BASH_SYS_EX_USAGE
     esac
   done
-  shift "$((OPTIND-1))"
+  shift $((${OPTIND} - 1))
+
 
   if [[ -p /dev/stdin ]]; then
     usage
@@ -274,7 +290,7 @@ function _main () {
   local res=0
 
   script_vars
-  handle_args "${SCRIPT_ARGS}"
+  handle_args "$@"
   res=$?
   [[ $res -ne $BASH_EX_OK ]] && return $res
 
@@ -318,7 +334,7 @@ function _main () {
 
 
 res=0
-_main
+_main "$@"
 res=$?
 
 unset EZ_DOWNLOADS_DIR

@@ -153,17 +153,15 @@ function git_clone() {
   # fi
 
   if execlog "${sudo}git clone ${args} -- "${from}" "${output_path}""; then
-    pac_log_success 'Git' "${package_name}" "Git '${output_path}' successful"
+    pac_log_success 'Git' "${package_name}" "Git clone '${from}' -> '${output_path}' successful"
   else
     res=$?
-    pac_log_failed $res 'Git' "${package_name}" "Git '${output_path}' failed!"
+    pac_log_failed $res 'Git' "${package_name}" "Git clone '${from}' -> '${output_path}' failed!"
     return $res
   fi
 
   pac_post_install -o "${output_path}" -s ${as_root} "${package_name}" 'git'
-  res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
-
-  pac_log_success 'Git' "${package_name}" "Git clone '${from}' -> '${output_path}' successful"
+  res=$?
   return $res
 }
 

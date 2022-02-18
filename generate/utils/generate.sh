@@ -22,15 +22,15 @@ include "${EZ_INSTALL_HOME}/actions.sh"
 
 
 function generate_template_main() {
-  generate_template "${@}" "${EZ_INSTALL_HOME}/generate/utils/pac_template.txt"
+  generate_template "$@" "${EZ_INSTALL_HOME}/generate/utils/pac_template.txt"
   return $?
 }
 function generate_template_pre() {
-  generate_template "${@}" "${EZ_INSTALL_HOME}/generate/utils/pac_pre_template.txt"
+  generate_template "$@" "${EZ_INSTALL_HOME}/generate/utils/pac_pre_template.txt"
   return $?
 }
 function generate_template_post() {
-  generate_template "${@}" "${EZ_INSTALL_HOME}/generate/utils/pac_post_template.txt"
+  generate_template "$@" "${EZ_INSTALL_HOME}/generate/utils/pac_post_template.txt"
   return $?
 }
 
@@ -50,13 +50,13 @@ function generate_template() {
   local update=false
   local skip_edit=false
 
-  echo "${@}"
+  # Required to parse string args with quoted OPTARG containing spaces
+  eval set -- "${@:-}"
 
-  OPTIND=1
+  local OPTIND=1
   while getopts "a:A:c:d:m:n:o:p:eEfFsSuUwWt" opt; do
     case ${opt} in
-      # Sed removes all trailing and leading 'quotes' and "double-quotes"
-      # TODO: FIX args with whitespaces
+      # Sed strip all trailing and leading 'quotes' and "double-quotes"
       a) args="$(sed -e "s/^[\"']*//" -e "s/[\"']*$//" <<< "${OPTARG}")" ;;
       A) author="$(sed -e "s/^[\"']*//" -e "s/[\"']*$//" <<< "${OPTARG}")" ;;
       c) command_name="$(sed -e "s/^[\"']*//" -e "s/[\"']*$//" <<< "${OPTARG}")" ;;
@@ -77,7 +77,7 @@ function generate_template() {
       W) allow_dep_fail=false ;;
       t) skip_edit=true ;;
       *)
-        error "Invalid flag option(s)"
+        error "Invalid flag option(s) -- ${opt}"
         exit $BASH_SYS_EX_USAGE
     esac
   done
@@ -97,10 +97,11 @@ function generate_template() {
   local template_path="${2}"
   [[ -z "${package}" ]] && package="$(basename -- ${file_path})"
 
-  if [[ ${package_manager} != "curl" ]] \
-    && [[ ${package_manager} != "wget" ]] \
-    && [[ ${package_manager} != "git" ]]; then
-    package="${package%.*}"
+  # Remove hook and package manager extensions individually to permit other
+  # extensions.
+  # NOTE: the format strictly need to be in package.<package-manager>.<hook>
+  if ! is_package_manager_downloader "${package_manager}" && [[ "${package_manager}" != 'apt-add' ]]; then
+    package="$(sed "s/\.\(${EZ_SUPPORTED_PACKAGE_MANAGER// /\\.\\?\\|}\)\?\(\.pre\|\.post\)\?$//" <<< "${package}")"
   fi
 
   # Fallbacks for required fields
@@ -118,28 +119,59 @@ function generate_template() {
       eval "echo \"${line}\" >> '${file_path}'"
     done < "${template_path}"
     res=$?
+    [[ $res -eq $BASH_EX_OK ]] && ok "Package generated '${file_path}'"
   else
     error "${file_path} package creation failed!"
-    res=$BASH_SYS_EX_CANTCREAT
+    return $BASH_SYS_EX_CANTCREAT
   fi
 
   ! ${skip_edit} && open_editor_package "${file_path}"
-  ok "Package generated '${file_path}'"
   return $res
 }
 
 
 function i_generate_template_main() {
-  local package_dir=""
+  local args=""
+  local author=""
+  local command_name=""
+  local dependencies=""
+  local package_manager=""
+  local package_name=""
+  local destination=""
+  local execute=""
+  local force=""
+  local update=""
+  local as_root=""
+  local allow_dep_fail=""
   local skip_edit=false
 
+  eval set -- "${@:-}"
+
   OPTIND=1
-  while getopts "D:t:" opt; do
+  while getopts "a:A:c:d:m:n:o:p:eEfFsSuUwWt" opt; do
     case ${opt} in
-      D) package_root_dir="${OPTARG}" ;;
-      t) skip_edit="${OPTARG}" ;;
+      # Sed strip all trailing and leading 'quotes' and "double-quotes"
+      a) args="${OPTARG}" ;;
+      A) author="${OPTARG}" ;;
+      c) command_name="${OPTARG}" ;;
+      d) dependencies="${OPTARG}" ;;
+      m) package_manager="${OPTARG}"; to_lower package_manager ;;
+      n) package_name="${OPTARG}" ;;
+      o) destination="${OPTARG}" ;;
+      p) package="${OPTARG}" ;;
+      e) execute=true ;;
+      E) execute=false ;;
+      f) force=true ;;
+      F) force=false ;;
+      s) as_root=true ;;
+      S) as_root=false ;;
+      u) update=true ;;
+      U) update=false ;;
+      w) allow_dep_fail=true ;;
+      W) allow_dep_fail=false ;;
+      t) skip_edit=true ;;
       *)
-        error "Invalid flag option(s)"
+        error "Invalid flag option(s) -- ${opt}"
         exit $BASH_SYS_EX_USAGE
     esac
   done
@@ -150,32 +182,12 @@ function i_generate_template_main() {
     return $BASH_SYS_EX_USAGE
   fi
 
-  resolve_package_dir
+  local file_path="${1}"
+  local package_dir="$(dirname -- "${file_path}")"
 
-  if [[ -z "${package_root_dir}" ]]; then
-    package_root_dir=${LOCAL_PACKAGE_ROOT_DIR}
-    package_dir="${LOCAL_PACKAGE_DIR}"
-  else
-    local distrib_id="${OS_DISTRIB_ID}"; to_lower distrib_id
-    local distrib_release="${OS_DISTRIB_RELEASE}"
-    package_dir="${package_root_dir}/${distrib_id}/${distrib_release}"
-  fi
-
-  local package="${1##*#}"
-  local package_manager="$([[ "${package##*.}" != "${package}" ]] && echo "${package##*.}")"
-
-  local author=""
-  local dependencies=""
-  local package_name=""
-  local command_name=""
-  local destination=""
-  local execute=""
-  local update=""
-  local as_root=""
-  local args=""
-  local indent="  "
   local res=0
   local matches=()
+  local indent="  "
 
   echo -e "\nGenerating main package installer..."
   echo -e "\n${indent}${COLOR_HI_BLACK}Press [enter] to skip optionals.${COLOR_NC}"
@@ -213,7 +225,7 @@ function i_generate_template_main() {
         # Ask for update if apt, apt-add or pkg
         prompt_boolean update "${indent}${indent}${package_manager} update (default=false): "
       fi
-      prompt_input args "${indent}${indent}${package_manager:-Package Manager} args: "
+      prompt_input args "${indent}${indent}${package_manager:-'Package Manager'} args: "
     fi
     prompt_boolean as_root "${indent}As root (default=false): "
     [[ -z "${package_name}" ]] && package_name="${package%.*}"
@@ -268,27 +280,21 @@ function i_generate_template_main() {
 
   # Escape whitespaces
   local ez_gen_args=
-  [[ -n "${args}" ]]            && ez_gen_args+=" -a '${args// /\\ }'"
-  [[ -n "${author}" ]]          && ez_gen_args+=" -A '${author// /\\ }'"
-  [[ -n "${command_name}" ]]    && ez_gen_args+=" -c '${command_name// /\\ }'"
-  [[ -n "${dependencies}" ]]    && ez_gen_args+=" -d '${dependencies// /\\ }'"
-  [[ -n "${package_name}" ]]    && ez_gen_args+=" -n '${package_name// /\\ }'"
-  [[ -n "${package_manager}" ]] && ez_gen_args+=" -m '${package_manager// /\\ }'"
-  [[ -n "${destination}" ]]     && ez_gen_args+=" -o '${destination// /\\ }'"
-  ${update:-false}              && ez_gen_args+=" -u" || ez_gen_args+=" -U"
+  [[ -n "${args}" ]]            && ez_gen_args+=" -a '${args}'"
+  [[ -n "${author}" ]]          && ez_gen_args+=" -A '${author}'"
+  [[ -n "${command_name}" ]]    && ez_gen_args+=" -c '${command_name}'"
+  [[ -n "${dependencies}" ]]    && ez_gen_args+=" -d '${dependencies}'"
+  [[ -n "${package_name}" ]]    && ez_gen_args+=" -n '${package_name}'"
+  [[ -n "${package_manager}" ]] && ez_gen_args+=" -m '${package_manager}'"
+  [[ -n "${destination}" ]]     && ez_gen_args+=" -o '${destination}'"
   ${execute:-false}             && ez_gen_args+=" -e" || ez_gen_args+=" -E"
+  ${force:-false}               && ez_gen_args+=" -f" || ez_gen_args+=" -F"
+  ${update:-false}              && ez_gen_args+=" -u" || ez_gen_args+=" -U"
   ${as_root:-false}             && ez_gen_args+=" -s" || ez_gen_args+=" -S"
   ${skip_edit:-false}           && ez_gen_args+=" -t"
   ! ${VERBOSE}                  && ez_gen_args+=" -q"
-  ${DEBUG}                      && ez_gen_args+=" -x"
 
-  if [[ -z "${package_manager}" ]]; then
-    local file_path="${package_root_dir}/${package}"
-  else
-    local file_path="${package_root_dir}/${package}.${package_manager}"
-  fi
-
-  generate_template_main ${ez_gen_args} -- "${file_path}"
+  generate_template_main "${ez_gen_args}" -- "${file_path}"
 
   res=$?
   return $res
@@ -305,16 +311,30 @@ function i_generate_template_post() {
 }
 
 i_generate_template_hook() {
-  local package_dir=""
+  local author=""
+  local package_manager=""
+  local package_name=""
+  local force=""
+  local as_root=""
   local skip_edit=false
 
+  eval set -- "${@:-}"
+
   OPTIND=1
-  while getopts "D:t:" opt; do
+  while getopts "A:m:n:p:fFsSt" opt; do
     case ${opt} in
-      D) package_root_dir="${OPTARG}" ;;
-      t) skip_edit="${OPTARG}" ;;
+      # Sed strip all trailing and leading 'quotes' and "double-quotes"
+      A) author="${OPTARG}" ;;
+      m) package_manager="${OPTARG}"; to_lower package_manager ;;
+      n) package_name="${OPTARG}" ;;
+      p) package="${OPTARG}" ;;
+      f) force=true ;;
+      F) force=false ;;
+      s) as_root=true ;;
+      S) as_root=false ;;
+      t) skip_edit=true ;;
       *)
-        error "Invalid flag option(s)"
+        error "Invalid flag option(s) -- ${opt}"
         exit $BASH_SYS_EX_USAGE
     esac
   done
@@ -330,21 +350,9 @@ i_generate_template_hook() {
     return $BASH_SYS_EX_USAGE
   fi
 
-  resolve_package_dir
-
-  if [[ -z "${package_root_dir}" ]]; then
-    package_root_dir=${LOCAL_PACKAGE_ROOT_DIR}
-    package_dir="${LOCAL_PACKAGE_DIR}"
-  else
-    local distrib_id="${OS_DISTRIB_ID}"; to_lower distrib_id
-    local distrib_release="${OS_DISTRIB_RELEASE}"
-    package_dir="${package_root_dir}/${distrib_id}/${distrib_release}"
-  fi
-
-  local package="${1##*#}"
-  local package_name="${package%.*}"
-  local package_manager="$([[ "${package##*.}" != "${package}" ]] && echo "${package##*.}")"
+  local file_path="${1}"
   local hook="${2}"; to_lower hook
+  local package_dir="$(dirname -- "${file_path}")"
 
   if [[ "${hook}" == 'pre' ]]; then
     local hook_counter='post'
@@ -355,12 +363,11 @@ i_generate_template_hook() {
     return $BASH_SYS_EX_USAGE
   fi
 
-  local as_root=""
-  local indent="  "
   local res=0
   local matches=()
+  local indent="  "
 
-  echo -e "\nGenerating .post package installer..."
+  echo -e "\nGenerating ${hook} hook package installer..."
   echo -e "\n${indent}${COLOR_HI_BLACK}All optional. Press [enter] to skip.${COLOR_NC}\n"
 
   while true; do
@@ -410,23 +417,18 @@ i_generate_template_hook() {
 
   # Escape whitespaces
   local ez_gen_args=
-  [[ -n "${package_name}" ]]    && ez_gen_args+=" -n '${package_name// /\\ }'"
-  [[ -n "${package_manager}" ]] && ez_gen_args+=" -m '${package_manager// /\\ }'"
+  [[ -n "${author}" ]]          && ez_gen_args+=" -A '${author}'"
+  [[ -n "${package_name}" ]]    && ez_gen_args+=" -n '${package_name}'"
+  [[ -n "${package_manager}" ]] && ez_gen_args+=" -m '${package_manager}'"
+  ${force:-false}               && ez_gen_args+=" -f" || ez_gen_args+=" -F"
   ${as_root:-false}             && ez_gen_args+=" -s" || ez_gen_args+=" -S"
   ${skip_edit:-false}           && ez_gen_args+=" -t"
   ! ${VERBOSE}                  && ez_gen_args+=" -q"
-  ${DEBUG}                      && ez_gen_args+=" -x"
-
-  if [[ -z "${package_manager}" ]]; then
-    local file_path="${package_root_dir}/${package}.${hook}"
-  else
-    local file_path="${package_root_dir}/${package}.${package_manager}.${hook}"
-  fi
 
   if [[ ${hook} == 'pre' ]]; then
-    generate_template_pre ${ez_gen_args} -- "${file_path}"
+    generate_template_pre ${ez_gen_args} -- "${file_path}.pre"
   else
-    generate_template_post ${ez_gen_args} -- "${file_path}"
+    generate_template_post ${ez_gen_args} -- "${file_path}.post"
   fi
 
   res=$?
@@ -551,16 +553,39 @@ function is_package_manager_supported() {
     return $BASH_SYS_EX_USAGE
   fi
 
-  local _package_manager="${1}"
-
-  local _pacman=""
+  local _pacman
   for _pacman in ${EZ_SUPPORTED_PACKAGE_MANAGER}; do
-    if [ "${_package_manager}" = "${_pacman}" ]; then
+    if [ "${1}" = "${_pacman}" ]; then
       return $BASH_EX_OK
     fi
   done
-
   return $BASH_EZ_EX_PACMAN_NOTFOUND
+}
+
+
+function is_package_manager_downloader() {
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  if [[ "${1}" == 'curl' ]] || [[ "${1}" == 'wget' ]] || [[ "${1}" == 'git' ]]; then
+    return $BASH_EX_OK
+  fi
+  return $BASH_EX_GENERAL
+}
+
+
+function is_package_ppa() {
+  if [[ -z "${1+x}" ]]; then
+    error "${BASH_SYS_MSG_USAGE_MISSARG}"
+    return $BASH_SYS_EX_USAGE
+  fi
+
+  if [[ "${1}" =~ ppa:.* ]]; then
+    return $BASH_EX_OK
+  fi
+  return $BASH_EX_GENERAL
 }
 
 

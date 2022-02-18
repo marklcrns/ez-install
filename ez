@@ -15,10 +15,10 @@ include "${EZ_INSTALL_HOME}/actions.sh"
 ################################################## CONSTANT GLOBAL VARIABLES ###
 
 readonly EZ_VERSION="0.3 BETA"
-readonly SCRIPT_ARGS="${@}"
+readonly SCRIPT_ARGS="$@"
+readonly SCRIPT_ARGS_NUM=$#
 
 ############################################################### FLAG OPTIONS ###
-
 
 # TODO: Separate manual from usage. Also, auto generate exit codes.
 function usage() {
@@ -99,51 +99,53 @@ EOF
 function handle_args() {
   if [[ -p /dev/stdin ]]; then
     usage
-    error "Piped arguments not supported"
-    exit $BASH_SYS_EX_USAGE
+    error "Piped arguments not supported" $BASH_SYS_EX_USAGE
   fi
 
   if [[ ! -t 0 && ! -p /dev/stdin ]]; then
     usage
-    error "Stdin redirection not supported"
-    exit $BASH_SYS_EX_USAGE
+    error "Stdin redirection not supported" $BASH_SYS_EX_USAGE
   fi
 
   # Arguments from terminal
   if [[ -t 0 ]]; then
     if [[ -n "${@+x}" ]]; then
-      IFS=" " read -a PACKAGES <<< "${@}"
+      IFS=" " read -a PACKAGES <<< "$@"
     else
       usage
-      error "No package(s) provided"
-      exit $BASH_SYS_EX_USAGE
+      error "No package(s) provided" $BASH_SYS_EX_USAGE
     fi
   fi
 
   if [[ -z "${1+x}" ]]; then
-    error "${BASH_SYS_MSG_USAGE_MISSARG}"
-    return $BASH_SYS_EX_USAGE
+    error "${BASH_SYS_MSG_USAGE_MISSARG}" $BASH_SYS_EX_USAGE
   fi
 
-  case "${1}" in
-    install)
-      shift 1; ${EZ_COMMAND_INSTALL} "${@}"
-      ;;
-    gen)
-      shift 1; ${EZ_COMMAND_GEN} "${@}"
-      ;;
-    -h|--help)
-      usage; manual; exit $BASH_EX_OK
-      ;;
-    -V|--version)
-      echo "${SCRIPT_NAME} ${EZ_VERSION}"; exit $BASH_EX_OK
-      ;;
+  local command="${1}"
+  shift 1
+
+  # Transform args to string to quote OPTARG with whitespace.
+  # Receiving end needs to use `eval set -- ${@:-}`
+  # Ref: https://stackoverflow.com/a/1669493
+  local command_args=""
+  for i in "$@"; do
+    if [[ $i =~ ^--.*= ]]; then
+      i="$(sed -e "s/\(--.*=\)\(.*\)/\1'\2'/" <<< "$i")"
+    elif [[ $i =~ [[:space:]] ]]; then
+      i="'$i'"
+    fi
+    command_args="${command_args} $i"
+  done
+
+  case "${command}" in
+    install)        ${EZ_COMMAND_INSTALL} "${command_args}" ;;
+    gen)            ${EZ_COMMAND_GEN}     "${command_args}" ;;
+    -h|--help)      usage; manual; exit $BASH_EX_OK ;;
+    -V|--version)   echo "${SCRIPT_NAME} ${EZ_VERSION}"; exit $BASH_EX_OK ;;
     *)
       usage
       error "Command '${1}' not found" $BASH_EZ_EX_COMMAND_NOTFOUND
   esac
-
-  return $BASH_EX_OK
 }
 
 ############################################################# MAIN EXECUTION ###
@@ -162,13 +164,13 @@ function _main () {
   fi
 
   script_vars
-  handle_args ${SCRIPT_ARGS}
+  handle_args "$@"
   return $?
 }
 
 
 res=0
-_main
+_main "$@"
 res=$?
 
 exit $res

@@ -41,8 +41,8 @@ include "${EZ_INSTALL_HOME}/const.sh"
 function info()    { _action -l 'info' "${@}"; }
 function ok()      { _action -l 'notice' "${@}"; }
 function skip()    { _action -l 'notice' "${@}"; }
+function error()   { _action -l 'error' "${@}"; }
 function warning() { _action -l 'warn' "${@}"; }
-function error()   { _action -l 'warn' "${@}"; }
 function finish()  { _action -l 'warn' -e 0 ${@}; }
 function abort()   { _action -l 'warn' -e 0 ${@}; }
 function crit()    { _action -l 'crit' -e ${BASH_EX_GENERAL} "${@}"; }
