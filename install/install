@@ -3,7 +3,7 @@
 set -o pipefail
 set -o nounset
 
-source "$(dirname -- $(realpath -- "${BASH_SOURCE[0]}"))/../.ez-installrc"
+source "$(dirname -- "$(realpath -- "${BASH_SOURCE[0]}")")/../.ez-installrc"
 source "${EZ_INSTALL_HOME}/common/include.sh"
 
 ###################################################### EXTERNAL DEPENDENCIES ###
@@ -191,7 +191,7 @@ function handle_args() {
         else
           OPTARG="$LONG_OPTARG";
           if [[ $LONG_OPTIND -ne -1 ]]; then
-            [[ $OPTIND -le $script_args_num ]] && OPTIND=$(( $OPTIND+1 ))
+            [[ $OPTIND -le $script_args_num ]] && OPTIND=$(( OPTIND+1 ))
             shift $OPTIND
             OPTIND=1
           fi
@@ -334,7 +334,7 @@ function _main () {
 
 
 res=0
-_main "$@"
+_main "${SCRIPT_ARGS}"
 res=$?
 
 unset EZ_DOWNLOADS_DIR

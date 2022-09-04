@@ -8,7 +8,7 @@
 # dependency: cargo,gnupg,ca-certificates,git,curl,gcc-multilib,g++-multilib,cmake,libssl-dev,pkg-config,libfreetype6-dev,libasound2-dev,libexpat1-dev,libxcb-composite0-dev,libbz2-dev,libsndio-dev,freeglut3-dev,libxmu-dev,libxi-dev,libfontconfig1-dev
 # as-root: false
 # author: 
-# date: 2022-02-17
+# date: 2022-09-04
 # ---
 ################################################################################
 
