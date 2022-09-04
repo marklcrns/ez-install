@@ -3,7 +3,7 @@
 set -o pipefail
 set -o nounset
 
-source "$(dirname -- $(realpath -- "${BASH_SOURCE[0]}"))/.ez-installrc"
+source "$(dirname -- "$(realpath -- "${BASH_SOURCE[0]}")")/.ez-installrc"
 source "${EZ_INSTALL_HOME}/common/include.sh"
 
 ###################################################### EXTERNAL DEPENDENCIES ###
@@ -138,8 +138,9 @@ function handle_args() {
   done
 
   case "${command}" in
-    install)        ${EZ_COMMAND_INSTALL} "${command_args}" ;;
+    dot)            ${EZ_COMMAND_DOT}     "${command_args}" ;;
     gen)            ${EZ_COMMAND_GEN}     "${command_args}" ;;
+    install)        ${EZ_COMMAND_INSTALL} "${command_args}" ;;
     -h|--help)      usage; manual; exit $BASH_EX_OK ;;
     -V|--version)   echo "${SCRIPT_NAME} ${EZ_VERSION}"; exit $BASH_EX_OK ;;
     *)

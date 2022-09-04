@@ -1,0 +1,385 @@
+#!/bin/bash
+
+################################################################################
+# Distribute all specified dotfiles in DOTFILES_LIST from DOTFILES_REPO
+# into DOTFILES_LOCAL.
+# Uses `cmp` to compare files and `diff -c` to display changes when `-V` flag is
+# given.
+#
+# The $DOTFILESRC specifies the location of .dotfilesrc file to override default
+# script variables.
+#
+################################# DEPENDENCIES #################################
+#
+# ../../scripting-utils/colors  Pre-defined global variables for colorful string
+#                               outputs.
+# ../../scripting-utils/utils   Utility functions for detailed debugging
+#                               outputs.
+# ./detect                      Changes and deletion detection functions.
+#
+########################### Script Global Variables ############################
+#
+# DOTFILES_LIST  = Bash array list of config (dot) files or directory to update.
+# DOTFILES_LOCAL = Default local dotfiles directory to distribute dotfiles into.
+# DOTFILES_REPO  = Default dotfiles repo directory to distribute dotfiles from.
+# LOG_FILE_DIR   = Log file directory.
+# LOG_FILE       = Log file name. Only logs on `-d` flag or debug mode.
+#                  Defaults to current timestamp.
+#
+################################################################################
+# Author : Mark Lucernas <https://github.com/marklcrns>
+# Date   : 2020-08-05
+################################################################################
+# Updates:
+#   2021-01-06 - Added ignore feature with DOTFILES_IGNORE_LIST string array.
+#                Ignored files will not be updated and distributed.
+#
+################################################################################
+
+
+
+
+################################################## CONSTANT GLOBAL VARIABLES ###
+
+# Default script variables
+DOTFILES_LIST=()
+DOTFILES_IGNORE_LIST=()
+DOTFILES_LOCAL="${HOME}"
+DOTFILES_REPO="${HOME}/.dotfiles"
+LOG_FILE_DIR="${HOME}/log"
+LOG_FILE="$(date +"%Y-%m-%dT%H:%M:%S")_$(basename -- $0).log"
+
+SCRIPTPATH="$(realpath -s $0)"
+SCRIPTDIR=$(dirname ${SCRIPTPATH})
+
+############################################## EXTERNAL DEPENDENCIES SCRIPTS ###
+
+# Ansi color code variables
+if [[ -e "${SCRIPTDIR}/../../scripting-utils/colors" ]]; then
+  source "${SCRIPTDIR}/../../scripting-utils/colors"
+else
+  echo "${SCRIPTPATH} WARNING: Failed to source '../../scripting-utils/colors' dependency"
+  echo
+fi
+# Utility functions
+if [[ -e "${SCRIPTDIR}/../../scripting-utils/utils" ]]; then
+  source "${SCRIPTDIR}/../../scripting-utils/utils"
+else
+  echo "${SCRIPTPATH} ERROR: Failed to source '../../scripting-utils/utils' dependency"
+  exit 1
+fi
+# Detect utility for changes and deletion detection
+if [[ -e "${SCRIPTDIR}/detect" ]]; then
+  source "${SCRIPTDIR}/detect"
+else
+  echo "${SCRIPTPATH} ERROR: Failed to source './detect' dependency"
+  exit 1
+fi
+
+# Source rc file if exist
+[[ -e "${DOTFILESRC}" ]] && source "${DOTFILESRC}"
+
+############################################################### FLAG OPTIONS ###
+
+# Display help
+usage() {
+cat << EOF
+USAGE:
+
+Distribute all specified dotfiles in DOTFILES_LIST from DOTFILES_REPO into
+DOTFILES_LOCAL.
+
+  dotdist
+  dotdist [ -bdDqvVy ] [ -r dotfilesrc-path ]
+  dotdist [ dotfiles-repo ] [ dotfiles-local ]
+
+OPTIONS:
+
+  -b  backup files
+  -d  skip file deletion
+  -D  debug mode (redirect output in log file)
+  -q  quite output
+  -r  specify dotfilesrc path
+  -v  verbose output
+  -V  very verbose output
+  -y  skip confirmation
+  -h  help
+
+EOF
+}
+
+# Set flag options
+while getopts "bdDqr:vVyh" opt; do
+  case "$opt" in
+    b) [[ -n "$IS_BACKUP"       ]] && unset IS_BACKUP                  || IS_BACKUP=true;;
+    d) [[ -n "$NO_DELETE"       ]] && unset NO_DELETE                  || NO_DELETE=true;;
+    D) [[ -n "$DEBUG"           ]] && unset DEBUG                      || DEBUG=true;;
+    q) [[ -n "$IS_QUITE"        ]] && unset IS_QUITE                   || IS_QUITE=true;;
+    r) [[ -n "$HAS_RC_FILE"     ]] && unset HAS_RC_FILE                || HAS_RC_FILE=true; tmp_rc_file_path="${OPTARG}";;
+    v) [[ -n "$IS_VERBOSE"      ]] && unset IS_VERBOSE                 || IS_VERBOSE=true;;
+    V) [[ -n "$IS_VERY_VERBOSE" ]] && unset IS_VERBOSE IS_VERY_VERBOSE || IS_VERBOSE=true; IS_VERY_VERBOSE=true;;
+    y) [[ -n "$SKIP_CONFIRM"    ]] && unset SKIP_CONFIRM               || SKIP_CONFIRM=true;;
+    h) usage && exit 0;;
+    *) usage && echo -e "${SCRIPTPATH}:\n${RED}ERROR: Invalid flag.${NC}"
+      exit 1
+  esac
+done 2>/dev/null
+shift "$((OPTIND-1))" # explanation https://unix.stackexchange.com/a/214151
+
+
+####################################################### PRE-EXECUTION SET UP ###
+
+# Strip trailing '/' in DIR path variables
+DOTFILES_LOCAL=$(echo ${DOTFILES_LOCAL} | sed 's,/*$,,')
+DOTFILES_REPO=$(echo ${DOTFILES_REPO} | sed 's,/*$,,')
+LOG_FILE_DIR=$(echo ${LOG_FILE_DIR} | sed 's,/*$,,')
+
+# Log stdout and stderr to $LOG_FILE in $LOG_FILE_DIR
+if [[ -n "${DEBUG}" ]]; then
+  # Append LOG_FILE
+  LOG_FILE_PATH="${LOG_FILE_DIR}/${LOG_FILE}"
+  # Create log directory if not existing
+  if [[ ! -d "${LOG_FILE_DIR}" ]]; then
+    mkdir -p "${LOG_FILE_DIR}"
+  fi
+  # Initialize log file
+  echo -e "${SCRIPTPATH} log outputs\n" > ${LOG_FILE_PATH}
+fi
+
+################################################## SCRIPT ARGUMENTS HANDLING ###
+
+if [[ -n $1 ]]; then
+  tmp_dotfiles_repo="$1"
+  # Validate dotfiles repo directory argument
+  if [[ -d "${tmp_dotfiles_repo}" && -d "${tmp_dotfiles_repo}/.git" ]]; then
+    DOTFILES_REPO="${tmp_dotfiles_repo}"
+    # Strip trailing '/' in DIR path variables
+    DOTFILES_REPO=$(echo ${DOTFILES_REPO} | sed 's,/*$,,')
+  else
+    error "Invalid dotfiles repository directory path '${DOTFILES_REPO}'" 1
+  fi
+  if [[ -n $2 ]]; then
+    tmp_dotfiles_local="$2"
+    # Validate local dotfiles directory argument
+    if [[ -d "${tmp_dotfiles_local}" ]]; then
+      DOTFILES_LOCAL="${tmp_dotfiles_local}"
+      # Strip trailing '/' in DIR path variables
+      DOTFILES_LOCAL=$(echo ${DOTFILES_LOCAL} | sed 's,/*$,,')
+    else
+      error "Invalid local dotfiles directory path '${DOTFILES_LOCAL}'" 1
+    fi
+  else
+    error "Missing local dotfiles directory path argument" 1
+  fi
+fi
+
+if [[ -n "${HAS_RC_FILE}" ]]; then
+  if [[ -e "${tmp_rc_file_path}" ]]; then
+    source "${tmp_rc_file_path}"
+  else
+    error "Invalid rc file path '${tmp_rc_file_path}'" 1
+  fi
+fi
+
+########################################################## SCRIPT EXECUTIONS ###
+
+total_changes_count=0
+total_deleted_count=0
+total_files_count=0
+
+echolog "Detecting dotfiles changes..."
+echolog
+for dotfile in ${DOTFILES_LIST[@]}; do
+  # Strip source directory from path
+  source_stripped=$(echo "${dotfile}" | sed "s,${DOTFILES_LOCAL}/,,")
+
+  source_file="${DOTFILES_REPO}/${source_stripped}"
+  target_file="${dotfile}"
+
+  detect_change "${source_file}" "${target_file}" changes changes_count files_count
+  detect_delete "${target_file}" "${source_file}" delete delete_count
+
+  # Initialize counters if none
+  [[ -z "${changes_count}" ]] && changes_count=0
+  [[ -z "${delete_count}" ]] && delete_count=0
+  [[ -z "${files_count}" ]] && files_count=0
+
+  # Update changes list
+  if [[ -n "${changes}" ]]; then
+    if [[ -z ${changes_list} ]]; then
+      changes_list="${changes}"
+    else
+      changes_list="${changes_list}\n${changes}"
+    fi
+    # Increment changes counter
+    total_changes_count=$(expr ${total_changes_count} + ${changes_count})
+  fi
+  if [[ -n "${delete}" ]]; then
+    if [[ -z ${changes_list} ]]; then
+      changes_list="${delete}"
+    else
+      changes_list="${changes_list}\n${delete}"
+    fi
+    # Increment delete counter
+    if [[ -z "${NO_DELETE}" ]]; then
+      total_deleted_count=$(expr ${total_deleted_count} + ${delete_count})
+    fi
+  fi
+  # Increment total files counters
+  total_files_count=$(expr ${total_files_count} + ${files_count} + ${delete_count})
+done
+
+# Abort if no changes or delete detected
+[[ ${total_changes_count} -eq 0 ]] && [[ ${total_deleted_count} -eq 0 ]] &&
+  abort "\nAborting... No dotfiles to distribute."
+
+echolog
+echolog "${ULINE}Files with changes:${NC}"
+echolog
+
+modified_files_count=0
+new_files_count=0
+
+# Loop over changes list and diff if IS_VERY_VERBOSE, else echolog source file
+while IFS= read -r file_tuple; do
+  # Split file_tuple
+  IFS=';' read -r -a file_arr <<< "${file_tuple}"
+  source_file="${file_arr[0]}"; target_file="${file_arr[1]}"
+  # Copy source to target file
+  if [[ -z "${target_file}" ]]; then # check if target_file is missing
+    if [[ -z "${NO_DELETE}" ]]; then
+      echolog "${RED}-${source_file}${NC}"
+    else
+      echolog "${RED}-${source_file} ${YELLOW}SKIPPED${NC}"
+    fi
+  elif [[ -e "${target_file}" ]]; then # check if target_file not existing
+    # Diff source and target file
+    if [[ -n "${IS_VERY_VERBOSE}" ]] && [[ -z "${IS_QUITE}" ]]; then
+      if command -v colordiff &> /dev/null; then
+        diff -c "${target_file}" "${source_file}" | colordiff
+        log "${source_file}" 1
+      else
+        diff -c "${target_file}" "${source_file}" --color
+        log "${source_file}" 1
+      fi
+    else
+      # echolog source file if not very verbose
+      echolog "${YELLOW}${source_file}${NC}"
+    fi
+    modified_files_count=$((modified_files_count+1))
+  else
+    echolog "${GREEN}+${target_file}${NC}"
+    new_files_count=$((new_files_count+1))
+  fi
+done < <(echo -e "${changes_list}") # Process substitution for outside variables
+
+# Changes and deletes tally
+echolog
+echolog "Total files to update: \t\t${total_files_count}"
+if [[ ${modified_files_count} -gt 0 ]]; then
+  echolog "${YELLOW}Total changed files: \t\t${modified_files_count}${NC}"
+fi
+if [[ ${new_files_count} -gt 0 ]]; then
+  echolog "${GREEN}Total new files: \t\t${new_files_count}${NC}"
+fi
+if [[ -z ${NO_DELETE} ]]; then
+  if [[ ${total_deleted_count} -gt 0 ]]; then
+    echolog "${RED}Total delete files: \t\t${total_deleted_count}${NC}"
+  fi
+else
+  if [[ ${total_deleted_count} -gt 0 ]]; then
+    echolog "${RED}Total delete files: \t\t${YELLOW}SKIPPED${NC}"
+  fi
+fi
+echolog
+
+# Confirmation
+if [[ -z "${SKIP_CONFIRM}" ]]; then
+  log "Do you wish to continue? (Y/y): \n" 1
+  ${SCRIPTDIR}/../../scripting-utils/confirm "Do you wish to continue? (Y/y): "
+  if [[ "${?}" -eq 1 ]]; then
+    abort "Update aborted."
+  elif [[ "${?}" -eq 2 ]]; then
+    error "Unsupported shell"
+  fi
+fi
+
+
+if [[ -n "${IS_BACKUP}" ]]; then
+  echolog "Backing up dotfiles..."
+  echolog
+  if [[ -n "${IS_VERY_VERBOSE}" ]]; then
+    ${SCRIPTDIR}/dotbackup -Vya
+  elif [[ -n "${IS_VERBOSE}" ]]; then
+    ${SCRIPTDIR}/dotbackup -vya
+  else
+    ${SCRIPTDIR}/dotbackup -ya
+  fi
+fi
+
+# Catch if dotbackup failed
+[[ $? -ne 0 ]] && error "Failed to backup files" $?
+
+echolog
+echolog "Distributing dotfiles..."
+echolog
+# Copy changes to target directory and delete missing files
+echo -e "${changes_list}" | while IFS= read -r file_tuple; do
+  IFS=';' read -r -a file_arr <<< "$file_tuple"
+  source_file="${file_arr[0]}"; target_file="${file_arr[1]}"
+  target_dir="$(dirname "${target_file}")"
+  if [[ -z "${target_file}" ]]; then # check if target_file is missing
+    if [[ -z "${NO_DELETE}" ]]; then
+      if execlog "rm -f '${source_file}'" 1; then
+        ok "${source_file} deleted"
+      else
+        error "Failed to delete ${source_file}"
+      fi
+    else
+      warning "${source_file} SKIPPING deletion"
+    fi
+  elif [[ -d "${target_dir}" ]]; then # Check target dir path
+    if execlog "cp -rL '${source_file}' '${target_file}'" 1; then
+      ok "${source_file} -> ${target_file}"
+    else
+      error "Failed to copy ${source_file} -> ${target_file}"
+    fi
+  else # Create target dir if not existing
+    execlog "mkdir -p '${target_dir}'"
+    if execlog "cp -rL '${source_file}' '${target_file}'" 1; then
+      ok "${source_file} -> ${target_file}"
+    else
+      error "Failed to copy ${source_file} -> ${target_file}"
+    fi
+  fi
+done
+
+#################################################################### WRAP UP ###
+
+# Final check
+for dotfile in ${DOTFILES_LIST[@]}; do
+  # Strip source directory from path
+  source_stripped=$(echo "$dotfile" | sed "s,${DOTFILES_LOCAL}/,,")
+
+  source_file="${DOTFILES_REPO}/${source_stripped}"
+  target_file="${dotfile}"
+
+  detect_change "${source_file}" "${target_file}" changes changes_count files_count 1
+  if [[ -z "${NO_DELETE}" ]]; then
+    detect_delete "${target_file}" "${source_file}" delete delete_count files_count 1
+  fi
+done
+
+# Catch final check errors
+[[ ${changes_count} -gt 0 ]] || [[ ${delete_count} -gt 0 ]] &&
+  error "Dotupdate failed. Changes persists" 2
+
+# Clean log files
+if [[ -n "${IS_VERY_VERBOSE}" ]]; then
+  [[ -n "${DEBUG}" ]] && cleanlog 1000
+else
+  [[ -n "${DEBUG}" ]] && cleanlog 1000 1
+fi
+
+finish "Dotfiles update successful!"
+
