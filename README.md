@@ -1,32 +1,75 @@
-# Ez-install
+# Introduction
 
-Install your packages and its dependencies, personal dotfiles, run scripts, pull
-repositories, and more with just one command.
+**Have you ever found yourself confused and helpless trying to install Linux
+packages with endless dependencies over and over again? Or are you a distro
+enthusiast who constantly try out new Linux distribution but hate to reinstall
+packages from your main distro after finding out the new shiny distro "does
+things differently"?**
 
-Ez-install has a `make`-like system that tries to install dependencies first
-before the main target package. Dependency failure will halt the target package
-installation.
+Fear not! ez-install is here to help your lazy ass do the dirty work for you, so
+you can focus on the things that matters the most: Perpetuate indolence.
 
-With the [package generation](#package-generator) system, you can create your
-own package installer from many different package managers with little to no
-Bash scripting knowledge.
+Ez-install is a [make](https://linux.die.net/man/1/make)-like system package
+installer, purely written in bash for portability, that tries to install
+dependencies first before the target package. Dependency failure may halt the
+target package installation.
+
+With ez-install, you can install a wide range of Linux packages and its
+dependencies with just one command.
+
+Additionally, ez-install allows you to bulk-install Linux packages, regardless
+if it requires `git clone`, `apt-get install`, `npm install`, `brew install`,
+`sudo` privileges, custom script execution, pre- and post-install execution (aka
+hooks), ad nauseam, **by only using one simple central command** with nice
+installation [reporting](#reporting).
+
+With the [package generation](#package-generator) system, you have the
+flexibility to **create your own simple and shareable package installer
+scripts** using built-in support for common package managers with little to no
+Bash scripting knowledge. This way, you can direct the installation process to
+your whims and fantasies however you want.
+
+**But wait, there's more!**
+
+Ez-install now supports personal dotfiles management to backup-and-restore all
+your dotfiles across multiple systems. Using ez-install, you don't have to worry
+about where to store all your dotfiles or which dotfiles belong to which
+freakishly many distro you manage in your machine(s). Seriously, what more could
+you ask for?!
+
+## Disclaimer
+
+This small project is made for Linux virgins like me to somewhat make life
+easier and to alleviate the rectal pain of installing Linux packages from many
+distros that destroyed many devs who constantly shit themselves.
+
+This is only a side project of mine and in no way trying to replace the better
+ones out there. It might come across to some haters as trying to "reinvent the
+wheel," but idgaf it's my project and I can do whatever I want! This project
+plugged my ass countless times from bleeding, and it might plug your ass as well
+only if you give it an earnest try.
+
+That said, I hope you find this project helpful to your development needs and
+find time to help this repo grow by contributing. Thanks!
+
+## Table of Contents
 
 <!-- TOC GFM -->
 
-* [Installation](#installation)
+* [Getting Started](#getting-started)
 * [Usage](#usage)
-  * [In-line Options](#in-line-options)
-  * [Reporting](#reporting)
+    * [In-line Options](#in-line-options)
+    * [Reporting](#reporting)
 * [Config](#config)
 * [Pre and Post Installation Hooks](#pre-and-post-installation-hooks)
 * [Package Generator](#package-generator)
-  * [Simple Package Generator Usage](#simple-package-generator-usage)
-  * [Advanced Package Generator Usage](#advanced-package-generator-usage)
-  * [Sample Package Geneartor Usage For `git`, `curl`, and `wget`](#sample-package-geneartor-usage-for-git-curl-and-wget)
-  * [More Advanced Package Generator Usage](#more-advanced-package-generator-usage)
-  * [Interactive Package Generator](#interactive-package-generator)
+    * [Simple Package Generator Usage](#simple-package-generator-usage)
+    * [Advanced Package Generator Usage](#advanced-package-generator-usage)
+    * [Sample Package Geneartor Usage For `git`, `curl`, and `wget`](#sample-package-geneartor-usage-for-git-curl-and-wget)
+    * [More Advanced Package Generator Usage](#more-advanced-package-generator-usage)
+    * [Interactive Package Generator](#interactive-package-generator)
 * [Built-in Install Functions](#built-in-install-functions)
-  * [Package Manager Specific Functions](#package-manager-specific-functions)
+    * [Package Manager Specific Functions](#package-manager-specific-functions)
 * [Supported Package Managers](#supported-package-managers)
 * [Tested Distributions](#tested-distributions)
 * [Contributing](#contributing)
@@ -34,7 +77,7 @@ Bash scripting knowledge.
 
 <!-- /TOC -->
 
-## Installation
+## Getting Started
 
 First, clone the repo.
 
