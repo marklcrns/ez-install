@@ -66,8 +66,8 @@ GEN OPTIONS:
     --post             -P    Generate package post installation.
     --update           -u    Update package manager repository before installation
                              (for apt, pkg, etc.).
-    --as_root          -s    Set package default privileges as root.
-    --no_root          -S    Do not set package default privileges as root.
+    --as-root          -s    Set package default privileges as root.
+    --no-root          -S    Do not set package default privileges as root.
     --interactive      -i    Run interactive mode.
     --skip-main        -M    Skip main package generation. Requires --pre and/or
                              --post flag(s) to be active.
@@ -139,8 +139,8 @@ function handle_args() {
     ['pre']=p
     ['post']=P
     ['quiet']=q
-    ['as_root']=s
-    ['no_root']=S
+    ['as-root']=s
+    ['no-root']=S
     ['skip-edit']=t
     ['update']=u
     ['no-update']=U

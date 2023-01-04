@@ -145,24 +145,24 @@ function handle_args() {
 
   local -A long_opts_map
   long_opts_map=(
-    ['packagedir']=D
+    ['package-dir']=D
     ['generate']=c
-    ['skipgenerate']=C
+    ['skip-generate']=C
     ['json']=j
     ['destination']=o
     ['quiet']=q
     ['force']=f
-    ['noforce']=F
+    ['no-force']=F
     ['recurse']=r
-    ['norecurse']=R
-    ['asroot']=s
-    ['noroot']=S
-    ['allowdepfail']=w
-    ['nodepfail']=W
+    ['no-recurse']=R
+    ['as-root']=s
+    ['no-root']=S
+    ['allow-dep-fail']=w
+    ['no-dep-fail']=W
     ['version']=V
     ['debug']=x
-    ['skipconfirm']=y
-    ['nocolors']=z
+    ['skip-confirm']=y
+    ['no-colors']=z
     ['help']=h
   )
 
