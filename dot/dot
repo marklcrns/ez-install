@@ -1,2 +1,106 @@
 #!/usr/bin/env bash
 
+set -o pipefail
+set -o nounset
+
+source "$(dirname -- $(realpath -- "${BASH_SOURCE[0]}"))/../.ez-installrc"
+source "${EZ_INSTALL_HOME}/common/include.sh"
+
+###################################################### EXTERNAL DEPENDENCIES ###
+
+include "${EZ_INSTALL_HOME}/common/common.sh"
+include "${EZ_INSTALL_HOME}/install/common.sh"
+include "${EZ_INSTALL_HOME}/actions.sh"
+
+################################################## CONSTANT GLOBAL VARIABLES ###
+
+readonly EZ_DOT_VERSION="0.1 BETA"
+readonly SCRIPT_ARGS="$@"
+readonly SCRIPT_ARGS_NUM=$#
+
+############################################################### FLAG OPTIONS ###
+
+# TODO: Separate manual from usage. Also, auto generate exit codes.
+function usage() {
+  cat << EOF
+${SCRIPT_NAME} ${EZ_DOT_VERSION}
+
+COMMAND NAME:
+
+  ${SCRIPT_NAME} - Ez dotfiles manager.
+
+GEN USAGE:
+
+  ez ${SCRIPT_NAME} [dot-manager]
+
+DOTFILES MANAGER OPTIONS:
+
+  bak       Backup dotfiles
+  clbak     Clear backup dotfiles
+  dist      Distribute dotfiles
+  update    Update dotfiles
+
+EOF
+}
+
+
+function handle_args() {
+  if [[ -p /dev/stdin ]]; then
+    usage
+    error "Piped arguments not supported" $BASH_SYS_EX_USAGE
+  fi
+
+  if [[ ! -t 0 && ! -p /dev/stdin ]]; then
+    usage
+    error "Stdin redirection not supported" $BASH_SYS_EX_USAGE
+  fi
+
+  if [[ -z "${1+x}" ]]; then
+    usage
+    error "${BASH_SYS_MSG_USAGE_MISSARG}" $BASH_SYS_EX_USAGE
+  fi
+
+  local command="${1}"
+  strip_extra_whitespace command
+  shift 1
+
+  # Transform args to string to quote OPTARG with whitespace.
+  # Receiving end needs to use `eval set -- ${@:-}`
+  # Ref: https://stackoverflow.com/a/1669493
+  local command_args=""
+  for i in "$@"; do
+    if [[ $i =~ ^--.*= ]]; then
+      i="$(sed -e "s/\(--.*=\)\(.*\)/\1'\2'/" <<< "$i")"
+    elif [[ $i =~ [[:space:]] ]]; then
+      i="'$i'"
+    fi
+    command_args="${command_args} $i"
+  done
+
+  case "${command}" in
+    bak)          ${EZ_COMMAND_DOT_BACKUP}        "${command_args}" ;;
+    clbak)        ${EZ_COMMAND_DOT_CLEAR_BACKUP}  "${command_args}" ;;
+    dist)         ${EZ_COMMAND_DOT_DISTRIBUTE}    "${command_args}" ;;
+    update)       ${EZ_COMMAND_DOT_UPDATE}        "${command_args}" ;;
+    -h|--help)    usage; exit $BASH_EX_OK ;;
+    -V|--version) echo "${SCRIPT_NAME} ${EZ_DOT_VERSION}"; exit $BASH_EX_OK ;;
+    *)
+      usage
+      error "Command '${command}' not found" $BASH_EZ_EX_COMMAND_NOTFOUND
+  esac
+}
+
+############################################################# MAIN EXECUTION ###
+
+function _main () {
+  script_vars
+  handle_args "$@"
+  return $?
+}
+
+
+res=0
+_main "$@"
+res=$?
+
+exit $res

@@ -1,8 +1,8 @@
 #!/bin/bash
 
 ################################################################################
-# Updates all specified dotfiles in DOTFILES_LIST from DOTFILES_LOCAL into
-# DOTFILES_REPO.
+# Distribute all specified dotfiles in DOTFILES_LIST from DOTFILES_REPO
+# into DOTFILES_LOCAL.
 # Uses `cmp` to compare files and `diff -c` to display changes when `-V` flag is
 # given.
 #
@@ -39,7 +39,6 @@
 
 
 
-
 ################################################## CONSTANT GLOBAL VARIABLES ###
 
 # Default script variables
@@ -70,10 +69,10 @@ else
   exit 1
 fi
 # Detect utility for changes and deletion detection
-if [[ -e "${SCRIPTDIR}/detect" ]]; then
-  source "${SCRIPTDIR}/detect"
+if [[ -e "${SCRIPTDIR}/../actions/detect" ]]; then
+  source "${SCRIPTDIR}/../actions/detect"
 else
-  echo "${SCRIPTPATH} ERROR: Failed to source './detect' dependency"
+  echo "${SCRIPTPATH} ERROR: Failed to source './../actions/detect' dependency"
   exit 1
 fi
 
@@ -87,12 +86,12 @@ usage() {
 cat << EOF
 USAGE:
 
-Updates all specified dotfiles in DOTFILES_LIST from DOTFILES_LOCAL into
-DOTFILES_REPO.
+Distribute all specified dotfiles in DOTFILES_LIST from DOTFILES_REPO into
+DOTFILES_LOCAL.
 
-  dotupdate
-  dotupdate [ -bdDqvVy ] [ -r dotfilesrc-path ]
-  dotupdate [ dotfiles-local ] [ dotfiles-repo ]
+  dotdist
+  dotdist [ -bdDqvVy ] [ -r dotfilesrc-path ]
+  dotdist [ dotfiles-repo ] [ dotfiles-local ]
 
 OPTIONS:
 
@@ -110,7 +109,7 @@ EOF
 }
 
 # Set flag options
-while getopts "bdDqvVyh" opt; do
+while getopts "bdDqr:vVyh" opt; do
   case "$opt" in
     b) [[ -n "$IS_BACKUP"       ]] && unset IS_BACKUP                  || IS_BACKUP=true;;
     d) [[ -n "$NO_DELETE"       ]] && unset NO_DELETE                  || NO_DELETE=true;;
@@ -126,6 +125,7 @@ while getopts "bdDqvVyh" opt; do
   esac
 done 2>/dev/null
 shift "$((OPTIND-1))" # explanation https://unix.stackexchange.com/a/214151
+
 
 ####################################################### PRE-EXECUTION SET UP ###
 
@@ -149,27 +149,27 @@ fi
 ################################################## SCRIPT ARGUMENTS HANDLING ###
 
 if [[ -n $1 ]]; then
-  tmp_dotfiles_local="$1"
-  # Validate local dotfiles directory argument
-  if [[ -d "${tmp_dotfiles_local}" ]]; then
-    DOTFILES_LOCAL="${tmp_dotfiles_local}"
+  tmp_dotfiles_repo="$1"
+  # Validate dotfiles repo directory argument
+  if [[ -d "${tmp_dotfiles_repo}" && -d "${tmp_dotfiles_repo}/.git" ]]; then
+    DOTFILES_REPO="${tmp_dotfiles_repo}"
     # Strip trailing '/' in DIR path variables
-    DOTFILES_LOCAL=$(echo ${DOTFILES_LOCAL} | sed 's,/*$,,')
+    DOTFILES_REPO=$(echo ${DOTFILES_REPO} | sed 's,/*$,,')
   else
-    error "Invalid local dotfiles directory path '${DOTFILES_LOCAL}'" 1
+    error "Invalid dotfiles repository directory path '${DOTFILES_REPO}'" 1
   fi
   if [[ -n $2 ]]; then
-    tmp_dotfiles_repo="$2"
-    # Validate dotfiles repo directory argument
-    if [[ -d "${tmp_dotfiles_repo}" && -d "${tmp_dotfiles_repo}/.git" ]]; then
-      DOTFILES_REPO="${tmp_dotfiles_repo}"
+    tmp_dotfiles_local="$2"
+    # Validate local dotfiles directory argument
+    if [[ -d "${tmp_dotfiles_local}" ]]; then
+      DOTFILES_LOCAL="${tmp_dotfiles_local}"
       # Strip trailing '/' in DIR path variables
-      DOTFILES_REPO=$(echo ${DOTFILES_REPO} | sed 's,/*$,,')
+      DOTFILES_LOCAL=$(echo ${DOTFILES_LOCAL} | sed 's,/*$,,')
     else
-      error "Invalid dotfiles repository directory path '${DOTFILES_REPO}'" 1
+      error "Invalid local dotfiles directory path '${DOTFILES_LOCAL}'" 1
     fi
   else
-    error "Missing dotfiles repo directory path argument" 1
+    error "Missing local dotfiles directory path argument" 1
   fi
 fi
 
@@ -187,18 +187,14 @@ total_changes_count=0
 total_deleted_count=0
 total_files_count=0
 
-# TODO: Handle symlink with detect functions
-# Bash: how to get real path of a symlink?: https://stackoverflow.com/a/29789399/11850077
-# How do I check if a file is a symbolic link to a directory?: https://unix.stackexchange.com/a/96910
-# Recursive diff and symlinks: https://superuser.com/questions/635638/recursive-diff-and-symlinks
 echolog "Detecting dotfiles changes..."
 echolog
 for dotfile in ${DOTFILES_LIST[@]}; do
   # Strip source directory from path
-  source_stripped=$(echo "$dotfile" | sed "s,${DOTFILES_LOCAL}/,,")
+  source_stripped=$(echo "${dotfile}" | sed "s,${DOTFILES_LOCAL}/,,")
 
-  source_file="${dotfile}"
-  target_file="${DOTFILES_REPO}/${source_stripped}"
+  source_file="${DOTFILES_REPO}/${source_stripped}"
+  target_file="${dotfile}"
 
   detect_change "${source_file}" "${target_file}" changes changes_count files_count
   detect_delete "${target_file}" "${source_file}" delete delete_count
@@ -235,7 +231,7 @@ done
 
 # Abort if no changes or delete detected
 [[ ${total_changes_count} -eq 0 ]] && [[ ${total_deleted_count} -eq 0 ]] &&
-  abort "\nAborting... No dotfiles to update."
+  abort "\nAborting... No dotfiles to distribute."
 
 echolog
 echolog "${ULINE}Files with changes:${NC}"
@@ -249,7 +245,7 @@ while IFS= read -r file_tuple; do
   # Split file_tuple
   IFS=';' read -r -a file_arr <<< "${file_tuple}"
   source_file="${file_arr[0]}"; target_file="${file_arr[1]}"
-    # Copy source to target file
+  # Copy source to target file
   if [[ -z "${target_file}" ]]; then # check if target_file is missing
     if [[ -z "${NO_DELETE}" ]]; then
       echolog "${RED}-${source_file}${NC}"
@@ -309,12 +305,23 @@ if [[ -z "${SKIP_CONFIRM}" ]]; then
 fi
 
 
-# TODO: Implement more elegant dotfiles backup
-# if [[ -n "${IS_BACKUP}" ]]; then
-# fi
+if [[ -n "${IS_BACKUP}" ]]; then
+  echolog "Backing up dotfiles..."
+  echolog
+  if [[ -n "${IS_VERY_VERBOSE}" ]]; then
+    ${SCRIPTDIR}/dotbackup -Vya
+  elif [[ -n "${IS_VERBOSE}" ]]; then
+    ${SCRIPTDIR}/dotbackup -vya
+  else
+    ${SCRIPTDIR}/dotbackup -ya
+  fi
+fi
+
+# Catch if dotbackup failed
+[[ $? -ne 0 ]] && error "Failed to backup files" $?
 
 echolog
-echolog "Updating dotfiles..."
+echolog "Distributing dotfiles..."
 echolog
 # Copy changes to target directory and delete missing files
 echo -e "${changes_list}" | while IFS= read -r file_tuple; do
@@ -350,15 +357,12 @@ done
 #################################################################### WRAP UP ###
 
 # Final check
-log " " 1
-log "Final check..." 1
-log " " 1
 for dotfile in ${DOTFILES_LIST[@]}; do
   # Strip source directory from path
   source_stripped=$(echo "$dotfile" | sed "s,${DOTFILES_LOCAL}/,,")
 
-  source_file="${dotfile}"
-  target_file="${DOTFILES_REPO}/${source_stripped}"
+  source_file="${DOTFILES_REPO}/${source_stripped}"
+  target_file="${dotfile}"
 
   detect_change "${source_file}" "${target_file}" changes changes_count files_count 1
   if [[ -z "${NO_DELETE}" ]]; then

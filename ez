@@ -107,17 +107,8 @@ function handle_args() {
     error "Stdin redirection not supported" $BASH_SYS_EX_USAGE
   fi
 
-  # Arguments from terminal
-  if [[ -t 0 ]]; then
-    if [[ -n "${@+x}" ]]; then
-      IFS=" " read -a PACKAGES <<< "$@"
-    else
-      usage
-      error "No package(s) provided" $BASH_SYS_EX_USAGE
-    fi
-  fi
-
   if [[ -z "${1+x}" ]]; then
+    usage
     error "${BASH_SYS_MSG_USAGE_MISSARG}" $BASH_SYS_EX_USAGE
   fi
 
@@ -153,7 +144,6 @@ function handle_args() {
 
 function _ctrl_c() {
   echo ""
-  pac_report
   log 'error' "$(basename -- "${BASH_SOURCE[1]}").${FUNCNAME[1]}(): Interrupted!" $BASH_EX_TERMCTRLC
 }
 
