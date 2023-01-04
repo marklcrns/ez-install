@@ -1,0 +1,17 @@
+${SCRIPT_NAME} ${EZ_DOT_VERSION}
+
+COMMAND NAME:
+
+  ${SCRIPT_NAME} - Ez dotfiles manager.
+
+GEN USAGE:
+
+  ez ${SCRIPT_NAME} [dot-manager]
+
+DOTFILES MANAGER OPTIONS:
+
+  bak       Backup dotfiles
+  clbak     Clear backup dotfiles
+  dist      Distribute dotfiles
+  update    Update dotfiles
+

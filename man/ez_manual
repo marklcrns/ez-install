@@ -1,0 +1,46 @@
+EXIT CODES:
+
+  Ez Special Exit Codes
+
+  BASH_EZ_EX__BASE            ${BASH_EZ_EX__BASE}    Ez special exit codes start.
+  BASH_EZ_EX_PAC_NOTFOUND     ${BASH_EZ_EX_PAC_NOTFOUND}    Package not found.
+  BASH_EZ_EX_PACMAN_NOTFOUND  ${BASH_EZ_EX_PACMAN_NOTFOUND}    Package manager not supported.
+  BASH_EZ_EX_DEP_NOTFOUND     ${BASH_EZ_EX_DEP_NOTFOUND}    Dependency not found.
+  BASH_EZ_EX_DEP_FAILED       ${BASH_EZ_EX_DEP_FAILED}    Package dependency failure.
+  BASH_EZ_EX_PAC_EXIST        ${BASH_EZ_EX_PAC_EXIST}    Package exist.
+  BASH_EZ_EX_PAC_GENERATED    ${BASH_EZ_EX_PAC_GENERATED}    Package generated successfully.
+  BASH_EZ_EX_COMMAND_NOTFOUND ${BASH_EZ_EX_COMMAND_NOTFOUND}    Ez command not found.
+  BASH_EZ_EX__MAX             ${BASH_EZ_EX__MAX}    Ez special exit codes end.
+
+  Bash Special Exit Codes
+
+  BASH_EX_OK                  ${BASH_EX_OK}      successful termination.
+  BASH_EX_GENERAL             ${BASH_EX_GENERAL}      catchall for general errors.
+  BASH_EX_MISUSE              ${BASH_EX_MISUSE}      misuse of shell builtins (e.g., missing arg or permission problem).
+  BASH_EX_TIMEOUT             ${BASH_EX_TIMEOUT}      command timout (unresponsive)
+  BASH_EX_EXECERR             ${BASH_EX_EXECERR}    command invoked cannot execute.
+  BASH_EX_NOTFOUND            ${BASH_EX_NOTFOUND}    command not found.
+  BASH_EX_INVALIDEXARG        ${BASH_EX_INVALIDEXARG}    invalid argument to 'exit'.
+  BASH_EX_SIGFATAL_BASE       ${BASH_EX_SIGFATAL_BASE}    fatal error signal "n".
+  BASH_EX_TERMCTRLC           ${BASH_EX_TERMCTRLC}    terminated by Ctrl-c.
+
+  SYSEXITS.H
+
+  BASH_SYS_EX__BASE           ${BASH_SYS_EX__BASE}     base value for error messages.
+  BASH_SYS_EX_USAGE           ${BASH_SYS_EX_USAGE}     command line usage error.
+  BASH_SYS_EX_DATAERR         ${BASH_SYS_EX_DATAERR}     data format error.
+  BASH_SYS_EX_NOINPUT         ${BASH_SYS_EX_NOINPUT}     cannot open input.
+  BASH_SYS_EX_NOUSER          ${BASH_SYS_EX_NOUSER}     addressee unknown.
+  BASH_SYS_EX_NOHOST          ${BASH_SYS_EX_NOHOST}     host name unknown.
+  BASH_SYS_EX_UNAVAILABLE     ${BASH_SYS_EX_UNAVAILABLE}     service unavailable.
+  BASH_SYS_EX_SOFTWARE        ${BASH_SYS_EX_SOFTWARE}     internal software error.
+  BASH_SYS_EX_OSERR           ${BASH_SYS_EX_OSERR}     system error (e.g., can't fork).
+  BASH_SYS_EX_OSFILE          ${BASH_SYS_EX_OSFILE}     critical OS file missing.
+  BASH_SYS_EX_CANTCREAT       ${BASH_SYS_EX_CANTCREAT}     can't create (user) output file.
+  BASH_SYS_EX_IOERR           ${BASH_SYS_EX_IOERR}     input/output error.
+  BASH_SYS_EX_TEMPFAIL        ${BASH_SYS_EX_TEMPFAIL}     temp failure; user is invited to retry.
+  BASH_SYS_EX_PROTOCOL        ${BASH_SYS_EX_PROTOCOL}     remote error in protocol.
+  BASH_SYS_EX_NOPERM          ${BASH_SYS_EX_NOPERM}     permission denied.
+  BASH_SYS_EX_CONFIG          ${BASH_SYS_EX_CONFIG}     configuration error.
+  BASH_SYS_EX__MAX            ${BASH_SYS_EX__MAX}     maximum listed value.
+

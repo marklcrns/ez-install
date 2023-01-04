@@ -1,0 +1,16 @@
+${SCRIPT_NAME} ${EZ_VERSION}
+
+NAME:
+
+  ez - Universal Bash package installer purely written in bash scripts.
+
+USAGE:
+
+  $SCRIPT_NAME <command> [command-args] ...
+
+COMMANDS:
+
+  install -- Install package(s)
+  gen     -- Generate package
+
+EOF

@@ -10,6 +10,7 @@ source "${EZ_INSTALL_HOME}/common/include.sh"
 
 include "${EZ_INSTALL_HOME}/common/common.sh"
 include "${EZ_INSTALL_HOME}/install/common.sh"
+include "${EZ_INSTALL_HOME}/man/print.sh"
 include "${EZ_INSTALL_HOME}/actions.sh"
 
 ################################################## CONSTANT GLOBAL VARIABLES ###
@@ -22,25 +23,7 @@ readonly SCRIPT_ARGS_NUM=$#
 
 # TODO: Separate manual from usage. Also, auto generate exit codes.
 function usage() {
-  cat << EOF
-${SCRIPT_NAME} ${EZ_DOT_VERSION}
-
-COMMAND NAME:
-
-  ${SCRIPT_NAME} - Ez dotfiles manager.
-
-GEN USAGE:
-
-  ez ${SCRIPT_NAME} [dot-manager]
-
-DOTFILES MANAGER OPTIONS:
-
-  bak       Backup dotfiles
-  clbak     Clear backup dotfiles
-  dist      Distribute dotfiles
-  update    Update dotfiles
-
-EOF
+  print_page "${EZ_INSTALL_HOME}/man/ez_dot_usage"
 }
 
 

@@ -1,0 +1,52 @@
+${SCRIPT_NAME} ${EZ_GEN_VERSION}
+
+COMMAND NAME:
+
+  ${SCRIPT_NAME} - Ez package generator.
+
+GEN USAGE:
+
+  ez ${SCRIPT_NAME} [options] package
+
+GEN OPTIONS:
+
+  Flag option with arguments
+
+    --args             -a    Package manager arguments.
+    --author           -A    Package author.
+    --command-name     -c    Package executable name.
+    --dependency       -d    Package installation dependencies.
+    --package-dir      -D    Directory to generate packages to.
+                             default=\$LOCAL_PACKAGE_ROOT_DIR.
+                             global=\$PACKAGE_ROOT_DIR.
+    --global           -G    Generate to global generate package directory.
+                             Overrides '--package-dir'.
+    --package-manager  -m    Package manager installer. '--package-name' is
+                             required for curl, wget, and git.
+    --package-name     -n    Package filename.
+    --destination      -o    Package output directory (for curl, wget, etc.).
+                             default=\$HOME/Downloads.
+
+  Flag option switches
+
+    --execute          -e    Pipe package with \`| sh\` to execute. (for curl, wget).
+    --no-execute       -E    Do not pipe package with \`| sh\` to execute. (for curl, wget).
+    --force            -f    Force package installation.
+    --no-force         -f    Do not force package installation.
+    --pre              -p    Generate package pre installation.
+    --post             -P    Generate package post installation.
+    --update           -u    Update package manager repository before installation
+                             (for apt, pkg, etc.).
+    --as-root          -s    Set package default privileges as root.
+    --no-root          -S    Do not set package default privileges as root.
+    --interactive      -i    Run interactive mode.
+    --skip-main        -M    Skip main package generation. Requires --pre and/or
+                             --post flag(s) to be active.
+    --quiet            -q    Suppress standard output. LOG_DEBUG_LEVEL=3.
+    --skip-edit        -t    Do not edit file(s) after generating.
+    --debug            -x    Debug mode (print all log levels). LOG_DEBUG_LEVEL=7.
+    --skip-confirm     -y    Skip confirmation.
+    --no-colors        -z    Disable output colors.
+    --help             -h    Print usage.
+    --version          -V    Print gen version.
+

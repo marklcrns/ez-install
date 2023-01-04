@@ -1,0 +1,81 @@
+${SCRIPT_NAME} ${EZ_INSTALL_VERSION}
+
+COMMAND NAME:
+
+  ${SCRIPT_NAME} - Ez package installer.
+
+INSTALL USAGE:
+
+  ez ${SCRIPT_NAME} [options] package1 package2 ...
+
+INSTALL OPTIONS:
+
+  Flag option with arguments
+
+    --package-dir   -D    Directory to search packages from.
+                          Global default=\$PACKAGE_ROOT_DIR.
+                          Local default=\$LOCAL_PACKAGE_ROOT_DIR.
+    --destination   -o    Package output directory (for curl, wget, etc.).
+                          default=\$HOME/Downloads.
+
+  Flag option switches
+
+    --generate         -c    Generate package(s) instead of install.
+    --force            -f    Force install/reinstall packages.
+    --no-force         -F    Do not force install/reinstall packages.
+    --recurse          -r    Recursively install package dependencies.
+    --no-recurse       -R    Prevent recursive package dependency installation.
+    --as-root          -s    Run package manager as root (sudo).
+    --no-root          -S    Prevent running package manager as root (sudo).
+    --allow-dep-fail   -w    Continue root package installation on dependency
+                             failure.
+    --no-dep-fail      -W    Do not allow package installation dependency
+                             failure.
+
+    --skip-generate    -C    Skip auto generate prompt. When used with -c,
+                             --generate, generate non-interactive base template.
+    --json             -j    Parse package data as json.
+    --quiet            -q    Suppress standard output. LOG_DEBUG_LEVEL=3.
+    --debug            -x    Debug mode (print all log levels). LOG_DEBUG_LEVEL=7.
+    --skip-confirm     -y    Skip confirmation.
+    --no-colors        -z    Disable output colors.
+    --help             -h    Print usage.
+    --version          -V    Print install version.
+
+INSTALL IN-LINE OPTIONS:
+
+  #force          Force package installation.
+  #noforce        Do not force package installation.
+  #root           Give package installation root privileges.
+  #noroot         Give no package installation root privileges.
+  #dep            Install package recursively.
+  #nodep          Do not install package dependencies.
+  #allowdepfail   Allow package dependency installation failure.
+  #nodepfail      Do not allow package dependency installation failure.
+
+  In-line options \`#opt\` supercedes the flag options but only for the specific
+  package.
+
+  e.g., \`ez $SCRIPT_NAME -S package1#noroot package2 package3\` will try to install
+  all packages with root privileges except \`package1\`
+
+  e.g., \`ez $SCRIPT_NAME package1#root package2#nodep package3#root,nodep\` will try
+  to install \`package1\` as root, \`package2\` without its dependencies, and
+  \`package3\` as root and without its dependencies.
+
+INSTALL HOOKS:
+
+  Pre Installation
+
+    \`${SCRIPT_NAME}\` will automatically try to source <package>.pre first then
+    <package>.<package_manager>.pre from either \$LOCAL_PACKAGE_ROOT_DIR and
+    \$PACKAGE_ROOT_DIR before package installation. \$LOCAL_PACKAGE_DIR priority.
+    Best place to download dependencies or executing pre installation commands.
+
+  Post Installation
+
+    \`${SCRIPT_NAME}\` will automatically try to source <package>.post first then
+    <package>.<package_manager>.post from either \$LOCAL_PACKAGE_ROOT_DIR and
+    \$PACKAGE_ROOT_DIR after package installation. \$LOCAL_PACKAGE_DIR priority.
+    Best place for cleaning up files or executing post installation commands.
+
