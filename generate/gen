@@ -209,8 +209,8 @@ function handle_args() {
       # TODO: Add in-line package opts for flag switches
       e) EXECUTE=true;              CONFIG="${CONFIG} -${OPTION}" ;;
       E) EXECUTE=false;             CONFIG="${CONFIG} -${OPTION}" ;;
-      e) FORCE=true;                CONFIG="${CONFIG} -${OPTION}" ;;
-      E) FORCE=false;               CONFIG="${CONFIG} -${OPTION}" ;;
+      f) FORCE=true;                CONFIG="${CONFIG} -${OPTION}" ;;
+      F) FORCE=false;               CONFIG="${CONFIG} -${OPTION}" ;;
       s) AS_ROOT=true;              CONFIG="${CONFIG} -${OPTION}" ;;
       S) AS_ROOT=false;             CONFIG="${CONFIG} -${OPTION}" ;;
       u) UPDATE=true;               CONFIG="${CONFIG} -${OPTION}" ;;
