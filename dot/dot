@@ -28,20 +28,15 @@ function usage() {
 
 
 function handle_args() {
-  if [[ -p /dev/stdin ]]; then
-    usage
-    error "Piped arguments not supported" $BASH_SYS_EX_USAGE
-  fi
+  # Disallow piped cli args
+  if [[ -p /dev/stdin ]];             then usage; error "Piped arguments not supported" "$BASH_SYS_EX_USAGE"; fi
+  # Disallow Stdin redirection
+  if [[ ! -t 0 && ! -p /dev/stdin ]]; then usage; error "Stdin redirection not supported" "$BASH_SYS_EX_USAGE"; fi
+  # Require arguments
+  if [[ -z "${1+x}" ]];               then usage; error "${BASH_SYS_MSG_USAGE_MISSARG}" "$BASH_SYS_EX_USAGE"; fi
 
-  if [[ ! -t 0 && ! -p /dev/stdin ]]; then
-    usage
-    error "Stdin redirection not supported" $BASH_SYS_EX_USAGE
-  fi
-
-  if [[ -z "${1+x}" ]]; then
-    usage
-    error "${BASH_SYS_MSG_USAGE_MISSARG}" $BASH_SYS_EX_USAGE
-  fi
+  # Especially useful when relaying script args with group quoted OPTARG
+  eval set -- "${@:-}"
 
   local command="${1}"
   strip_extra_whitespace command

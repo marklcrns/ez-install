@@ -36,27 +36,25 @@
 ################################################################################
 
 
-
-
-
-# Prevent from being executed directly in the terminal
-if [ ${0##*/} == ${BASH_SOURCE[0]##*/} ]; then
-  echo "WARNING:"
-  echo "$(realpath -s $0) is not meant to be executed directly!"
-  echo "Use this script only by sourcing it."
-  echo
+if [ "${0##*/}" == "${BASH_SOURCE[0]##*/}" ]; then
+  echo "WARNING: $(realpath -s $0) is not meant to be executed directly!" >&2;
+  echo "Use this script only by sourcing it." >&2;
   exit 1
 fi
 
-# Check if an element is in array
-# $1 = element to check
-# $2 = array
-array_has_element() {
-  local arr match="$1"
-  shift
-  for arr; do [[ "$arr" == "$match" ]] && return 0; done
-  return 1
-}
+# Header guard
+[[ -z "${GENERATE_GENERATE_SH_INCLUDED+x}" ]] \
+  && readonly GENERATE_GENERATE_SH_INCLUDED=1 \
+  || return 0
+
+
+source "$(dirname -- $(realpath -- "${BASH_SOURCE[0]}"))/../../.ez-installrc"
+source "${EZ_INSTALL_HOME}/common/include.sh"
+
+
+include "${EZ_INSTALL_HOME}/common/array.sh"
+include "${EZ_INSTALL_HOME}/common/string.sh"
+
 
 # TODO: Make bidirectional
 #       Make diffing changes detect the most recent file
@@ -76,7 +74,7 @@ array_has_element() {
 # $6 = Pass in integer '1' to turn on IS_QUITE
 #
 # Returns $3, $4, $5 variable args with new values from execution.
-detect_change() {
+function detect_change() {
   local __source=$1
   local __target=$2
   local __changes_list=$3

@@ -1,0 +1,24 @@
+${SCRIPT_NAME} ${EZ_DOT_BACKUP_VERSION}
+
+COMMAND NAME:
+
+  ${SCRIPT_NAME} - Backs up all specified dotfiles from DOTFILES_LIST into
+  DOTFILES_BACKUP_DIR within a current timestamp named directory.
+
+USAGE:
+
+  dotbackup
+  dotbackup [ -aDqvVy ] [ -r dotfilesrc-path ] [ -A backup-limit ]
+
+OPTIONS:
+
+  -a  auto clean old backups if greater than default limit
+  -A  auto clean old backups if greater than specified limit
+  -D  debug mode (redirect output in log file)
+  -q  quite output
+  -r  specify dotfilesrc path
+  -v  verbose output
+  -V  very verbose output
+  -y  skip confirmation
+  -h  help
+
