@@ -29,12 +29,14 @@ function usage() {
 
 
 function handle_args() {
+  # Standard configs
   [[ -z "${SKIP_CONFIRM+x}" ]]    && SKIP_CONFIRM=false
   [[ -z "${VERBOSE+x}" ]]         && VERBOSE=true
   [[ -z "${DEBUG+x}" ]]           && DEBUG=false
   [[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=3
   [[ -z "${ENABLE_COLORS+x}" ]]   && ENABLE_COLORS=true
 
+  # Genenerate configs
   ARGS=""
   AUTHOR=""
   COMMAND_NAME=""
@@ -107,7 +109,7 @@ function handle_args() {
       LONG_OPTARG=$(echo "$LONG_OPTION" | grep "=" | cut -d'=' -f2)
       LONG_OPTIND=-1
 
-      [[ "x$LONG_OPTARG" = "x" ]] && LONG_OPTIND=$OPTIND || LONG_OPTION=$(echo $OPTARG | cut -d'=' -f1)
+      [[ "x$LONG_OPTARG" = "x" ]] && LONG_OPTIND=$OPTIND || LONG_OPTION=$(echo "$OPTARG" | cut -d'=' -f1)
       [[ $LONG_OPTIND -ne -1 ]] && eval LONG_OPTARG="\$$LONG_OPTIND"
 
       OPTION=${long_opts_map[$LONG_OPTION]}
@@ -121,7 +123,7 @@ function handle_args() {
         else
           OPTARG="$LONG_OPTARG";
           if [[ $LONG_OPTIND -ne -1 ]]; then
-            [[ $OPTIND -le $script_args_num ]] && OPTIND=$(( $OPTIND+1 ))
+            [[ $OPTIND -le $script_args_num ]] && OPTIND=$(( OPTIND+1 ))
             shift $OPTIND
             OPTIND=1
           fi
@@ -168,51 +170,49 @@ function handle_args() {
       q) VERBOSE=false; LOG_DEBUG_LEVEL=3 ;;
       x) DEBUG=true; LOG_DEBUG_LEVEL=7 ;;
       y) SKIP_CONFIRM=true ;;
-      z)
-        ENABLE_COLORS=false
-        include "${EZ_INSTALL_HOME}/common/colors.sh"
-        ;;
+      z) ENABLE_COLORS=false
+         include "${EZ_INSTALL_HOME}/common/colors.sh"
+         ;;
       h) usage; exit 0 ;;
-      V) echo "${SCRIPT_NAME} ${EZ_GEN_VERSION}"; exit $BASH_EX_OK ;;
-      \?) echo "An invalid option has been entered: ${OPTARG:-}" ;;
-      :) echo "The additional argument for option ${OPTARG:-} was omitted." ;;
-      *)
-        usage
-        error "Invalid flag option(s)"
-        exit $BASH_SYS_EX_USAGE
+      V) echo "${SCRIPT_NAME} ${EZ_GEN_VERSION}"; exit "$BASH_EX_OK" ;;
+      \?) error "${BASH_SYS_MSG_USAGE_INVARG}: ${OPTARG:-}" "$BASH_EX_GENERAL" ;;
+      :) error "The additional argument for option ${OPTARG:-} was omitted." "$BASH_EX_GENERAL" ;;
+      *) usage; error "Invalid flag option(s)" "$BASH_SYS_EX_USAGE" ;;
     esac
   done
-  shift $((${OPTIND} - 1))
+  shift $(( OPTIND-1 ))
 
 
-  if ! $INTERACTIVE && [[ -z "${@+x}" ]] && [[ "${PACKAGE_MANAGER}" != "local" ]]; then
+  # Require arguments if not interactive and make sure local package manager is 
+  # only for interactive mode
+  if ! $INTERACTIVE && [[ -z "${*+x}" ]] && [[ "${PACKAGE_MANAGER}" != "local" ]]; then
     usage
-    error "${BASH_SYS_MSG_USAGE_MISSARG}"
-    exit $BASH_SYS_EX_USAGE
+    error "${BASH_SYS_MSG_USAGE_MISSARG}" "$BASH_SYS_EX_USAGE"
   fi
 
+  # Use appropriate package directory based on machine distro
   resolve_package_dir
 
+  # Require package name for data transfer/downloader programs such as curl.
   if [[ ${PACKAGE_MANAGER} == "curl" ]] || [[ ${PACKAGE_MANAGER} == "wget" ]] || [[ ${PACKAGE_MANAGER} == "git" ]]; then
     if [[ -z "${PACKAGE_NAME}" ]]; then
       usage
-      error "Package name required for '${PACKAGE_MANAGER}'"
-      exit $BASH_SYS_EX_USAGE
+      error "Package name required for '${PACKAGE_MANAGER}'" "$BASH_SYS_EX_USAGE"
     fi
   fi
 
   # Arguments from terminal into $PACKAGES
   if [[ -t 0 ]]; then
-    if [[ -n "${@+x}" ]]; then
-      IFS=" " read -a PACKAGES <<< "${@}"
+    if [[ -n "${*+x}" ]]; then
+      IFS=" " read -r -a PACKAGES <<< "${@}"
       readonly PACKAGES
     else
       usage
-      error "No package(s) provided. Provide at least one"
-      exit $BASH_SYS_EX_USAGE
+      error "No package(s) provided. Provide at least one" "$BASH_SYS_EX_USAGE"
     fi
   fi
 
+  # Set directory for generated package installers
   if $GLOBAL; then
     GEN_PACKAGE_ROOT_DIR="${PACKAGE_ROOT_DIR}"
     GEN_PACKAGE_DIR="${PACKAGE_DIR}"
@@ -225,12 +225,24 @@ function handle_args() {
     GEN_PACKAGE_DIR="${GEN_PACKAGE_ROOT_DIR}/${distrib_id}/${distrib_release}"
   fi
 
-  return $BASH_EX_OK
+  return "$BASH_EX_OK"
+}
+
+###################################################################### UTILS ###
+
+function _ctrl_c() {
+  if "${DEBUG}"; then
+    echo ""
+    log 'error' "$(basename -- "${BASH_SOURCE[1]}").${FUNCNAME[1]}(): Interrupted!" "$BASH_EX_TERMCTRLC"
+  fi
 }
 
 ############################################################# MAIN EXECUTION ###
 
 function _main() {
+  # Set up trap
+  trap _ctrl_c INT TERM
+  
   local res=0
 
   script_vars
@@ -238,10 +250,11 @@ function _main() {
   res=$?
   [[ $res -ne $BASH_EX_OK ]] && return $res
 
-  local -a packages=( ${PACKAGES[@]} )
+  # Sort packages from cli args
+  local -a packages=( "${PACKAGES[@]}" )
   array_unique packages
 
-  for package_full in ${packages[@]}; do
+  for package_full in "${packages[@]}"; do
     # TODO: In-line opts config
     parse_inline_opts "${package_full}"
     package_full="${package_full%#*}" # Strip #opts
@@ -339,11 +352,10 @@ function _main() {
         else
           res=$?
           error "'${GEN_PACKAGE_DIR}' creation failed"
-          return $BASH_SYS_EX_CANTCREAT
+          return "$BASH_SYS_EX_CANTCREAT"
         fi
       fi
 
-      local continue=""
       if $GENERATE_PRE || $GENERATE_POST; then
         if $GENERATE_MAIN && confirm "Would you like to generate the main package template? (Y/y): "; then
           generate_template_main "${config}" -- "${file_path}"

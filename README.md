@@ -34,7 +34,7 @@ your whims and fantasies however you want.
 Ez-install now supports personal dotfiles management to backup-and-restore all
 your dotfiles across multiple systems. Using ez-install, you don't have to worry
 about where to store all your dotfiles or which dotfiles belong to which
-freakishly many distro you manage in your machine(s). Seriously, what more could
+freakishly many distros you manage in your machine(s). Seriously, what more could
 you ask for?!
 
 ## Disclaimer
@@ -61,11 +61,11 @@ find time to help this repo grow by contributing. Thanks!
     * [In-line Options](#in-line-options)
     * [Reporting](#reporting)
 * [Config](#config)
-* [Pre and Post Installation Hooks](#pre-and-post-installation-hooks)
+* [Pre- and Post-Installation Hooks](#pre--and-post-installation-hooks)
 * [Package Generator](#package-generator)
     * [Simple Package Generator Usage](#simple-package-generator-usage)
     * [Advanced Package Generator Usage](#advanced-package-generator-usage)
-    * [Sample Package Geneartor Usage For `git`, `curl`, and `wget`](#sample-package-geneartor-usage-for-git-curl-and-wget)
+    * [Sample Package Generator Usage For `git`, `curl`, and `wget`](#sample-package-generator-usage-for-git-curl-and-wget)
     * [More Advanced Package Generator Usage](#more-advanced-package-generator-usage)
     * [Interactive Package Generator](#interactive-package-generator)
 * [Built-in Install Functions](#built-in-install-functions)
@@ -178,7 +178,7 @@ existing. Same for the package hook `.pre` and `.post` installations.
 > `/tmp/%path%to%<INSTALL_DIR>%install%ez.log` for `ez install` or
 > `/tmp/%path%to%<INSTALL_DIR>%gen%gen.log` for `ez gen`
 
-## Pre and Post Installation Hooks
+## Pre- and Post-Installation Hooks
 
 ```bash
 INSTALL HOOKS:
@@ -201,7 +201,7 @@ INSTALL HOOKS:
 ## Package Generator
 
 `ez gen` makes it easy to create your own custom package installer. Although
-package templates are purely written in Bash scripts, it only require little to
+package templates are purely written in Bash scripts, it only requires little to
 no knowledge of bash.
 
 For more options, run `ez gen -h`.
@@ -239,7 +239,7 @@ requires another step after the package installation, that is `git lfs install`.
 > Also, the `-d` flag and its optarg `git` attaches it as a dependency of
 > `git-lfs`.
 
-A viable solution is running a pre or post installation process. A built-in
+A viable solution is running a pre- or post-installation process. A built-in
 feature runs `<package>.<package-manager>.pre` before the main package
 installation and then runs `<package>.<package-manager>.post` after.
 
@@ -247,21 +247,21 @@ In our case, we need to add `git lfs install` in `git.apt.post` which we can
 generate with `gen` as well
 
 ```bash
-ez gen -m apt -PS git-lfs
+ez gen -m apt -PM git-lfs
 ```
 
 Here, the `-P` flag tells it to generate a post package installation template
-and the `-S` flag to skip the main package installation since its already
+and the `-M` flag to skip the main package installation since its already
 existing. Run `ez gen -h` for more options.
 
 Then open
 `$LOCAL_PACKAGE_ROOT_DIR/<OS_DISTRIB_ID>/<OS_DISTRIB_RELEASE>/git-lfs.apt.post`
 and add `git lfs install` inside the `_main()` function.
 
-Finally, run `ez git-lfs` and it will try to install `git` first, including its
+Finally, run `ez git-lfs`, and it will try to install `git` first, including its
 `.pre` and `.post`, then if successful, will install `git-lfs` likewise.
 
-### Sample Package Geneartor Usage For `git`, `curl`, and `wget`
+### Sample Package Generator Usage For `git`, `curl`, and `wget`
 
 ```bash
 ez gen -m git -a '--depth=1' -n fzf -o '~/.fzf' 'https://github.com/junegunn/fzf.git'

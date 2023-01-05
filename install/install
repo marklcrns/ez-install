@@ -43,9 +43,9 @@ function handle_args() {
   [[ -z "${VERBOSE+x}" ]]         && VERBOSE=true
   [[ -z "${DEBUG+x}" ]]           && DEBUG=false
   [[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=4
+  [[ -z "${ENABLE_COLORS+x}" ]]   && ENABLE_COLORS=true
 
   # Install configs
-  [[ -z "${ENABLE_COLORS+x}" ]]   && ENABLE_COLORS=true
   [[ -z "${SKIP_GENERATE+x}" ]]   && SKIP_GENERATE=false
   [[ -z "${JSON+x}" ]]            && JSON=false
   [[ -z "${DESTINATION+x}" ]]     && DESTINATION="${HOME}/Downloads"
@@ -152,7 +152,7 @@ function handle_args() {
     esac
 
   done
-  shift $((OPTIND-1))
+  shift $(( OPTIND-1 ))
 
 
   # Disallow piped cli args
@@ -169,6 +169,21 @@ function handle_args() {
       usage; error "No package(s) provided" "$BASH_SYS_EX_USAGE"
     fi
   fi
+
+  local res=0
+
+  # Make sure $DESTINATION directory exist
+  if [[ ! -d "${DESTINATION}" ]]; then
+    if execlog "mkdir -p '${DESTINATION}'"; then
+      ok "'${DESTINATION}' directory created"
+    else
+      res=$?
+      error "'${DESTINATION}' creation failed" "$BASH_SYS_EX_CANTCREAT"
+    fi
+  fi
+
+  # Use appropriate package directory based on machine distro
+  resolve_package_dir
 
   return "$BASH_EX_OK"
 }
@@ -194,19 +209,6 @@ function _main () {
   handle_args "$@"
   res=$?
   [[ $res -ne $BASH_EX_OK ]] && return $res
-
-  # Make sure $DESTINATION directory exist
-  if [[ ! -d "${DESTINATION}" ]]; then
-    if execlog "mkdir -p '${DESTINATION}'"; then
-      ok "'${DESTINATION}' directory created"
-    else
-      res=$?
-      error "'${DESTINATION}' creation failed" "$BASH_SYS_EX_CANTCREAT"
-    fi
-  fi
-
-  # Use appropriate package directory based on machine distro
-  resolve_package_dir
 
   # Sort packages from cli args
   local -a packages=( "${PACKAGES[@]}" )
