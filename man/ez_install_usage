@@ -20,9 +20,9 @@ INSTALL OPTIONS:
 
   Flag option switches
 
-    --generate         -c    Generate package(s) instead of install.
     --force            -f    Force install/reinstall packages.
     --no-force         -F    Do not force install/reinstall packages.
+    --skip-generate    -G    Skip auto generate prompt.
     --recurse          -r    Recursively install package dependencies.
     --no-recurse       -R    Prevent recursive package dependency installation.
     --as-root          -s    Run package manager as root (sudo).
@@ -32,8 +32,6 @@ INSTALL OPTIONS:
     --no-dep-fail      -W    Do not allow package installation dependency
                              failure.
 
-    --skip-generate    -C    Skip auto generate prompt. When used with -c,
-                             --generate, generate non-interactive base template.
     --json             -j    Parse package data as json.
     --quiet            -q    Suppress standard output. LOG_DEBUG_LEVEL=3.
     --debug            -x    Debug mode (print all log levels). LOG_DEBUG_LEVEL=7.

@@ -21,6 +21,10 @@ include "${EZ_INSTALL_HOME}/const.sh"
 include "${EZ_INSTALL_HOME}/install/install-utils/install.sh"
 
 
+# Make sure to use local package directory first. Also uses directory according
+# to respective linux distro.
+# TODO: If Linux distro is not found, resolve to the most similar distro if
+# possible.
 function resolve_package_dir() {
   os_release
   local distrib_id="${OS_DISTRIB_ID}"; to_lower distrib_id

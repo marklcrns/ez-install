@@ -3,10 +3,11 @@
 set -o pipefail
 set -o nounset
 
+# Essential sources
 source "$(dirname -- "$(realpath -- "${BASH_SOURCE[0]}")")/.ez-installrc"
 source "${EZ_INSTALL_HOME}/common/include.sh"
 
-###################################################### EXTERNAL DEPENDENCIES ###
+############################################################### DEPENDENCIES ###
 
 include "${EZ_INSTALL_HOME}/common/common.sh"
 include "${EZ_INSTALL_HOME}/install/common.sh"
@@ -16,8 +17,7 @@ include "${EZ_INSTALL_HOME}/actions.sh"
 ################################################## CONSTANT GLOBAL VARIABLES ###
 
 readonly EZ_VERSION="0.3 BETA"
-readonly SCRIPT_ARGS="$@"
-readonly SCRIPT_ARGS_NUM=$#
+readonly SCRIPT_ARGS=( "${@}" )
 
 ############################################################### FLAG OPTIONS ###
 
@@ -35,27 +35,20 @@ function manual () {
 
 
 function handle_args() {
-  if [[ -p /dev/stdin ]]; then
-    usage
-    error "Piped arguments not supported" $BASH_SYS_EX_USAGE
-  fi
+  # Disallow piped cli args
+  if [[ -p /dev/stdin ]];             then usage; error "Piped arguments not supported" "$BASH_SYS_EX_USAGE"; fi
+  # Disallow Stdin redirection
+  if [[ ! -t 0 && ! -p /dev/stdin ]]; then usage; error "Stdin redirection not supported" "$BASH_SYS_EX_USAGE"; fi
+  # Require arguments
+  if [[ -z "${1+x}" ]];               then usage; error "${BASH_SYS_MSG_USAGE_MISSARG}" "$BASH_SYS_EX_USAGE"; fi
 
-  if [[ ! -t 0 && ! -p /dev/stdin ]]; then
-    usage
-    error "Stdin redirection not supported" $BASH_SYS_EX_USAGE
-  fi
-
-  if [[ -z "${1+x}" ]]; then
-    usage
-    error "${BASH_SYS_MSG_USAGE_MISSARG}" $BASH_SYS_EX_USAGE
-  fi
-
+  # Catch command and throw it away to focus on the rest of args to pass to the command execution
   local command="${1}"
   shift 1
 
-  # Transform args to string to quote OPTARG with whitespace.
-  # Receiving end needs to use `eval set -- ${@:-}`
   # Ref: https://stackoverflow.com/a/1669493
+  # Transform args to string to quote OPTARG with whitespace.
+  # WARNING: Receiving end needs to use `eval set -- "${@:-}"`
   local command_args=""
   for i in "$@"; do
     if [[ $i =~ ^--.*= ]]; then
@@ -70,27 +63,28 @@ function handle_args() {
     dot)            ${EZ_COMMAND_DOT}     "${command_args}" ;;
     gen)            ${EZ_COMMAND_GEN}     "${command_args}" ;;
     install)        ${EZ_COMMAND_INSTALL} "${command_args}" ;;
-    -h|--help)      usage; manual; exit $BASH_EX_OK ;;
-    -V|--version)   echo "${SCRIPT_NAME} ${EZ_VERSION}"; exit $BASH_EX_OK ;;
+    -h|--help)      usage; manual; exit "$BASH_EX_OK" ;;
+    -V|--version)   echo "${SCRIPT_NAME} ${EZ_VERSION}"; exit "$BASH_EX_OK" ;;
     *)
       usage
-      error "Command '${1}' not found" $BASH_EZ_EX_COMMAND_NOTFOUND
+      error "Command '${1}' not found" "$BASH_EZ_EX_COMMAND_NOTFOUND"
   esac
+}
+
+###################################################################### UTILS ###
+
+function _ctrl_c() {
+  if "${DEBUG}"; then
+    echo ""
+    log 'error' "$(basename -- "${BASH_SOURCE[1]}").${FUNCNAME[1]}(): Interrupted!" "$BASH_EX_TERMCTRLC"
+  fi
 }
 
 ############################################################# MAIN EXECUTION ###
 
-function _ctrl_c() {
-  echo ""
-  log 'error' "$(basename -- "${BASH_SOURCE[1]}").${FUNCNAME[1]}(): Interrupted!" $BASH_EX_TERMCTRLC
-}
-
-
 function _main () {
   # Set up trap
-  if "${DEBUG}"; then
-    trap _ctrl_c INT TERM
-  fi
+  trap _ctrl_c INT TERM
 
   script_vars
   handle_args "$@"
@@ -98,8 +92,5 @@ function _main () {
 }
 
 
-res=0
-_main "$@"
-res=$?
-
+res=0; _main "${SCRIPT_ARGS[@]}"; res=$?
 exit $res

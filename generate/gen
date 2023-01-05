@@ -3,7 +3,7 @@
 set -o pipefail
 set -o nounset
 
-source "$(dirname -- $(realpath -- "${BASH_SOURCE[0]}"))/../.ez-installrc"
+source "$(dirname -- "$(realpath -- "${BASH_SOURCE[0]}")")/../.ez-installrc"
 source "${EZ_INSTALL_HOME}/common/include.sh"
 
 ###################################################### EXTERNAL DEPENDENCIES ###
@@ -19,8 +19,7 @@ include "${EZ_INSTALL_HOME}/actions.sh"
 ################################################## CONSTANT GLOBAL VARIABLES ###
 
 readonly EZ_GEN_VERSION="0.3 BETA"
-readonly SCRIPT_ARGS="$@"
-readonly SCRIPT_ARGS_NUM=$#
+readonly SCRIPT_ARGS=( "${@}" )
 
 ############################################################### FLAG OPTIONS ###
 
@@ -63,7 +62,7 @@ function handle_args() {
   # Ref: https://www.uxora.com/unix/shell-script/22-handle-long-options-with-getopts
 
   # Especially useful when relaying script args with group quoted OPTARG
-  eval set -- ${@:-}
+  eval set -- "${@:-}"
 
   local -A long_opts_map
   long_opts_map=(
@@ -98,7 +97,6 @@ function handle_args() {
   )
 
   local script_opts=':a:A:c:d:m:n:o:D:eEfFsSuUwWGiMpPtqxyzhV-:'
-  local script_args="$@"
   local script_args_num=$#
 
   local OPTIND=1
@@ -106,7 +104,7 @@ function handle_args() {
     #== translate long options to short ==#
     if [[ "x$OPTION" == "x-" ]]; then
       LONG_OPTION=$OPTARG
-      LONG_OPTARG=$(echo $LONG_OPTION | grep "=" | cut -d'=' -f2)
+      LONG_OPTARG=$(echo "$LONG_OPTION" | grep "=" | cut -d'=' -f2)
       LONG_OPTIND=-1
 
       [[ "x$LONG_OPTARG" = "x" ]] && LONG_OPTIND=$OPTIND || LONG_OPTION=$(echo $OPTARG | cut -d'=' -f1)
@@ -370,9 +368,7 @@ function _main() {
 }
 
 
-res=0
-_main "$@"
-res=$?
+res=0; _main "${SCRIPT_ARGS[@]}"; res=$?
 
 unset SKIP_CONFIRM
 unset VERBOSE
