@@ -43,7 +43,6 @@ readonly EZ_SUPPORTED_PACKAGE_MANAGER='apt-add apt npm pip pip2 pip3 pkg curl wg
 # Ez sub commands
 readonly EZ_COMMAND_DOT="${EZ_INSTALL_HOME}/dot/dot"
 readonly EZ_COMMAND_DOT_BACKUP="${EZ_INSTALL_HOME}/dot/actions/backup"
-readonly EZ_COMMAND_DOT_CLEAR_BACKUP="${EZ_INSTALL_HOME}/dot/actions/clearbak"
 readonly EZ_COMMAND_DOT_DISTRIBUTE="${EZ_INSTALL_HOME}/dot/actions/dist"
 readonly EZ_COMMAND_DOT_UPDATE="${EZ_INSTALL_HOME}/dot/actions/update"
 readonly EZ_COMMAND_GEN="${EZ_INSTALL_HOME}/generate/gen"

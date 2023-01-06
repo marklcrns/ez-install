@@ -178,7 +178,7 @@ function has_alternate_package() {
   fi
 
   local res=0
-  if ! $SKIP_GENERATE; then
+  if ! $INSTALL_SKIP_GENERATE; then
     ! $DEBUG && printf "\n"
     warning "Generating ${package}"
     ${EZ_COMMAND_GEN} -i ${package}

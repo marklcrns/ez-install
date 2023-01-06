@@ -1,7 +1,10 @@
 #!/bin/bash
 
+set -o pipefail
+set -o nounset
+
 ################################################################################
-# Backs up all specified dotfiles from DOTFILES_LIST into DOTFILES_BACKUP_DIR
+# Backs up all specified dotfiles from DOTFILES_LIST into DOT_BACKUP_DIR
 # within a current timestamp named directory.
 #
 # The $DOTFILESRC specifies the location of .dotfilesrc file to override default
@@ -31,6 +34,7 @@ readonly SCRIPT_ARGS=( "${@}" )
 
 include "${EZ_INSTALL_HOME}/common/common.sh"
 include "${EZ_INSTALL_HOME}/common/colors.sh"
+include "${EZ_INSTALL_HOME}/common/const.sh"
 include "${EZ_INSTALL_HOME}/man/print.sh"
 include "${EZ_INSTALL_HOME}/actions.sh"
 
@@ -50,7 +54,8 @@ function handle_args() {
   [[ -z "${ENABLE_COLORS+x}" ]]   && ENABLE_COLORS=true
 
   # backup configs
-  [[ -z "${AUTO_CLEAN+x}" ]]      && AUTO_CLEAN=false
+  [[ -z "${DOT_BACKUP_AUTO_CLEAN+x}" ]]  && DOT_BACKUP_AUTO_CLEAN=false
+  [[ -z "${CLEAN_BACKUPS+x}" ]]          && CLEAN_BACKUPS=false
 
   #== parse options ==#
   # Ref: https://www.uxora.com/unix/shell-script/22-handle-long-options-with-getopts
@@ -61,6 +66,7 @@ function handle_args() {
   local -A long_opts_map
   long_opts_map=(
     ['auto-clean']=a
+    ['clean-backups']=c
     ['quiet']=q
     ['debug']=x
     ['skip-confirm']=y
@@ -69,7 +75,7 @@ function handle_args() {
     ['version']=V
   )
 
-  local script_opts=':aqxyzhV-:'
+  local script_opts=':acqxyzhV-:'
   local script_args_num=$#
 
   local OPTIND=1
@@ -108,7 +114,8 @@ function handle_args() {
 
     #== manage options ==#
     case "$OPTION" in
-      a) AUTO_CLEAN=true ;;
+      a) DOT_BACKUP_AUTO_CLEAN=true ;;
+      c) CLEAN_BACKUPS=true ;;
       y) SKIP_CONFIRM=true ;;
       q) VERBOSE=false; LOG_DEBUG_LEVEL=3 ;;
       x) DEBUG=true; LOG_DEBUG_LEVEL=7 ;;
@@ -131,11 +138,10 @@ function handle_args() {
   # Disallow Stdin redirection
   if [[ ! -t 0 && ! -p /dev/stdin ]]; then usage; error "Stdin redirection not supported" "$BASH_SYS_EX_USAGE"; fi
 
-  _dot_local_dir="${1}"
-  _dot_backup_dir="${2}"
 
   # Validate local dotfiles directory argument
-  if [[ -n "${_dot_local_dir}" ]]; then
+  if [[ -n "${1+x}" ]]; then
+    _dot_local_dir="${1}"
     if [[ -d "${_dot_local_dir}" ]]; then
       DOT_LOCAL_DIR="${_dot_local_dir}"
     else
@@ -143,7 +149,8 @@ function handle_args() {
     fi
 
     # Validate dotfiles backup directory argument
-    if [[ -n "${_dot_backup_dir}" ]]; then
+    if [[ -n "${2+x}" ]]; then
+      _dot_backup_dir="${2}"
       if [[ -d "${_dot_backup_dir}" ]]; then
         DOT_BACKUP_DIR="${_dot_backup_dir}"
       else
@@ -177,6 +184,71 @@ function _ctrl_c() {
   fi
 }
 
+
+function backup_disposal() {
+  echo -e "\nDetecting all backup files...\n$(ls "${DOT_BACKUP_DIR}")"
+
+  # Assess backups to be be removed
+  backup_dir_count=$(ls "${DOT_BACKUP_DIR}" | wc -l)
+  
+  if ${CLEAN_BACKUPS}; then
+    to_remove_count=$backup_dir_count
+  else
+    to_remove_count=$(( backup_dir_count - DOT_BACKUP_LIMIT ))
+
+    # Cache backup directories to be removed
+    if [[ ${to_remove_count} -lt 0 ]]; then
+      to_remove_count=0
+    fi
+  fi 
+
+  echo -e "\nTotal backups: \t\t\t${backup_dir_count}"
+  echo -e "Oldest backups to remove: \t${to_remove_count}"
+  echo -e "Backup limit: \t\t\t${DOT_BACKUP_LIMIT}\n"
+
+  # Skip clearing if backup still below limit
+  if [[ ${to_remove_count} -eq 0 ]]; then
+    abort "Backups still below limit. Skipping deletion..."
+  fi
+
+  confirm || exit "$BASH_EX_GENERAL"
+
+  echo -e "Removing excess backups...\n"
+
+  # TODO: Convert list to array
+  # Get oldest backups amount based on DOT_BACKUP_LIMIT
+  to_remove_list="$(find "${DOT_BACKUP_DIR}" -maxdepth 1 -mindepth 1 -type d | sort | head -${to_remove_count})"
+  removed_count=0
+
+  # Execute backups removal
+  while IFS= read -r backup_file; do
+    if execlog "rm -rf '${backup_file}'"; then
+      if ! [[ -e "${backup_file}" ]]; then
+        warning "${backup_file} deleted"
+      else
+        warning "Failed to remove ${backup_file}"
+      fi
+      # Increment removed count
+      removed_count=$((removed_count+1))
+    else
+      error "Failed to remove ${backup_file}"
+    fi
+  done <<< "${to_remove_list}"
+
+  #== wrap up ==#
+
+  # Final check
+  new_backup_dir_count=$(find "${DOT_BACKUP_DIR}" -maxdepth 1 -mindepth 1 -type d | wc -l)
+  # Check if all backups due for deletion are deleted
+  if [[ $(( new_backup_dir_count + removed_count )) -eq ${backup_dir_count} ]]; then
+    ok "\nTotal removed: ${removed_count}"
+  else
+    error "Clearing dotfiles backups failed" "$BASH_EX_GENERAL"
+  fi
+
+  finish "Dotfiles backups cleared!"
+}
+
 ############################################################# MAIN EXECUTION ###
 
 function _main () {
@@ -191,98 +263,96 @@ function _main () {
   [[ $res -ne $BASH_EX_OK ]] && return $res
 
 
-  local -a dotfiles=( "${DOTFILES_LIST[@]}" )
-  dotfiles_count=0
+  # Backup dotfiles (if not in cleaning mode)
+  if ! ${CLEAN_BACKUPS}; then
+    local -a dotfiles=( "${DOTFILES_LIST[@]}" )
+    dotfiles_count=0
 
-  # Display dotfiles to backup
-  info "Backing up the following files in '${DOT_BACKUP_DIR}/${DOT_BACKUP_DIR_NAME}'..."
-  for dotfile in "${dotfiles[@]}"; do
-    echo "${dotfile}"
-    (( dotfiles_count++ ))
-  done
+    # Display dotfiles to backup
+    info "Backing up the following files in '${DOT_BACKUP_DIR}/${DOT_BACKUP_DIR_NAME}'..."
+    for dotfile in "${dotfiles[@]}"; do
+      echo "${dotfile}"
+      (( dotfiles_count++ ))
+    done
 
-  # Abort if no dotfiles detected
-  if [[ ${dotfiles_count} -eq 0 ]]; then
-    abort "\nAborting... No dotfiles to backup."
-  fi
-
-  echo "Total dotfiles: ${dotfiles_count}"
-
-  confirm || exit "$BASH_EX_GENERAL"
-  
-  
-  info "\nBacking up local dotfiles...\n"
-
-  # Create backup directory
-  execlog "mkdir -p '${DOT_BACKUP_DIR}/${DOT_BACKUP_DIR_NAME}'" 1
-
-  # Backup all dotfiles
-  for dotfile in "${dotfiles[@]}"; do
-    # Strip source directory from path
-    dotfile_stripped="$(echo "$dotfile" | sed "s,${DOT_LOCAL_DIR}/,,")"
-    # Strip basename for non-directory or last subdirectory
-    subdir="$(echo "${dotfile_stripped}" | sed "s,$(basename "$dotfile").*,,")"
-
-    strip_trailing_forwardslash subdir
-    strip_trailing_forwardslash dotfile_stripped
-
-    full_backup_dir="${DOT_BACKUP_DIR}/${DOT_BACKUP_DIR_NAME}"
-
-    # Append subdir to full path
-    if [[ -n "${subdir}" ]]; then
-      full_backup_dir="${full_backup_dir}/${subdir}"
-      # Create subdirectories
-      execlog "mkdir -p '${full_backup_dir}'"
+    # Abort if no dotfiles detected
+    if [[ ${dotfiles_count} -eq 0 ]]; then
+      abort "\nAborting... No dotfiles to backup."
     fi
-    # Copy dotfile into backup directory if existing
-    if [[ -e "${DOT_LOCAL_DIR}/${dotfile_stripped}" ]]; then
-      if execlog "cp -rL '${DOT_LOCAL_DIR}/${dotfile_stripped}' '${full_backup_dir}'" 1; then
-        warning "${DOT_LOCAL_DIR}/${dotfile_stripped} -> ${full_backup_dir}" ""
-      else
-        error "Failed to copy ${DOT_LOCAL_DIR}/${dotfile_stripped} -> ${full_backup_dir}"
+
+    echo "Total dotfiles: ${dotfiles_count}"
+
+    confirm || exit "$BASH_EX_GENERAL"
+    
+    
+    info "\nBacking up local dotfiles...\n"
+
+    # Create backup directory
+    execlog "mkdir -p '${DOT_BACKUP_DIR}/${DOT_BACKUP_DIR_NAME}'" 1
+
+    # Backup all dotfiles
+    for dotfile in "${dotfiles[@]}"; do
+      # Strip source directory from path
+      dotfile_stripped="$(echo "$dotfile" | sed "s,${DOT_LOCAL_DIR}/,,")"
+      # Strip basename for non-directory or last subdirectory
+      subdir="$(echo "${dotfile_stripped}" | sed "s,$(basename "$dotfile").*,,")"
+
+      strip_trailing_forwardslash subdir
+      strip_trailing_forwardslash dotfile_stripped
+
+      full_backup_dir="${DOT_BACKUP_DIR}/${DOT_BACKUP_DIR_NAME}"
+
+      # Append subdir to full path
+      if [[ -n "${subdir}" ]]; then
+        full_backup_dir="${full_backup_dir}/${subdir}"
+        # Create subdirectories
+        execlog "mkdir -p '${full_backup_dir}'"
       fi
-    fi
-  done
-
-  #== wrap up ==#
-
-  errors_count=0
-
-  # Final check if all files and directories are copied
-  for dotfile in "${dotfiles[@]}"; do
-    # Strip source directory from path
-    dotfile_stripped="$(echo "$dotfile" | sed "s,${DOT_LOCAL_DIR}/,,")"
-    full_backup_dir="${DOT_BACKUP_DIR}/${DOT_BACKUP_DIR_NAME}"
-    # Only check existing local dotfiles
-    if [[ -e "${DOT_LOCAL_DIR}/${dotfile_stripped}" ]]; then
-      # Append to error if dotfile is not in backups
-      if [[ ! -e "${full_backup_dir}/${dotfile_stripped}" ]]; then
-        error "'${dotfile_stripped}' is missing from '${full_backup_dir}'"
-        errors_count=$((errors_count+1))
+      # Copy dotfile into backup directory if existing
+      if [[ -e "${DOT_LOCAL_DIR}/${dotfile_stripped}" ]]; then
+        if execlog "cp -rL '${DOT_LOCAL_DIR}/${dotfile_stripped}' '${full_backup_dir}'" 1; then
+          warning "${DOT_LOCAL_DIR}/${dotfile_stripped} -> ${full_backup_dir}" ""
+        else
+          error "Failed to copy ${DOT_LOCAL_DIR}/${dotfile_stripped} -> ${full_backup_dir}"
+        fi
       fi
-    fi
-  done
+    done
 
-  if [[ ${errors_count} -gt 0 ]]; then
-    error "Missing files in backup directory"
-  else
-    ok "${BLUE}${DOT_BACKUP_DIR}/${DOT_BACKUP_DIR_NAME} backup created${NC}"
+    #== wrap up ==#
+
+    errors_count=0
+
+    # Final check if all files and directories are copied
+    for dotfile in "${dotfiles[@]}"; do
+      # Strip source directory from path
+      dotfile_stripped="$(echo "$dotfile" | sed "s,${DOT_LOCAL_DIR}/,,")"
+      full_backup_dir="${DOT_BACKUP_DIR}/${DOT_BACKUP_DIR_NAME}"
+      # Only check existing local dotfiles
+      if [[ -e "${DOT_LOCAL_DIR}/${dotfile_stripped}" ]]; then
+        # Append to error if dotfile is not in backups
+        if [[ ! -e "${full_backup_dir}/${dotfile_stripped}" ]]; then
+          error "'${dotfile_stripped}' is missing from '${full_backup_dir}'"
+          errors_count=$((errors_count+1))
+        fi
+      fi
+    done
+
+    if [[ ${errors_count} -gt 0 ]]; then
+      error "Missing files in backup directory"
+    else
+      ok "${DOT_BACKUP_DIR}/${DOT_BACKUP_DIR_NAME} backup created"
+    fi
   fi
 
   res=0
   
-  # Auto clean backup directory if AUTO_CLEAN
-  if [[ -n "${AUTO_CLEAN}" ]]; then
-    if [[ -n ${IS_VERBOSE} ]]; then
-      "${SCRIPT_DIR}/clearbak" -vy "${DOT_BACKUP_LIMI}"
-    else
-      "${SCRIPT_DIR}/clearbak" -y "${DOT_BACKUP_LIMI}"
-    fi
+  # Auto clean backup directory if is DOT_BACKUP_AUTO_CLEAN
+  if ${DOT_BACKUP_AUTO_CLEAN} || ${CLEAN_BACKUPS}; then
+    backup_disposal
+    res=$?
+    [[ $res -ne 0 ]] && error "Failed to clear backup files" $res
   fi
   
-  res=$?
-  [[ $res -ne 0 ]] && error "Failed to clear backup files" $res
-
   finish "Dotfiles backup successful!"
 }
 
@@ -296,7 +366,8 @@ unset DEBUG
 unset LOG_DEBUG_LEVEL
 unset ENABLE_COLORS
 # Dot configs
-unset AUTO_CLEAN
+unset DOT_BACKUP_AUTO_CLEAN
+unset CLEAN_BACKUPS
 
 exit $res
 

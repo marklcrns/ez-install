@@ -487,6 +487,7 @@ See sample packages
 
 ## TODO
 
+- [ ] Add testing framework
 - [ ] Integrate with [Dotfiles Manager](https://github.com/marklcrns/scripts/blob/master/tools/dotfiles/README.md)
 - [ ] More practical package installer template generator
   - [X] Modularize script

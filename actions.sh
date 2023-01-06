@@ -43,9 +43,9 @@ function ok()      { _action -l 'notice' "${@}"; }
 function skip()    { _action -l 'notice' "${@}"; }
 function error()   { _action -l 'error' "${@}"; }
 function warning() { _action -l 'warn' "${@}"; }
-function finish()  { _action -l 'warn' -e 0 ${@}; }
-function abort()   { _action -l 'warn' -e 0 ${@}; }
-function crit()    { _action -l 'crit' -e ${BASH_EX_GENERAL} "${@}"; }
+function finish()  { _action -l 'warn' -e 0 "${@}"; }
+function abort()   { _action -l 'warn' -e 0 "${@}"; }
+function crit()    { _action -l 'crit' -e "${BASH_EX_GENERAL}" "${@}"; }
 
 function _action() {
   local depth=1
@@ -80,7 +80,7 @@ function _action() {
     log "${log}" "${message}"
   fi
 
-  is_integer $exit_code && exit $exit_code
+  is_integer "$exit_code" && exit "$exit_code"
 }
 
 

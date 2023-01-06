@@ -46,9 +46,9 @@ function handle_args() {
   [[ -z "${ENABLE_COLORS+x}" ]]   && ENABLE_COLORS=true
 
   # Install configs
-  [[ -z "${SKIP_GENERATE+x}" ]]   && SKIP_GENERATE=false
-  [[ -z "${JSON+x}" ]]            && JSON=false
-  [[ -z "${DESTINATION+x}" ]]     && DESTINATION="${HOME}/Downloads"
+  [[ -z "${INSTALL_SKIP_GENERATE+x}" ]] && INSTALL_SKIP_GENERATE=false
+  [[ -z "${JSON+x}" ]]                  && JSON=false
+  [[ -z "${DESTINATION+x}" ]]           && DESTINATION="${HOME}/Downloads"
 
   # Package configs
   [[ -z "${FORCE+x}" ]]          && FORCE=false
@@ -85,7 +85,7 @@ function handle_args() {
     ['help']=h
   )
 
-  local script_opts=':D:o:CfFgjqrRsSwWxyzhV-:'
+  local script_opts=':D:o:fFGjqrRsSwWxyzhV-:'
   local script_args_num=$#
 
   local OPTIND=1
@@ -128,13 +128,13 @@ function handle_args() {
       o) DESTINATION="${OPTARG}" ;;
       f) FORCE=true;           PACKAGE_CONFIGS+=("-${OPTION}") ;;
       F) FORCE=false;          PACKAGE_CONFIGS+=("-${OPTION}") ;;
+      G) INSTALL_SKIP_GENERATE=true ;;
       r) RECURSIVE=true;       PACKAGE_CONFIGS+=("-${OPTION}") ;;
       R) RECURSIVE=false;      PACKAGE_CONFIGS+=("-${OPTION}") ;;
       s) AS_ROOT=true;         PACKAGE_CONFIGS+=("-${OPTION}") ;;
       S) AS_ROOT=false;        PACKAGE_CONFIGS+=("-${OPTION}") ;;
       w) ALLOW_DEP_FAIL=true;  PACKAGE_CONFIGS+=("-${OPTION}") ;;
       W) ALLOW_DEP_FAIL=false; PACKAGE_CONFIGS+=("-${OPTION}") ;;
-      C) SKIP_GENERATE=true ;;
       y) SKIP_CONFIRM=true ;;
       q) VERBOSE=false; LOG_DEBUG_LEVEL=3 ;;
       x) DEBUG=true; LOG_DEBUG_LEVEL=7 ;;
@@ -263,7 +263,7 @@ unset FORCE
 unset RECURSIVE
 unset ALLOW_DEP_FAIL
 unset AS_ROOT
-unset SKIP_GENERATE
+unset INSTALL_SKIP_GENERATE
 unset JSON
 unset DESTINATION
 unset PACKAGE_DIR
