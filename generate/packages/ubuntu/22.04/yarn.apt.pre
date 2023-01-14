@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+
+# 'yarn' Pre Installation
+
+set -o pipefail
+set -o nounset
+
+source "${EZ_INSTALL_HOME}/install/init.sh"
+
+function _main() {
+  local force=false
+  local as_root=false
+  local output_path=""
+  handle_package_args ${@}
+
+  local package="yarn"
+  local package_manager="apt"
+
+  # function install()
+  #
+  # Flags (optional):
+  #
+  #   -a    Args for package manager.
+  #   -c    Executable name if applicable (default=this).
+  #   -n    Name of the package to install by the package manager (default=this).
+  #   -u    Pull updates from package manager repository before installation (e.g., apt update).
+  #   -S    Run package installation with root (sudo) privileges (default=false).
+  #
+  # Arguments:
+  #
+  #   $1    Installing package manager.
+  #          Supported:
+  #            - apt, apt-add
+  #            - pkg
+  #            - npm
+  #            - pip (executes default pip version), pip2, pip3
+  #            - curl
+  #            - wget
+  #            - git
+  #            - local (independent local installation only for reporting and triggering
+  #              pre and post installation processes).
+  #   $2    Package to install.
+  #   $3    Output directory for curl, wget, and git (optional, default=$HOME/Downloads).
+  #
+  # Pre installation:
+  #
+  #   install() will automatically try to source yarn.pre first then yarn.apt.pre
+  #   from either $LOCAL_PACKAGE_DIR and $PACKAGE_DIR before package installation.
+  #   $LOCAL_PACKAGE_DIR priority. Best place to download dependencies or executing
+  #   pre installation commands.
+
+  local sudo=""
+  if $as_root; then
+    sudo="sudo"
+  fi
+
+  # TODO: Start pre process here
+  if curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | ${sudo} apt-key add -;then
+    echo "deb https://dl.yarnpkg.com/debian/ stable main" | ${sudo} tee /etc/apt/sources.list.d/yarn.list
+    return $?
+  fi
+}
+
+res=0
+_main "${@}"
+res=$?
+
+return $res
+# Sourced by `pac-install()`, DO NOT USE `exit`. USE `return` INSTEAD
