@@ -26,7 +26,10 @@
 # Dot configs
 # TODO: Conform to directory ending with forward slashes!
 [[ -z "${DOT_BACKUP_LIMIT+x}" ]]      && DOT_BACKUP_LIMIT=10
+# TODO: Update .dotfilesrc
+[[ -z "${DOT_IGNORE_LIST+x}" ]]       && DOT_IGNORE_LIST=()
 [[ -z "${DOT_LOCAL_DIR+x}" ]]         && DOT_LOCAL_DIR="${HOME}"
+[[ -z "${DOT_LOCAL_REPO_DIR+x}" ]]    && DOT_LOCAL_REPO_DIR="${DOT_LOCAL_DIR}/.dotfiles"
 [[ -z "${DOT_BACKUP_DIR+x}" ]]        && DOT_BACKUP_DIR="${DOT_LOCAL_DIR}/.dotfiles.bak"
 [[ -z "${DOT_BACKUP_DIR_NAME+x}" ]]   && DOT_BACKUP_DIR_NAME="$(date +"%Y-%m-%dT%H:%M:%S")_dot_bak"
 [[ -z "${DOT_BACKUP_AUTO_CLEAN+x}" ]] && DOT_BACKUP_AUTO_CLEAN=false

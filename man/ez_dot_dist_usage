@@ -1,0 +1,23 @@
+${SCRIPT_NAME} ${EZ_DOT_DIST_VERSION}
+
+COMMAND NAME:
+
+  ${SCRIPT_NAME} - Distribute all specified dotfiles from DOT_LOCAL_REPO_DIR
+  into DOT_LOCAL_DIR.
+
+  dotdist
+  dotdist [ -bdDqvVy ] [ -r dotfilesrc-path ]
+  dotdist [ dotfiles-repo ] [ dotfiles-local ]
+
+OPTIONS:
+
+  -b  backup files
+  -d  skip file deletion
+  -D  debug mode (redirect output in log file)
+  -q  quite output
+  -r  specify dotfilesrc path
+  -v  verbose output
+  -V  very verbose output
+  -y  skip confirmation
+  -h  help
+

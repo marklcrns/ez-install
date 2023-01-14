@@ -26,231 +26,279 @@ include "${EZ_INSTALL_HOME}/man/print.sh"
 ################################################## CONSTANT GLOBAL VARIABLES ###
 
 readonly EZ_INSTALL_VERSION="0.3 BETA"
-readonly SCRIPT_ARGS=( "${@}" )
+readonly SCRIPT_ARGS=("${@}")
 
 ############################################################### FLAG OPTIONS ###
 
-
 # TODO: Separate manual from usage. Also, auto generate exit codes.
 function usage() {
-  print_page "${EZ_INSTALL_HOME}/man/ez_install_usage"
+	print_page "${EZ_INSTALL_HOME}/man/ez_install_usage"
 }
 
-
 function handle_args() {
-  # Standard configs
-  [[ -z "${SKIP_CONFIRM+x}" ]]    && SKIP_CONFIRM=false
-  [[ -z "${VERBOSE+x}" ]]         && VERBOSE=true
-  [[ -z "${DEBUG+x}" ]]           && DEBUG=false
-  [[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=4
-  [[ -z "${ENABLE_COLORS+x}" ]]   && ENABLE_COLORS=true
+	# Standard configs
+	[[ -z "${SKIP_CONFIRM+x}" ]] && SKIP_CONFIRM=false
+	[[ -z "${VERBOSE+x}" ]] && VERBOSE=true
+	[[ -z "${DEBUG+x}" ]] && DEBUG=false
+	[[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=4
+	[[ -z "${ENABLE_COLORS+x}" ]] && ENABLE_COLORS=true
 
-  # Install configs
-  [[ -z "${INSTALL_SKIP_GENERATE+x}" ]] && INSTALL_SKIP_GENERATE=false
-  [[ -z "${JSON+x}" ]]                  && JSON=false
-  [[ -z "${DESTINATION+x}" ]]           && DESTINATION="${HOME}/Downloads"
+	# Install configs
+	[[ -z "${INSTALL_SKIP_GENERATE+x}" ]] && INSTALL_SKIP_GENERATE=false
+	[[ -z "${JSON+x}" ]] && JSON=false
+	[[ -z "${DESTINATION+x}" ]] && DESTINATION="${HOME}/Downloads"
 
-  # Package configs
-  [[ -z "${FORCE+x}" ]]          && FORCE=false
-  [[ -z "${RECURSIVE+x}" ]]      && RECURSIVE=true
-  [[ -z "${AS_ROOT+x}" ]]        && AS_ROOT=false
-  [[ -z "${ALLOW_DEP_FAIL+x}" ]] && ALLOW_DEP_FAIL=false
-  PACKAGE_CONFIGS=()
+	# Package configs
+	[[ -z "${FORCE+x}" ]] && FORCE=false
+	[[ -z "${RECURSIVE+x}" ]] && RECURSIVE=true
+	[[ -z "${AS_ROOT+x}" ]] && AS_ROOT=false
+	[[ -z "${ALLOW_DEP_FAIL+x}" ]] && ALLOW_DEP_FAIL=false
+	PACKAGE_CONFIGS=()
 
-  #== parse options ==#
-  # Ref: https://www.uxora.com/unix/shell-script/22-handle-long-options-with-getopts
+	#== parse options ==#
+	# Ref: https://www.uxora.com/unix/shell-script/22-handle-long-options-with-getopts
 
-  # Especially useful when relaying script args with group quoted OPTARG
-  eval set -- "${@:-}"
+	# Especially useful when relaying script args with group quoted OPTARG
+	eval set -- "${@:-}"
 
-  local -A long_opts_map
-  long_opts_map=(
-    ['package-dir']=D
-    ['json']=j
-    ['destination']=o
-    ['quiet']=q
-    ['force']=f
-    ['no-force']=F
-    ['recurse']=r
-    ['skip-generate']=G
-    ['no-recurse']=R
-    ['as-root']=s
-    ['no-root']=S
-    ['allow-dep-fail']=w
-    ['no-dep-fail']=W
-    ['version']=V
-    ['debug']=x
-    ['skip-confirm']=y
-    ['no-colors']=z
-    ['help']=h
-  )
+	local -A long_opts_map
+	long_opts_map=(
+		['package-dir']=D
+		['json']=j
+		['destination']=o
+		['quiet']=q
+		['force']=f
+		['no-force']=F
+		['recurse']=r
+		['skip-generate']=G
+		['no-recurse']=R
+		['as-root']=s
+		['no-root']=S
+		['allow-dep-fail']=w
+		['no-dep-fail']=W
+		['version']=V
+		['debug']=x
+		['skip-confirm']=y
+		['no-colors']=z
+		['help']=h
+	)
 
-  local script_opts=':D:o:fFGjqrRsSwWxyzhV-:'
-  local script_args_num=$#
+	local script_opts=':D:o:fFGjqrRsSwWxyzhV-:'
+	local script_args_num=$#
 
-  local OPTIND=1
-  while getopts ${script_opts} OPTION; do
-    #== translate long options to short ==#
-    if [[ "x$OPTION" == "x-" ]]; then
-      LONG_OPTION=$OPTARG
-      LONG_OPTARG=$(echo "$LONG_OPTION" | grep "=" | cut -d'=' -f2)
-      LONG_OPTIND=-1
+	local OPTIND=1
+	while getopts ${script_opts} OPTION; do
+		#== translate long options to short ==#
+		if [[ "x$OPTION" == "x-" ]]; then
+			LONG_OPTION=$OPTARG
+			LONG_OPTARG=$(echo "$LONG_OPTION" | grep "=" | cut -d'=' -f2)
+			LONG_OPTIND=-1
 
-      [[ "x$LONG_OPTARG" = "x" ]] && LONG_OPTIND=$OPTIND || LONG_OPTION=$(echo "$OPTARG" | cut -d'=' -f1)
-      [[ $LONG_OPTIND -ne -1 ]] && eval LONG_OPTARG="\$$LONG_OPTIND"
+			[[ "x$LONG_OPTARG" = "x" ]] && LONG_OPTIND=$OPTIND || LONG_OPTION=$(echo "$OPTARG" | cut -d'=' -f1)
+			[[ $LONG_OPTIND -ne -1 ]] && eval LONG_OPTARG="\$$LONG_OPTIND"
 
-      OPTION=${long_opts_map[$LONG_OPTION]}
-      [[ "x$OPTION" = "x" ]] &&  OPTION="?" OPTARG="-$LONG_OPTION"
+			OPTION=${long_opts_map[$LONG_OPTION]}
+			[[ "x$OPTION" = "x" ]] && OPTION="?" OPTARG="-$LONG_OPTION"
 
-      if [[ $( echo "${script_opts}" | grep -c "${OPTION}:" ) -eq 1 ]]; then
-        # OPTION followed by another option instead of argument will be omitted.
-        if [[ "x${LONG_OPTARG}" = "x" ]] || [[ "${LONG_OPTARG}" = -* ]]; then
-          OPTION=":" OPTARG="-$LONG_OPTION"
-        else
-          OPTARG="$LONG_OPTARG";
-          if [[ $LONG_OPTIND -ne -1 ]]; then
-            [[ $OPTIND -le $script_args_num ]] && OPTIND=$(( OPTIND+1 ))
-            shift $OPTIND
-            OPTIND=1
-          fi
-        fi
-      fi
-    fi
+			if [[ $(echo "${script_opts}" | grep -c "${OPTION}:") -eq 1 ]]; then
+				# OPTION followed by another option instead of argument will be omitted.
+				if [[ "x${LONG_OPTARG}" = "x" ]] || [[ "${LONG_OPTARG}" = -* ]]; then
+					OPTION=":" OPTARG="-$LONG_OPTION"
+				else
+					OPTARG="$LONG_OPTARG"
+					if [[ $LONG_OPTIND -ne -1 ]]; then
+						[[ $OPTIND -le $script_args_num ]] && OPTIND=$((OPTIND + 1))
+						shift $OPTIND
+						OPTIND=1
+					fi
+				fi
+			fi
+		fi
 
-    # OPTION followed by another option instead of argument will be omitted.
-    if [[ "x${OPTION}" != "x:" ]] && [[ "x${OPTION}" != "x?" ]] && [[ "${OPTARG:-}" = -* ]]; then
-      OPTARG="$OPTION" OPTION=":"
-    fi
+		# OPTION followed by another option instead of argument will be omitted.
+		if [[ "x${OPTION}" != "x:" ]] && [[ "x${OPTION}" != "x?" ]] && [[ "${OPTARG:-}" = -* ]]; then
+			OPTARG="$OPTION" OPTION=":"
+		fi
 
-    #== manage options ==#
-    case "$OPTION" in
-      D) LOCAL_PACKAGE_ROOT_DIR="${OPTARG}" ;;
-      o) DESTINATION="${OPTARG}" ;;
-      f) FORCE=true;           PACKAGE_CONFIGS+=("-${OPTION}") ;;
-      F) FORCE=false;          PACKAGE_CONFIGS+=("-${OPTION}") ;;
-      G) INSTALL_SKIP_GENERATE=true ;;
-      r) RECURSIVE=true;       PACKAGE_CONFIGS+=("-${OPTION}") ;;
-      R) RECURSIVE=false;      PACKAGE_CONFIGS+=("-${OPTION}") ;;
-      s) AS_ROOT=true;         PACKAGE_CONFIGS+=("-${OPTION}") ;;
-      S) AS_ROOT=false;        PACKAGE_CONFIGS+=("-${OPTION}") ;;
-      w) ALLOW_DEP_FAIL=true;  PACKAGE_CONFIGS+=("-${OPTION}") ;;
-      W) ALLOW_DEP_FAIL=false; PACKAGE_CONFIGS+=("-${OPTION}") ;;
-      y) SKIP_CONFIRM=true ;;
-      q) VERBOSE=false; LOG_DEBUG_LEVEL=3 ;;
-      x) DEBUG=true; LOG_DEBUG_LEVEL=7 ;;
-      j) JSON=true
-         error "JSON data parsing is currently not supported" "$BASH_EX_GENERAL"
-         ;;
-      z) ENABLE_COLORS=false
-         include "${EZ_INSTALL_HOME}/common/colors.sh"
-         ;;
-      h) usage; exit "$BASH_EX_OK" ;;
-      V) echo "${SCRIPT_NAME} ${EZ_INSTALL_VERSION}"; exit "$BASH_EX_OK" ;;
-      \?) error "${BASH_SYS_MSG_USAGE_INVARG}: ${OPTARG:-}" "$BASH_EX_GENERAL" ;;
-      :) error "The additional argument for option ${OPTARG:-} was omitted." "$BASH_EX_GENERAL" ;;
-      *) usage; error "Invalid flag option(s)" "$BASH_SYS_EX_USAGE" ;;
-    esac
+		#== manage options ==#
+		case "$OPTION" in
+		D) LOCAL_PACKAGE_ROOT_DIR="${OPTARG}" ;;
+		o) DESTINATION="${OPTARG}" ;;
+		f)
+			FORCE=true
+			PACKAGE_CONFIGS+=("-${OPTION}")
+			;;
+		F)
+			FORCE=false
+			PACKAGE_CONFIGS+=("-${OPTION}")
+			;;
+		G) INSTALL_SKIP_GENERATE=true ;;
+		r)
+			RECURSIVE=true
+			PACKAGE_CONFIGS+=("-${OPTION}")
+			;;
+		R)
+			RECURSIVE=false
+			PACKAGE_CONFIGS+=("-${OPTION}")
+			;;
+		s)
+			AS_ROOT=true
+			PACKAGE_CONFIGS+=("-${OPTION}")
+			;;
+		S)
+			AS_ROOT=false
+			PACKAGE_CONFIGS+=("-${OPTION}")
+			;;
+		w)
+			ALLOW_DEP_FAIL=true
+			PACKAGE_CONFIGS+=("-${OPTION}")
+			;;
+		W)
+			ALLOW_DEP_FAIL=false
+			PACKAGE_CONFIGS+=("-${OPTION}")
+			;;
+		y) SKIP_CONFIRM=true ;;
+		q)
+			VERBOSE=false
+			LOG_DEBUG_LEVEL=3
+			;;
+		x)
+			DEBUG=true
+			LOG_DEBUG_LEVEL=7
+			;;
+		j)
+			JSON=true
+			error "JSON data parsing is currently not supported" "$BASH_EX_GENERAL"
+			;;
+		z)
+			ENABLE_COLORS=false
+			include "${EZ_INSTALL_HOME}/common/colors.sh"
+			;;
+		h)
+			usage
+			exit "$BASH_EX_OK"
+			;;
+		V)
+			echo "${SCRIPT_NAME} ${EZ_INSTALL_VERSION}"
+			exit "$BASH_EX_OK"
+			;;
+		\?) error "${BASH_SYS_MSG_USAGE_INVARG}: ${OPTARG:-}" "$BASH_EX_GENERAL" ;;
+		:) error "The additional argument for option ${OPTARG:-} was omitted." "$BASH_EX_GENERAL" ;;
+		*)
+			usage
+			error "Invalid flag option(s)" "$BASH_SYS_EX_USAGE"
+			;;
+		esac
 
-  done
-  shift $(( OPTIND-1 ))
+	done
+	shift $((OPTIND - 1))
 
+	# Disallow piped cli args
+	if [[ -p /dev/stdin ]]; then
+		usage
+		error "Piped arguments not supported" "$BASH_SYS_EX_USAGE"
+	fi
+	# Disallow Stdin redirection
+	if [[ ! -t 0 && ! -p /dev/stdin ]]; then
+		usage
+		error "Stdin redirection not supported" "$BASH_SYS_EX_USAGE"
+	fi
 
-  # Disallow piped cli args
-  if [[ -p /dev/stdin ]];             then usage; error "Piped arguments not supported" "$BASH_SYS_EX_USAGE"; fi
-  # Disallow Stdin redirection
-  if [[ ! -t 0 && ! -p /dev/stdin ]]; then usage; error "Stdin redirection not supported" "$BASH_SYS_EX_USAGE"; fi
+	# Fetch cli args into $PACKAGES
+	if [[ -t 0 ]]; then
+		if [[ -n "${*+x}" ]]; then
+			IFS=" " read -r -a PACKAGES <<<"${@}"
+			readonly PACKAGES
+		else
+			usage
+			error "No package(s) provided" "$BASH_SYS_EX_USAGE"
+		fi
+	fi
 
-  # Fetch cli args into $PACKAGES
-  if [[ -t 0 ]]; then
-    if [[ -n "${*+x}" ]]; then
-      IFS=" " read -r -a PACKAGES <<< "${@}"
-      readonly PACKAGES
-    else
-      usage; error "No package(s) provided" "$BASH_SYS_EX_USAGE"
-    fi
-  fi
+	local res=0
 
-  local res=0
+	# Make sure $DESTINATION directory exist
+	if [[ ! -d "${DESTINATION}" ]]; then
+		if execlog "mkdir -p '${DESTINATION}'"; then
+			ok "'${DESTINATION}' directory created"
+		else
+			res=$?
+			error "'${DESTINATION}' creation failed" "$BASH_SYS_EX_CANTCREAT"
+		fi
+	fi
 
-  # Make sure $DESTINATION directory exist
-  if [[ ! -d "${DESTINATION}" ]]; then
-    if execlog "mkdir -p '${DESTINATION}'"; then
-      ok "'${DESTINATION}' directory created"
-    else
-      res=$?
-      error "'${DESTINATION}' creation failed" "$BASH_SYS_EX_CANTCREAT"
-    fi
-  fi
+	# Use appropriate package directory based on machine distro
+	resolve_package_dir
 
-  # Use appropriate package directory based on machine distro
-  resolve_package_dir
-
-  return "$BASH_EX_OK"
+	return "$BASH_EX_OK"
 }
 
 ###################################################################### UTILS ###
 
 function _ctrl_c() {
-  if "${DEBUG}"; then
-    echo ""
-    log 'error' "$(basename -- "${BASH_SOURCE[1]}").${FUNCNAME[1]}(): Interrupted!" "$BASH_EX_TERMCTRLC"
-  fi
+	if "${DEBUG}"; then
+		echo ""
+		log 'error' "$(basename -- "${BASH_SOURCE[1]}").${FUNCNAME[1]}(): Interrupted!" "$BASH_EX_TERMCTRLC"
+	fi
 }
 
 ############################################################# MAIN EXECUTION ###
 
-function _main () {
-  # Set up trap
-  trap _ctrl_c INT TERM
+function _main() {
+	# Set up trap
+	trap _ctrl_c INT TERM
 
-  local res=0
+	local res=0
 
-  script_vars
-  handle_args "$@"
-  res=$?
-  [[ $res -ne $BASH_EX_OK ]] && return $res
+	script_vars
+	handle_args "$@"
+	res=$?
+	[[ $res -ne $BASH_EX_OK ]] && return $res
 
-  # Sort packages from cli args
-  local -a packages=( "${PACKAGES[@]}" )
-  array_unique packages
+	# Sort packages from cli args
+	local -a packages=("${PACKAGES[@]}")
+	array_unique packages
 
-  ! ${DEBUG} && echo -e "About to install the following packages:\n"
+	! ${DEBUG} && echo -e "About to install the following packages:\n"
 
-  # Validate and configure packages
-  # TODO: Fully support json configs
-  if ! $JSON; then
-    # Do NOT double quote $CONFIG. Need word splitting, else will take as one argument
-    validate_packages "${PACKAGE_CONFIGS[@]}" -- "${packages[@]}"
-    res=$?; [[ ${res} -ne $BASH_EX_OK ]] && return $res
+	# Validate and configure packages
+	# TODO: Fully support json configs
+	if ! $JSON; then
+		# Do NOT double quote $CONFIG. Need word splitting, else will take as one argument
+		validate_packages "${PACKAGE_CONFIGS[@]}" -- "${packages[@]}"
+		res=$?
+		[[ ${res} -ne $BASH_EX_OK ]] && return $res
 
-    $DEBUG && $VERBOSE && echo "Jsonifying..."
-    # Do NOT double quote $CONFIG. Need word splitting, else will take as one argument
-    pac_array_jsonify "${PACKAGE_CONFIGS[@]}" -- packages
-  fi
+		$DEBUG && $VERBOSE && echo "Jsonifying..."
+		# Do NOT double quote $CONFIG. Need word splitting, else will take as one argument
+		pac_array_jsonify "${PACKAGE_CONFIGS[@]}" -- packages
+	fi
 
-  if $DEBUG && $VERBOSE || $JSON; then
-    for package in "${packages[@]}"; do
-      echo "${package}" | ${EZ_DEP_JQ} -r ".package"
-    done
-  fi
+	if $DEBUG && $VERBOSE || $JSON; then
+		for package in "${packages[@]}"; do
+			echo "${package}" | ${EZ_DEP_JQ} -r ".package"
+		done
+	fi
 
-  confirm "\nYou are about to install the package(s) above. Continue? (Y/y): " \
-    || exit "$BASH_EX_GENERAL"
+	confirm "\nYou are about to install the package(s) above. Continue? (Y/y): " ||
+		exit "$BASH_EX_GENERAL"
 
-  warning "Installation in progress... Do not interrupt!"
+	warning "Installation in progress... Do not interrupt!"
 
-  # Install packages
-  pac_batch_json_install "${packages[@]}"
-  res=$?; [[ $res -ne $BASH_EX_OK ]] && exit $res
+	# Install packages
+	pac_batch_json_install "${packages[@]}"
+	res=$?
+	[[ $res -ne $BASH_EX_OK ]] && exit $res
 
-  [[ -n "${packages+x}" ]] && pac_report
+	[[ -n "${packages+x}" ]] && pac_report
 
-
-  finish "Finished!"
-  return "$BASH_EX_OK"
+	finish "Finished!"
+	return "$BASH_EX_OK"
 }
 
-res=0; _main "${SCRIPT_ARGS[@]}"; res=$?
+res=0
+_main "${SCRIPT_ARGS[@]}"
+res=$?
 
 unset EZ_DOWNLOADS_DIR
 unset SKIP_CONFIRM

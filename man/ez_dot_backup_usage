@@ -2,8 +2,8 @@ ${SCRIPT_NAME} ${EZ_DOT_BACKUP_VERSION}
 
 COMMAND NAME:
 
-  ${SCRIPT_NAME} - Backs up all specified dotfiles from DOTFILES_LIST into
-  DOTFILES_BACKUP_DIR within a current timestamp named directory.
+  ${SCRIPT_NAME} - Backs up all specified dotfiles from into DOT_BACKUP_DIR
+  within a current timestamp named directory.
 
 USAGE:
 
