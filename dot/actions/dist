@@ -18,9 +18,6 @@ set -o nounset
 #
 ################################################################################
 
-
-
-
 # Essential sources
 source "$(dirname -- "$(realpath -- "${BASH_SOURCE[0]}")")/../../.ez-installrc"
 source "${EZ_INSTALL_HOME}/common/include.sh"
@@ -28,7 +25,7 @@ source "${EZ_INSTALL_HOME}/common/include.sh"
 ################################################## CONSTANT GLOBAL VARIABLES ###
 
 readonly EZ_DOT_DIST_VERSION="0.1 BETA"
-readonly SCRIPT_ARGS=( "${@}" )
+readonly SCRIPT_ARGS=("${@}")
 
 # Source rc file if exist
 [[ -e "${DOTFILESRC}" ]] && source "${DOTFILESRC}"
@@ -42,7 +39,6 @@ include "${EZ_INSTALL_HOME}/dot/utils/detect.sh"
 include "${EZ_INSTALL_HOME}/man/print.sh"
 include "${EZ_INSTALL_HOME}/actions.sh"
 
-
 # Default script variables
 DOTFILES_LIST=()
 LOG_FILE_DIR="${HOME}/log"
@@ -52,171 +48,195 @@ LOG_FILE="$(date +"%Y-%m-%dT%H:%M:%S")_$(basename -- $0).log"
 
 # Display help
 function usage() {
-  print_page "${EZ_INSTALL_HOME}/man/ez_dot_dist_usage"
+	print_page "${EZ_INSTALL_HOME}/man/ez_dot_dist_usage"
 }
 
-
 function handle_args() {
-  # Standard configs
-  [[ -z "${SKIP_CONFIRM+x}" ]]    && SKIP_CONFIRM=false
-  [[ -z "${VERBOSE+x}" ]]         && VERBOSE=true
-  [[ -z "${DEBUG+x}" ]]           && DEBUG=false
-  [[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=4
-  [[ -z "${ENABLE_COLORS+x}" ]]   && ENABLE_COLORS=true
+	# Standard configs
+	[[ -z "${SKIP_CONFIRM+x}" ]] && SKIP_CONFIRM=false
+	[[ -z "${VERBOSE+x}" ]] && VERBOSE=true
+	[[ -z "${DEBUG+x}" ]] && DEBUG=false
+	[[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=4
+	[[ -z "${ENABLE_COLORS+x}" ]] && ENABLE_COLORS=true
 
-  # dist configs
-  [[ -z "${HAS_TMP_RC_FILE+x}" ]] && HAS_TMP_RC_FILE=false
-  [[ -z "${IS_BACKUP+x}" ]]       && IS_BACKUP=false
-  [[ -z "${NO_DELETE+x}" ]]       && NO_DELETE=false
+	# dist configs
+	[[ -z "${HAS_TMP_RC_FILE+x}" ]] && HAS_TMP_RC_FILE=false
+	[[ -z "${IS_BACKUP+x}" ]] && IS_BACKUP=false
+	[[ -z "${NO_DELETE+x}" ]] && NO_DELETE=false
 
-  #== parse options ==#
-  # Ref: https://www.uxora.com/unix/shell-script/22-handle-long-options-with-getopts
+	#== parse options ==#
+	# Ref: https://www.uxora.com/unix/shell-script/22-handle-long-options-with-getopts
 
-  # Especially useful when relaying script args with group quoted OPTARG
-  eval set -- "${@:-}"
+	# Especially useful when relaying script args with group quoted OPTARG
+	eval set -- "${@:-}"
 
-  local -A long_opts_map
-  long_opts_map=(
-    ['dotfilesrc']=a
-    ['backup']=c
-    ['no-delete']=c
-    ['quiet']=q
-    ['debug']=x
-    ['skip-confirm']=y
-    ['no-colors']=z
-    ['help']=h
-    ['version']=V
-  )
+	local -A long_opts_map
+	long_opts_map=(
+		['dotfilesrc']=a
+		['backup']=c
+		['no-delete']=c
+		['quiet']=q
+		['debug']=x
+		['skip-confirm']=y
+		['no-colors']=z
+		['help']=h
+		['version']=V
+	)
 
-  local script_opts=':acqxyzhV-:'
-  local script_args_num=$#
+	local script_opts=':acqxyzhV-:'
+	local script_args_num=$#
 
-  local OPTIND=1
-  while getopts ${script_opts} OPTION; do
-    #== translate long options to short ==#
-    if [[ "x$OPTION" == "x-" ]]; then
-      LONG_OPTION=$OPTARG
-      LONG_OPTARG=$(echo "$LONG_OPTION" | grep "=" | cut -d'=' -f2)
-      LONG_OPTIND=-1
+	local OPTIND=1
+	while getopts ${script_opts} OPTION; do
+		#== translate long options to short ==#
+		if [[ "x$OPTION" == "x-" ]]; then
+			LONG_OPTION=$OPTARG
+			LONG_OPTARG=$(echo "$LONG_OPTION" | grep "=" | cut -d'=' -f2)
+			LONG_OPTIND=-1
 
-      [[ "x$LONG_OPTARG" = "x" ]] && LONG_OPTIND=$OPTIND || LONG_OPTION=$(echo "$OPTARG" | cut -d'=' -f1)
-      [[ $LONG_OPTIND -ne -1 ]] && eval LONG_OPTARG="\$$LONG_OPTIND"
+			[[ "x$LONG_OPTARG" = "x" ]] && LONG_OPTIND=$OPTIND || LONG_OPTION=$(echo "$OPTARG" | cut -d'=' -f1)
+			[[ $LONG_OPTIND -ne -1 ]] && eval LONG_OPTARG="\$$LONG_OPTIND"
 
-      OPTION=${long_opts_map[$LONG_OPTION]}
-      [[ "x$OPTION" = "x" ]] &&  OPTION="?" OPTARG="-$LONG_OPTION"
+			OPTION=${long_opts_map[$LONG_OPTION]}
+			[[ "x$OPTION" = "x" ]] && OPTION="?" OPTARG="-$LONG_OPTION"
 
-      if [[ $( echo "${script_opts}" | grep -c "${OPTION}:" ) -eq 1 ]]; then
-        # OPTION followed by another option instead of argument will be omitted.
-        if [[ "x${LONG_OPTARG}" = "x" ]] || [[ "${LONG_OPTARG}" = -* ]]; then
-          OPTION=":" OPTARG="-$LONG_OPTION"
-        else
-          OPTARG="$LONG_OPTARG";
-          if [[ $LONG_OPTIND -ne -1 ]]; then
-            [[ $OPTIND -le $script_args_num ]] && OPTIND=$(( OPTIND+1 ))
-            shift $OPTIND
-            OPTIND=1
-          fi
-        fi
-      fi
-    fi
+			if [[ $(echo "${script_opts}" | grep -c "${OPTION}:") -eq 1 ]]; then
+				# OPTION followed by another option instead of argument will be omitted.
+				if [[ "x${LONG_OPTARG}" = "x" ]] || [[ "${LONG_OPTARG}" = -* ]]; then
+					OPTION=":" OPTARG="-$LONG_OPTION"
+				else
+					OPTARG="$LONG_OPTARG"
+					if [[ $LONG_OPTIND -ne -1 ]]; then
+						[[ $OPTIND -le $script_args_num ]] && OPTIND=$((OPTIND + 1))
+						shift $OPTIND
+						OPTIND=1
+					fi
+				fi
+			fi
+		fi
 
-    # OPTION followed by another option instead of argument will be omitted.
-    if [[ "x${OPTION}" != "x:" ]] && [[ "x${OPTION}" != "x?" ]] && [[ "${OPTARG:-}" = -* ]]; then
-      OPTARG="$OPTION" OPTION=":"
-    fi
+		# OPTION followed by another option instead of argument will be omitted.
+		if [[ "x${OPTION}" != "x:" ]] && [[ "x${OPTION}" != "x?" ]] && [[ "${OPTARG:-}" = -* ]]; then
+			OPTARG="$OPTION" OPTION=":"
+		fi
 
-    #== manage options ==#
-    case "$OPTION" in
-      a) DOT_BACKUP_AUTO_CLEAN=true ;;
-      c) CLEAN_BACKUPS=true ;;
-      y) SKIP_CONFIRM=true ;;
-      q) VERBOSE=false; LOG_DEBUG_LEVEL=3 ;;
-      x) DEBUG=true; LOG_DEBUG_LEVEL=7 ;;
-      z) ENABLE_COLORS=false
-         include "${EZ_INSTALL_HOME}/common/colors.sh"
-         ;;
-      h) usage; exit "$BASH_EX_OK" ;;
-      V) echo "${SCRIPT_NAME} ${EZ_DOT_BACKUP_VERSION}"; exit "$BASH_EX_OK" ;;
-      \?) error "${BASH_SYS_MSG_USAGE_INVARG}: ${OPTARG:-}" "$BASH_EX_GENERAL" ;;
-      :) error "The additional argument for option ${OPTARG:-} was omitted." "$BASH_EX_GENERAL" ;;
-      *) usage; error "Invalid flag option(s)" "$BASH_SYS_EX_USAGE" ;;
-    esac
+		#== manage options ==#
+		case "$OPTION" in
+		a) DOT_BACKUP_AUTO_CLEAN=true ;;
+		c) CLEAN_BACKUPS=true ;;
+		y) SKIP_CONFIRM=true ;;
+		q)
+			VERBOSE=false
+			LOG_DEBUG_LEVEL=3
+			;;
+		x)
+			DEBUG=true
+			LOG_DEBUG_LEVEL=7
+			;;
+		z)
+			ENABLE_COLORS=false
+			include "${EZ_INSTALL_HOME}/common/colors.sh"
+			;;
+		h)
+			usage
+			exit "$BASH_EX_OK"
+			;;
+		V)
+			echo "${SCRIPT_NAME} ${EZ_DOT_BACKUP_VERSION}"
+			exit "$BASH_EX_OK"
+			;;
+		\?) error "${BASH_SYS_MSG_USAGE_INVARG}: ${OPTARG:-}" "$BASH_EX_GENERAL" ;;
+		:) error "The additional argument for option ${OPTARG:-} was omitted." "$BASH_EX_GENERAL" ;;
+		*)
+			usage
+			error "Invalid flag option(s)" "$BASH_SYS_EX_USAGE"
+			;;
+		esac
 
-  done
-  shift $(( OPTIND-1 ))
+	done
+	shift $((OPTIND - 1))
 
+	# Disallow piped cli args
+	if [[ -p /dev/stdin ]]; then
+		usage
+		error "Piped arguments not supported" "$BASH_SYS_EX_USAGE"
+	fi
+	# Disallow Stdin redirection
+	if [[ ! -t 0 && ! -p /dev/stdin ]]; then
+		usage
+		error "Stdin redirection not supported" "$BASH_SYS_EX_USAGE"
+	fi
 
-  # Disallow piped cli args
-  if [[ -p /dev/stdin ]];             then usage; error "Piped arguments not supported" "$BASH_SYS_EX_USAGE"; fi
-  # Disallow Stdin redirection
-  if [[ ! -t 0 && ! -p /dev/stdin ]]; then usage; error "Stdin redirection not supported" "$BASH_SYS_EX_USAGE"; fi
+	# Validate local dotfiles directory argument
+	if [[ -n "${1+x}" ]]; then
+		_dot_local_dir="${1}"
+		if [[ -d "${_dot_local_dir}" ]]; then
+			DOT_LOCAL_DIR="${_dot_local_dir}"
+		else
+			error "Invalid local dotfiles directory path '${DOT_LOCAL_DIR}'" 1
+		fi
 
+		# Validate dotfiles backup directory argument
+		if [[ -n "${2+x}" ]]; then
+			_dot_backup_dir="${2}"
+			if [[ -d "${_dot_backup_dir}" ]]; then
+				DOT_BACKUP_DIR="${_dot_backup_dir}"
+			else
+				error "Invalid dotfiles backup directory path '${DOT_BACKUP_DIR}'" 1
+			fi
+		else
+			error "Missing dotfiles backup directory path argument" 1
+		fi
+	fi
 
-  # Validate local dotfiles directory argument
-  if [[ -n "${1+x}" ]]; then
-    _dot_local_dir="${1}"
-    if [[ -d "${_dot_local_dir}" ]]; then
-      DOT_LOCAL_DIR="${_dot_local_dir}"
-    else
-      error "Invalid local dotfiles directory path '${DOT_LOCAL_DIR}'" 1
-    fi
+	strip_trailing_forwardslash DOT_BACKUP_DIR
+	strip_trailing_forwardslash DOT_LOCAL_DIR
 
-    # Validate dotfiles backup directory argument
-    if [[ -n "${2+x}" ]]; then
-      _dot_backup_dir="${2}"
-      if [[ -d "${_dot_backup_dir}" ]]; then
-        DOT_BACKUP_DIR="${_dot_backup_dir}"
-      else
-        error "Invalid dotfiles backup directory path '${DOT_BACKUP_DIR}'" 1
-      fi
-    else
-      error "Missing dotfiles backup directory path argument" 1
-    fi
-  fi
+	if [[ -n "${HAS_TMP_RC_FILE}" ]]; then
+		if [[ -e "${tmp_rc_file_path}" ]]; then
+			source "${tmp_rc_file_path}"
+		else
+			error "Invalid rc file path '${tmp_rc_file_path}'" 1
+		fi
+	fi
 
-  strip_trailing_forwardslash DOT_BACKUP_DIR
-  strip_trailing_forwardslash DOT_LOCAL_DIR
-
-  if [[ -n "${HAS_TMP_RC_FILE}" ]]; then
-    if [[ -e "${tmp_rc_file_path}" ]]; then
-      source "${tmp_rc_file_path}"
-    else
-      error "Invalid rc file path '${tmp_rc_file_path}'" 1
-    fi
-  fi
-
-  return "$BASH_EX_OK"
+	return "$BASH_EX_OK"
 }
 
 ###################################################################### UTILS ###
 
 function _ctrl_c() {
-  if "${DEBUG}"; then
-    echo ""
-    log 'error' "$(basename -- "${BASH_SOURCE[1]}").${FUNCNAME[1]}(): Interrupted!" "$BASH_EX_TERMCTRLC"
-  fi
+	if "${DEBUG}"; then
+		echo ""
+		log 'error' "$(basename -- "${BASH_SOURCE[1]}").${FUNCNAME[1]}(): Interrupted!" "$BASH_EX_TERMCTRLC"
+	fi
 }
-
-
 
 # Set flag options
 while getopts "bdDqr:vVyh" opt; do
-  case "$opt" in
-    b) [[ -n "$IS_BACKUP"       ]] && unset IS_BACKUP                  || IS_BACKUP=true;;
-    d) [[ -n "$NO_DELETE"       ]] && unset NO_DELETE                  || NO_DELETE=true;;
-    D) [[ -n "$DEBUG"           ]] && unset DEBUG                      || DEBUG=true;;
-    q) [[ -n "$IS_QUITE"        ]] && unset IS_QUITE                   || IS_QUITE=true;;
-    r) [[ -n "$HAS_TMP_RC_FILE"     ]] && unset HAS_TMP_RC_FILE                || HAS_TMP_RC_FILE=true; tmp_rc_file_path="${OPTARG}";;
-    v) [[ -n "$IS_VERBOSE"      ]] && unset IS_VERBOSE                 || IS_VERBOSE=true;;
-    V) [[ -n "$IS_VERY_VERBOSE" ]] && unset IS_VERBOSE IS_VERY_VERBOSE || IS_VERBOSE=true; IS_VERY_VERBOSE=true;;
-    y) [[ -n "$SKIP_CONFIRM"    ]] && unset SKIP_CONFIRM               || SKIP_CONFIRM=true;;
-    h) usage && exit 0;;
-    *) usage && echo -e "${SCRIPT_PATH}:\n${RED}ERROR: Invalid flag.${NC}"
-      exit 1
-  esac
+	case "$opt" in
+	b) [[ -n "$IS_BACKUP" ]] && unset IS_BACKUP || IS_BACKUP=true ;;
+	d) [[ -n "$NO_DELETE" ]] && unset NO_DELETE || NO_DELETE=true ;;
+	D) [[ -n "$DEBUG" ]] && unset DEBUG || DEBUG=true ;;
+	q) [[ -n "$IS_QUITE" ]] && unset IS_QUITE || IS_QUITE=true ;;
+	r)
+		[[ -n "$HAS_TMP_RC_FILE" ]] && unset HAS_TMP_RC_FILE || HAS_TMP_RC_FILE=true
+		tmp_rc_file_path="${OPTARG}"
+		;;
+	v) [[ -n "$IS_VERBOSE" ]] && unset IS_VERBOSE || IS_VERBOSE=true ;;
+	V)
+		[[ -n "$IS_VERY_VERBOSE" ]] && unset IS_VERBOSE IS_VERY_VERBOSE || IS_VERBOSE=true
+		IS_VERY_VERBOSE=true
+		;;
+	y) [[ -n "$SKIP_CONFIRM" ]] && unset SKIP_CONFIRM || SKIP_CONFIRM=true ;;
+	h) usage && exit 0 ;;
+	*)
+		usage && echo -e "${SCRIPT_PATH}:\n${RED}ERROR: Invalid flag.${NC}"
+		exit 1
+		;;
+	esac
 done 2>/dev/null
-shift "$((OPTIND-1))" # explanation https://unix.stackexchange.com/a/214151
-
+shift "$((OPTIND - 1))" # explanation https://unix.stackexchange.com/a/214151
 
 ####################################################### PRE-EXECUTION SET UP ###
 
@@ -227,49 +247,49 @@ LOG_FILE_DIR=$(echo ${LOG_FILE_DIR} | sed 's,/*$,,')
 
 # Log stdout and stderr to $LOG_FILE in $LOG_FILE_DIR
 if [[ -n "${DEBUG}" ]]; then
-  # Append LOG_FILE
-  LOG_FILE_PATH="${LOG_FILE_DIR}/${LOG_FILE}"
-  # Create log directory if not existing
-  if [[ ! -d "${LOG_FILE_DIR}" ]]; then
-    mkdir -p "${LOG_FILE_DIR}"
-  fi
-  # Initialize log file
-  echo -e "${SCRIPT_PATH} log outputs\n" > ${LOG_FILE_PATH}
+	# Append LOG_FILE
+	LOG_FILE_PATH="${LOG_FILE_DIR}/${LOG_FILE}"
+	# Create log directory if not existing
+	if [[ ! -d "${LOG_FILE_DIR}" ]]; then
+		mkdir -p "${LOG_FILE_DIR}"
+	fi
+	# Initialize log file
+	echo -e "${SCRIPT_PATH} log outputs\n" >${LOG_FILE_PATH}
 fi
 
 ################################################## SCRIPT ARGUMENTS HANDLING ###
 
 if [[ -n $1 ]]; then
-  tmp_dotfiles_repo="$1"
-  # Validate dotfiles repo directory argument
-  if [[ -d "${tmp_dotfiles_repo}" && -d "${tmp_dotfiles_repo}/.git" ]]; then
-    DOT_LOCAL_REPO_DIR="${tmp_dotfiles_repo}"
-    # Strip trailing '/' in DIR path variables
-    DOT_LOCAL_REPO_DIR=$(echo ${DOT_LOCAL_REPO_DIR} | sed 's,/*$,,')
-  else
-    error "Invalid dotfiles repository directory path '${DOT_LOCAL_REPO_DIR}'" 1
-  fi
-  if [[ -n $2 ]]; then
-    tmp_dotfiles_local="$2"
-    # Validate local dotfiles directory argument
-    if [[ -d "${tmp_dotfiles_local}" ]]; then
-      DOT_LOCAL_DIR="${tmp_dotfiles_local}"
-      # Strip trailing '/' in DIR path variables
-      DOT_LOCAL_DIR=$(echo ${DOT_LOCAL_DIR} | sed 's,/*$,,')
-    else
-      error "Invalid local dotfiles directory path '${DOT_LOCAL_DIR}'" 1
-    fi
-  else
-    error "Missing local dotfiles directory path argument" 1
-  fi
+	tmp_dotfiles_repo="$1"
+	# Validate dotfiles repo directory argument
+	if [[ -d "${tmp_dotfiles_repo}" && -d "${tmp_dotfiles_repo}/.git" ]]; then
+		DOT_LOCAL_REPO_DIR="${tmp_dotfiles_repo}"
+		# Strip trailing '/' in DIR path variables
+		DOT_LOCAL_REPO_DIR=$(echo ${DOT_LOCAL_REPO_DIR} | sed 's,/*$,,')
+	else
+		error "Invalid dotfiles repository directory path '${DOT_LOCAL_REPO_DIR}'" 1
+	fi
+	if [[ -n $2 ]]; then
+		tmp_dotfiles_local="$2"
+		# Validate local dotfiles directory argument
+		if [[ -d "${tmp_dotfiles_local}" ]]; then
+			DOT_LOCAL_DIR="${tmp_dotfiles_local}"
+			# Strip trailing '/' in DIR path variables
+			DOT_LOCAL_DIR=$(echo ${DOT_LOCAL_DIR} | sed 's,/*$,,')
+		else
+			error "Invalid local dotfiles directory path '${DOT_LOCAL_DIR}'" 1
+		fi
+	else
+		error "Missing local dotfiles directory path argument" 1
+	fi
 fi
 
 if [[ -n "${HAS_TMP_RC_FILE}" ]]; then
-  if [[ -e "${tmp_rc_file_path}" ]]; then
-    source "${tmp_rc_file_path}"
-  else
-    error "Invalid rc file path '${tmp_rc_file_path}'" 1
-  fi
+	if [[ -e "${tmp_rc_file_path}" ]]; then
+		source "${tmp_rc_file_path}"
+	else
+		error "Invalid rc file path '${tmp_rc_file_path}'" 1
+	fi
 fi
 
 ########################################################## SCRIPT EXECUTIONS ###
@@ -281,48 +301,48 @@ total_files_count=0
 echolog "Detecting dotfiles changes..."
 echolog
 for dotfile in ${DOTFILES_LIST[@]}; do
-  # Strip source directory from path
-  source_stripped=$(echo "${dotfile}" | sed "s,${DOT_LOCAL_DIR}/,,")
+	# Strip source directory from path
+	source_stripped=$(echo "${dotfile}" | sed "s,${DOT_LOCAL_DIR}/,,")
 
-  source_file="${DOT_LOCAL_REPO_DIR}/${source_stripped}"
-  target_file="${dotfile}"
+	source_file="${DOT_LOCAL_REPO_DIR}/${source_stripped}"
+	target_file="${dotfile}"
 
-  detect_change "${source_file}" "${target_file}" changes changes_count files_count
-  detect_delete "${target_file}" "${source_file}" delete delete_count
+	detect_change "${source_file}" "${target_file}" changes changes_count files_count
+	detect_delete "${target_file}" "${source_file}" delete delete_count
 
-  # Initialize counters if none
-  [[ -z "${changes_count}" ]] && changes_count=0
-  [[ -z "${delete_count}" ]] && delete_count=0
-  [[ -z "${files_count}" ]] && files_count=0
+	# Initialize counters if none
+	[[ -z "${changes_count}" ]] && changes_count=0
+	[[ -z "${delete_count}" ]] && delete_count=0
+	[[ -z "${files_count}" ]] && files_count=0
 
-  # Update changes list
-  if [[ -n "${changes}" ]]; then
-    if [[ -z ${changes_list} ]]; then
-      changes_list="${changes}"
-    else
-      changes_list="${changes_list}\n${changes}"
-    fi
-    # Increment changes counter
-    total_changes_count=$(expr ${total_changes_count} + ${changes_count})
-  fi
-  if [[ -n "${delete}" ]]; then
-    if [[ -z ${changes_list} ]]; then
-      changes_list="${delete}"
-    else
-      changes_list="${changes_list}\n${delete}"
-    fi
-    # Increment delete counter
-    if [[ -z "${NO_DELETE}" ]]; then
-      total_deleted_count=$(expr ${total_deleted_count} + ${delete_count})
-    fi
-  fi
-  # Increment total files counters
-  total_files_count=$(expr ${total_files_count} + ${files_count} + ${delete_count})
+	# Update changes list
+	if [[ -n "${changes}" ]]; then
+		if [[ -z ${changes_list} ]]; then
+			changes_list="${changes}"
+		else
+			changes_list="${changes_list}\n${changes}"
+		fi
+		# Increment changes counter
+		total_changes_count=$(expr ${total_changes_count} + ${changes_count})
+	fi
+	if [[ -n "${delete}" ]]; then
+		if [[ -z ${changes_list} ]]; then
+			changes_list="${delete}"
+		else
+			changes_list="${changes_list}\n${delete}"
+		fi
+		# Increment delete counter
+		if [[ -z "${NO_DELETE}" ]]; then
+			total_deleted_count=$(expr ${total_deleted_count} + ${delete_count})
+		fi
+	fi
+	# Increment total files counters
+	total_files_count=$(expr ${total_files_count} + ${files_count} + ${delete_count})
 done
 
 # Abort if no changes or delete detected
 [[ ${total_changes_count} -eq 0 ]] && [[ ${total_deleted_count} -eq 0 ]] &&
-  abort "\nAborting... No dotfiles to distribute."
+	abort "\nAborting... No dotfiles to distribute."
 
 echolog
 echolog "${ULINE}Files with changes:${NC}"
@@ -333,79 +353,79 @@ new_files_count=0
 
 # Loop over changes list and diff if IS_VERY_VERBOSE, else echolog source file
 while IFS= read -r file_tuple; do
-  # Split file_tuple
-  IFS=';' read -r -a file_arr <<< "${file_tuple}"
-  source_file="${file_arr[0]}"; target_file="${file_arr[1]}"
-  # Copy source to target file
-  if [[ -z "${target_file}" ]]; then # check if target_file is missing
-    if [[ -z "${NO_DELETE}" ]]; then
-      echolog "${RED}-${source_file}${NC}"
-    else
-      echolog "${RED}-${source_file} ${YELLOW}SKIPPED${NC}"
-    fi
-  elif [[ -e "${target_file}" ]]; then # check if target_file not existing
-    # Diff source and target file
-    if [[ -n "${IS_VERY_VERBOSE}" ]] && [[ -z "${IS_QUITE}" ]]; then
-      if command -v colordiff &> /dev/null; then
-        diff -c "${target_file}" "${source_file}" | colordiff
-        log "${source_file}" 1
-      else
-        diff -c "${target_file}" "${source_file}" --color
-        log "${source_file}" 1
-      fi
-    else
-      # echolog source file if not very verbose
-      echolog "${YELLOW}${source_file}${NC}"
-    fi
-    modified_files_count=$((modified_files_count+1))
-  else
-    echolog "${GREEN}+${target_file}${NC}"
-    new_files_count=$((new_files_count+1))
-  fi
+	# Split file_tuple
+	IFS=';' read -r -a file_arr <<<"${file_tuple}"
+	source_file="${file_arr[0]}"
+	target_file="${file_arr[1]}"
+	# Copy source to target file
+	if [[ -z "${target_file}" ]]; then # check if target_file is missing
+		if [[ -z "${NO_DELETE}" ]]; then
+			echolog "${RED}-${source_file}${NC}"
+		else
+			echolog "${RED}-${source_file} ${YELLOW}SKIPPED${NC}"
+		fi
+	elif [[ -e "${target_file}" ]]; then # check if target_file not existing
+		# Diff source and target file
+		if [[ -n "${IS_VERY_VERBOSE}" ]] && [[ -z "${IS_QUITE}" ]]; then
+			if command -v colordiff &>/dev/null; then
+				diff -c "${target_file}" "${source_file}" | colordiff
+				log "${source_file}" 1
+			else
+				diff -c "${target_file}" "${source_file}" --color
+				log "${source_file}" 1
+			fi
+		else
+			# echolog source file if not very verbose
+			echolog "${YELLOW}${source_file}${NC}"
+		fi
+		modified_files_count=$((modified_files_count + 1))
+	else
+		echolog "${GREEN}+${target_file}${NC}"
+		new_files_count=$((new_files_count + 1))
+	fi
 done < <(echo -e "${changes_list}") # Process substitution for outside variables
 
 # Changes and deletes tally
 echolog
 echolog "Total files to update: \t\t${total_files_count}"
 if [[ ${modified_files_count} -gt 0 ]]; then
-  echolog "${YELLOW}Total changed files: \t\t${modified_files_count}${NC}"
+	echolog "${YELLOW}Total changed files: \t\t${modified_files_count}${NC}"
 fi
 if [[ ${new_files_count} -gt 0 ]]; then
-  echolog "${GREEN}Total new files: \t\t${new_files_count}${NC}"
+	echolog "${GREEN}Total new files: \t\t${new_files_count}${NC}"
 fi
 if [[ -z ${NO_DELETE} ]]; then
-  if [[ ${total_deleted_count} -gt 0 ]]; then
-    echolog "${RED}Total delete files: \t\t${total_deleted_count}${NC}"
-  fi
+	if [[ ${total_deleted_count} -gt 0 ]]; then
+		echolog "${RED}Total delete files: \t\t${total_deleted_count}${NC}"
+	fi
 else
-  if [[ ${total_deleted_count} -gt 0 ]]; then
-    echolog "${RED}Total delete files: \t\t${YELLOW}SKIPPED${NC}"
-  fi
+	if [[ ${total_deleted_count} -gt 0 ]]; then
+		echolog "${RED}Total delete files: \t\t${YELLOW}SKIPPED${NC}"
+	fi
 fi
 echolog
 
 # Confirmation
 if [[ -z "${SKIP_CONFIRM}" ]]; then
-  log "Do you wish to continue? (Y/y): \n" 1
-  ${SCRIPT_DIR}/../../scripting-utils/confirm "Do you wish to continue? (Y/y): "
-  if [[ "${?}" -eq 1 ]]; then
-    abort "Update aborted."
-  elif [[ "${?}" -eq 2 ]]; then
-    error "Unsupported shell"
-  fi
+	log "Do you wish to continue? (Y/y): \n" 1
+	${SCRIPT_DIR}/../../scripting-utils/confirm "Do you wish to continue? (Y/y): "
+	if [[ "${?}" -eq 1 ]]; then
+		abort "Update aborted."
+	elif [[ "${?}" -eq 2 ]]; then
+		error "Unsupported shell"
+	fi
 fi
 
-
 if [[ -n "${IS_BACKUP}" ]]; then
-  echolog "Backing up dotfiles..."
-  echolog
-  if [[ -n "${IS_VERY_VERBOSE}" ]]; then
-    ${SCRIPT_DIR}/dotbackup -Vya
-  elif [[ -n "${IS_VERBOSE}" ]]; then
-    ${SCRIPT_DIR}/dotbackup -vya
-  else
-    ${SCRIPT_DIR}/dotbackup -ya
-  fi
+	echolog "Backing up dotfiles..."
+	echolog
+	if [[ -n "${IS_VERY_VERBOSE}" ]]; then
+		${SCRIPT_DIR}/dotbackup -Vya
+	elif [[ -n "${IS_VERBOSE}" ]]; then
+		${SCRIPT_DIR}/dotbackup -vya
+	else
+		${SCRIPT_DIR}/dotbackup -ya
+	fi
 fi
 
 # Catch if dotbackup failed
@@ -416,61 +436,61 @@ echolog "Distributing dotfiles..."
 echolog
 # Copy changes to target directory and delete missing files
 echo -e "${changes_list}" | while IFS= read -r file_tuple; do
-  IFS=';' read -r -a file_arr <<< "$file_tuple"
-  source_file="${file_arr[0]}"; target_file="${file_arr[1]}"
-  target_dir="$(dirname "${target_file}")"
-  if [[ -z "${target_file}" ]]; then # check if target_file is missing
-    if [[ -z "${NO_DELETE}" ]]; then
-      if execlog "rm -f '${source_file}'" 1; then
-        ok "${source_file} deleted"
-      else
-        error "Failed to delete ${source_file}"
-      fi
-    else
-      warning "${source_file} SKIPPING deletion"
-    fi
-  elif [[ -d "${target_dir}" ]]; then # Check target dir path
-    if execlog "cp -rL '${source_file}' '${target_file}'" 1; then
-      ok "${source_file} -> ${target_file}"
-    else
-      error "Failed to copy ${source_file} -> ${target_file}"
-    fi
-  else # Create target dir if not existing
-    execlog "mkdir -p '${target_dir}'"
-    if execlog "cp -rL '${source_file}' '${target_file}'" 1; then
-      ok "${source_file} -> ${target_file}"
-    else
-      error "Failed to copy ${source_file} -> ${target_file}"
-    fi
-  fi
+	IFS=';' read -r -a file_arr <<<"$file_tuple"
+	source_file="${file_arr[0]}"
+	target_file="${file_arr[1]}"
+	target_dir="$(dirname "${target_file}")"
+	if [[ -z "${target_file}" ]]; then # check if target_file is missing
+		if [[ -z "${NO_DELETE}" ]]; then
+			if execlog "rm -f '${source_file}'" 1; then
+				ok "${source_file} deleted"
+			else
+				error "Failed to delete ${source_file}"
+			fi
+		else
+			warning "${source_file} SKIPPING deletion"
+		fi
+	elif [[ -d "${target_dir}" ]]; then # Check target dir path
+		if execlog "cp -rL '${source_file}' '${target_file}'" 1; then
+			ok "${source_file} -> ${target_file}"
+		else
+			error "Failed to copy ${source_file} -> ${target_file}"
+		fi
+	else # Create target dir if not existing
+		execlog "mkdir -p '${target_dir}'"
+		if execlog "cp -rL '${source_file}' '${target_file}'" 1; then
+			ok "${source_file} -> ${target_file}"
+		else
+			error "Failed to copy ${source_file} -> ${target_file}"
+		fi
+	fi
 done
 
 #################################################################### WRAP UP ###
 
 # Final check
 for dotfile in ${DOTFILES_LIST[@]}; do
-  # Strip source directory from path
-  source_stripped=$(echo "$dotfile" | sed "s,${DOT_LOCAL_DIR}/,,")
+	# Strip source directory from path
+	source_stripped=$(echo "$dotfile" | sed "s,${DOT_LOCAL_DIR}/,,")
 
-  source_file="${DOT_LOCAL_REPO_DIR}/${source_stripped}"
-  target_file="${dotfile}"
+	source_file="${DOT_LOCAL_REPO_DIR}/${source_stripped}"
+	target_file="${dotfile}"
 
-  detect_change "${source_file}" "${target_file}" changes changes_count files_count 1
-  if [[ -z "${NO_DELETE}" ]]; then
-    detect_delete "${target_file}" "${source_file}" delete delete_count files_count 1
-  fi
+	detect_change "${source_file}" "${target_file}" changes changes_count files_count 1
+	if [[ -z "${NO_DELETE}" ]]; then
+		detect_delete "${target_file}" "${source_file}" delete delete_count files_count 1
+	fi
 done
 
 # Catch final check errors
 [[ ${changes_count} -gt 0 ]] || [[ ${delete_count} -gt 0 ]] &&
-  error "Dotupdate failed. Changes persists" 2
+	error "Dotupdate failed. Changes persists" 2
 
 # Clean log files
 if [[ -n "${IS_VERY_VERBOSE}" ]]; then
-  [[ -n "${DEBUG}" ]] && cleanlog 1000
+	[[ -n "${DEBUG}" ]] && cleanlog 1000
 else
-  [[ -n "${DEBUG}" ]] && cleanlog 1000 1
+	[[ -n "${DEBUG}" ]] && cleanlog 1000 1
 fi
 
 finish "Dotfiles update successful!"
-

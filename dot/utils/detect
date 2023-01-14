@@ -35,26 +35,22 @@
 # Date   : 2020-08-14
 ################################################################################
 
-
 if [ "${0##*/}" == "${BASH_SOURCE[0]##*/}" ]; then
-  echo "WARNING: $(realpath -s $0) is not meant to be executed directly!" >&2;
-  echo "Use this script only by sourcing it." >&2;
-  exit 1
+	echo "WARNING: $(realpath -s $0) is not meant to be executed directly!" >&2
+	echo "Use this script only by sourcing it." >&2
+	exit 1
 fi
 
 # Header guard
-[[ -z "${GENERATE_GENERATE_SH_INCLUDED+x}" ]] \
-  && readonly GENERATE_GENERATE_SH_INCLUDED=1 \
-  || return 0
-
+[[ -z "${GENERATE_GENERATE_SH_INCLUDED+x}" ]] &&
+	readonly GENERATE_GENERATE_SH_INCLUDED=1 ||
+	return 0
 
 source "$(dirname -- $(realpath -- "${BASH_SOURCE[0]}"))/../../.ez-installrc"
 source "${EZ_INSTALL_HOME}/common/include.sh"
 
-
 include "${EZ_INSTALL_HOME}/common/array.sh"
 include "${EZ_INSTALL_HOME}/common/string.sh"
-
 
 # TODO: Make bidirectional
 #       Make diffing changes detect the most recent file
@@ -75,115 +71,114 @@ include "${EZ_INSTALL_HOME}/common/string.sh"
 #
 # Returns $3, $4, $5 variable args with new values from execution.
 function detect_change() {
-  local __source=$1
-  local __target=$2
-  local __changes_list=$3
-  local __changes_count=$4
-  local __total_files_count=$5
-  local silent=$6
+	local __source=$1
+	local __target=$2
+	local __changes_list=$3
+	local __changes_count=$4
+	local __total_files_count=$5
+	local silent=$6
 
-  # Check args count
-  if [[ $# -lt 3 ]]; then
-    echolog "${RED}${FUNCNAME[0]}: Invalid number of arguments${NC}"
-    return 1
-  fi
+	# Check args count
+	if [[ $# -lt 3 ]]; then
+		echolog "${RED}${FUNCNAME[0]}: Invalid number of arguments${NC}"
+		return 1
+	fi
 
-  # Exit if invalid path
-  if [[ ! -e "${__source}" ]]; then
-    error "${SCRIPTPATH} ${FUNCNAME[0]}: Invalid source path '${__source}'"
-    return 2
-  fi
+	# Exit if invalid path
+	if [[ ! -e "${__source}" ]]; then
+		error "${SCRIPTPATH} ${FUNCNAME[0]}: Invalid source path '${__source}'"
+		return 2
+	fi
 
-  local __tmp_changes_list
-  local __tmp_changes_count
-  local __tmp_total_files_count
+	local __tmp_changes_list
+	local __tmp_changes_count
+	local __tmp_total_files_count
 
-  # Strip all trailing backslashes '/'
-  __source=$(echo "${__source}" | sed 's,/*$,,')
-  __target=$(echo "${__target}" | sed 's,/*$,,')
+	# Strip all trailing backslashes '/'
+	__source=$(echo "${__source}" | sed 's,/*$,,')
+	__target=$(echo "${__target}" | sed 's,/*$,,')
 
-  if [[ -d "${__source}" ]]; then # Directory dotfile
-    # Recursively compare
-    while IFS= read -r -d '' __source_file; do
-      # Strip all trailing backslashes '/'
-      __source_file=$(echo "${__source_file}" | sed 's,/*$,,')
-      # Get relative path to append to target
-      __rel_path_file=$(echo "${__source_file}" | sed "s,${__source}/,,")
-      __target_file="${__target}/${__rel_path_file}"
+	if [[ -d "${__source}" ]]; then # Directory dotfile
+		# Recursively compare
+		while IFS= read -r -d '' __source_file; do
+			# Strip all trailing backslashes '/'
+			__source_file=$(echo "${__source_file}" | sed 's,/*$,,')
+			# Get relative path to append to target
+			__rel_path_file=$(echo "${__source_file}" | sed "s,${__source}/,,")
+			__target_file="${__target}/${__rel_path_file}"
 
-      # Ignore if in DOTFILES_IGNORE_LIST
-      if array_has_element "${__source_file}" "${DOTFILES_IGNORE_LIST[@]}"; then
-        printf "${FG_LT_BLACK}Changes ignored ${__source_file}${ANSI_OFF}\n"
-        continue
-      fi
-      if array_has_element "${__target_file}" "${DOTFILES_IGNORE_LIST[@]}"; then
-        printf "${FG_LT_BLACK}Changes ignored ${__target_file}${ANSI_OFF}\n"
-        continue
-      fi
+			# Ignore if in DOTFILES_IGNORE_LIST
+			if array_has_element "${__source_file}" "${DOTFILES_IGNORE_LIST[@]}"; then
+				printf "${FG_LT_BLACK}Changes ignored ${__source_file}${ANSI_OFF}\n"
+				continue
+			fi
+			if array_has_element "${__target_file}" "${DOTFILES_IGNORE_LIST[@]}"; then
+				printf "${FG_LT_BLACK}Changes ignored ${__target_file}${ANSI_OFF}\n"
+				continue
+			fi
 
-      # Compare dotfiles in target dir with local copy in source dir
-      if cmp "${__source_file}" "${__target_file}" &> /dev/null; then
-        if [[ ${silent} -ne 1 ]]; then
-          echolog "No changes detected in ${__source_file}"
-        else
-          log "No changes detected in ${__source_file}"
-        fi
-      else
-        if [[ -e "${__target_file}" ]]; then
-          echolog "${YELLOW}Changes detected:${NC}" ${silent}
-          echolog "${BLUE}SOURCE ${__source_file}${NC}" ${silent}
-          echolog "${BLUE}TARGET ${__target_file}${NC}" ${silent}
-        else
-          echolog "${YELLOW}Missing file:${NC}" ${silent}
-          echolog "${BLUE}SOURCE ${__source_file}${NC}" ${silent}
-          echolog "${RED}TARGET ${__target_file}${NC}" ${silent}
-        fi
-        # Record changes
-        __tmp_changes_count=$(expr ${__tmp_changes_count} + 1)
-        if [[ -z "${__tmp_changes_list}" ]]; then
-          __tmp_changes_list="${__source_file};${__target_file}"
-        else
-          __tmp_changes_list="${__tmp_changes_list}\n${__source_file};${__target_file}"
-        fi
-      fi
-      # Increment total files compared
-      __tmp_total_files_count=$(expr ${__tmp_total_files_count} + 1)
-    done < <(find "${__source}" -not -path "*/.git/*" -type f -print0) # Process substitution for outside variables
-  else # Non-directory dotfile
-    # Compare dotfiles in target dir with local copy in source dir
-    if cmp -s "${__source}" "${__target}" &> /dev/null; then
-      if [[ ${silent} -ne 1 ]]; then
-        echolog "No changes detected in ${__source}"
-      else
-        log "No changes detected in ${__source}"
-      fi
-    else
-      if [[ -e "${__target}" ]]; then
-        echolog "${YELLOW}Changes detected:${NC}" ${silent}
-        echolog "${BLUE}SOURCE ${__source}${NC}" ${silent}
-        echolog "${BLUE}TARGET ${__target}${NC}" ${silent}
-      else
-        echolog "${YELLOW}Missing file:${NC}" ${silent}
-        echolog "${BLUE}SOURCE ${__source}${NC}" ${silent}
-        echolog "${RED}TARGET ${__target}${NC}" ${silent}
-      fi
-      # Record changes
-      __tmp_changes_count=$(expr ${__tmp_changes_count} + 1)
-      if [[ -z "${__tmp_changes_list}" ]]; then
-        __tmp_changes_list="${__source};${__target}"
-      else
-        __tmp_changes_list="${__tmp_changes_list}\n${__source};${__target}"
-      fi
-    fi
-    # Increment total files compared
-    __tmp_total_files_count=$(expr ${__tmp_total_files_count} + 1)
-  fi
-  # Return variables
-  [[ -n "${__changes_list}" ]]      && eval $__changes_list="'$__tmp_changes_list'"
-  [[ -n "${__changes_count}" ]]     && eval $__changes_count=$__tmp_changes_count
-  [[ -n "${__total_files_count}" ]] && eval $__total_files_count=$__tmp_total_files_count
+			# Compare dotfiles in target dir with local copy in source dir
+			if cmp "${__source_file}" "${__target_file}" &>/dev/null; then
+				if [[ ${silent} -ne 1 ]]; then
+					echolog "No changes detected in ${__source_file}"
+				else
+					log "No changes detected in ${__source_file}"
+				fi
+			else
+				if [[ -e "${__target_file}" ]]; then
+					echolog "${YELLOW}Changes detected:${NC}" ${silent}
+					echolog "${BLUE}SOURCE ${__source_file}${NC}" ${silent}
+					echolog "${BLUE}TARGET ${__target_file}${NC}" ${silent}
+				else
+					echolog "${YELLOW}Missing file:${NC}" ${silent}
+					echolog "${BLUE}SOURCE ${__source_file}${NC}" ${silent}
+					echolog "${RED}TARGET ${__target_file}${NC}" ${silent}
+				fi
+				# Record changes
+				__tmp_changes_count=$(expr ${__tmp_changes_count} + 1)
+				if [[ -z "${__tmp_changes_list}" ]]; then
+					__tmp_changes_list="${__source_file};${__target_file}"
+				else
+					__tmp_changes_list="${__tmp_changes_list}\n${__source_file};${__target_file}"
+				fi
+			fi
+			# Increment total files compared
+			__tmp_total_files_count=$(expr ${__tmp_total_files_count} + 1)
+		done < <(find "${__source}" -not -path "*/.git/*" -type f -print0) # Process substitution for outside variables
+	else                                                                # Non-directory dotfile
+		# Compare dotfiles in target dir with local copy in source dir
+		if cmp -s "${__source}" "${__target}" &>/dev/null; then
+			if [[ ${silent} -ne 1 ]]; then
+				echolog "No changes detected in ${__source}"
+			else
+				log "No changes detected in ${__source}"
+			fi
+		else
+			if [[ -e "${__target}" ]]; then
+				echolog "${YELLOW}Changes detected:${NC}" ${silent}
+				echolog "${BLUE}SOURCE ${__source}${NC}" ${silent}
+				echolog "${BLUE}TARGET ${__target}${NC}" ${silent}
+			else
+				echolog "${YELLOW}Missing file:${NC}" ${silent}
+				echolog "${BLUE}SOURCE ${__source}${NC}" ${silent}
+				echolog "${RED}TARGET ${__target}${NC}" ${silent}
+			fi
+			# Record changes
+			__tmp_changes_count=$(expr ${__tmp_changes_count} + 1)
+			if [[ -z "${__tmp_changes_list}" ]]; then
+				__tmp_changes_list="${__source};${__target}"
+			else
+				__tmp_changes_list="${__tmp_changes_list}\n${__source};${__target}"
+			fi
+		fi
+		# Increment total files compared
+		__tmp_total_files_count=$(expr ${__tmp_total_files_count} + 1)
+	fi
+	# Return variables
+	[[ -n "${__changes_list}" ]] && eval $__changes_list="'$__tmp_changes_list'"
+	[[ -n "${__changes_count}" ]] && eval $__changes_count=$__tmp_changes_count
+	[[ -n "${__total_files_count}" ]] && eval $__total_files_count=$__tmp_total_files_count
 }
-
 
 # Compares two file path (would compare recursively if files are directories)
 # and returns all files that does not exists in the target file or directory.
@@ -199,83 +194,82 @@ function detect_change() {
 #
 # Returns $3, $4, $5 variable args with new values from execution.
 detect_delete() {
-  local __source=$1
-  local __target=$2
-  local __deletion_list=$3
-  local __deletion_count=$4
-  local __total_files_count=$5
-  local silent=$6
+	local __source=$1
+	local __target=$2
+	local __deletion_list=$3
+	local __deletion_count=$4
+	local __total_files_count=$5
+	local silent=$6
 
-  # Check args count
-  if [[ $# -lt 3 ]]; then
-    echolog "${RED}${FUNCNAME[0]}: Invalid number of arguments${NC}"
-    return 1
-  fi
+	# Check args count
+	if [[ $# -lt 3 ]]; then
+		echolog "${RED}${FUNCNAME[0]}: Invalid number of arguments${NC}"
+		return 1
+	fi
 
-  local __tmp_deletion_list
-  local __tmp_deletion_count
-  local __tmp_total_files_count
+	local __tmp_deletion_list
+	local __tmp_deletion_count
+	local __tmp_total_files_count
 
-  # Strip all trailing backslashes '/'
-  __source=$(echo "${__source}" | sed 's,/*$,,')
-  __target=$(echo "${__target}" | sed 's,/*$,,')
+	# Strip all trailing backslashes '/'
+	__source=$(echo "${__source}" | sed 's,/*$,,')
+	__target=$(echo "${__target}" | sed 's,/*$,,')
 
-  if [[ -d "${__source}" ]]; then # Directory dotfile
-    # Recursively compare
-    while IFS= read -r -d '' __source_file; do
-      # Strip all trailing backslashes '/'
-      __source_file=$(echo "${__source_file}" | sed 's,/*$,,')
-      # Get relative path to append to target
-      __rel_path_file=$(echo "${__source_file}" | sed "s,${__source}/,,")
-      __target_file="${__target}/${__rel_path_file}"
+	if [[ -d "${__source}" ]]; then # Directory dotfile
+		# Recursively compare
+		while IFS= read -r -d '' __source_file; do
+			# Strip all trailing backslashes '/'
+			__source_file=$(echo "${__source_file}" | sed 's,/*$,,')
+			# Get relative path to append to target
+			__rel_path_file=$(echo "${__source_file}" | sed "s,${__source}/,,")
+			__target_file="${__target}/${__rel_path_file}"
 
-      # Ignore if in DOTFILES_IGNORE_LIST
-      if array_has_element "${__source_file}" "${DOTFILES_IGNORE_LIST[@]}"; then
-        printf "${FG_LT_BLACK}Deletion ignored ${__source_file}${ANSI_OFF}\n"
-        continue
-      fi
-      if array_has_element "${__target_file}" "${DOTFILES_IGNORE_LIST[@]}"; then
-        printf "${FG_LT_BLACK}Deletion ignored ${__target_file}${ANSI_OFF}\n"
-        continue
-      fi
+			# Ignore if in DOTFILES_IGNORE_LIST
+			if array_has_element "${__source_file}" "${DOTFILES_IGNORE_LIST[@]}"; then
+				printf "${FG_LT_BLACK}Deletion ignored ${__source_file}${ANSI_OFF}\n"
+				continue
+			fi
+			if array_has_element "${__target_file}" "${DOTFILES_IGNORE_LIST[@]}"; then
+				printf "${FG_LT_BLACK}Deletion ignored ${__target_file}${ANSI_OFF}\n"
+				continue
+			fi
 
-      # Check deleted files
-      if [[ ! -e "${__target_file}" ]]; then
-        # Record deletion if not NO_DELETE
-        if [[ -z "${NO_DELETE}" ]]; then
-          echolog "${RED}File to be deleted ${__source_file}${NC}" ${silent}
-          __tmp_deletion_count=$(expr ${__tmp_deletion_count} + 1)
-        else
-          echolog "${RED}File to be deleted ${__source_file} ${YELLOW}SKIPPED${NC}" ${silent}
-        fi
-        # Append to changes list
-        if [[ -z ${__tmp_deletion_list} ]]; then
-          __tmp_deletion_list="${__source_file}"
-        else
-          __tmp_deletion_list="${__tmp_deletion_list}\n${__source_file}"
-        fi
-      fi
-      # Increment total files compared
-      __tmp_total_files_count=$(expr ${__tmp_total_files_count} + 1)
-    done < <(find "${__source}" -not -path "*/.git/*" -type f -print0) # Process substitution for outside variables
-  else # Non-directory dotfile
-    # Check deleted files
-    if [[ ! -e "${__target}" ]]; then
-      echolog "${RED}File does not exist ${__source}${NC}" ${silent}
-      # Record changes
-      __tmp_deletion_count=$(expr ${__tmp_deletion_count} + 1)
-      if [[ -z ${__tmp_deletion_list} ]]; then
-        __tmp_deletion_list="${__source}"
-      else
-        __tmp_deletion_list="${__tmp_deletion_list}\n${__source}"
-      fi
-    fi
-    # Increment total files compared
-    __tmp_total_files_count=$(expr ${__tmp_total_files_count} + 1)
-  fi
-  # Return variables
-  [[ -n "${__deletion_list}" ]]     && eval $__deletion_list="'$__tmp_deletion_list'"
-  [[ -n "${__deletion_count}" ]]    && eval $__deletion_count=$__tmp_deletion_count
-  [[ -n "${__total_files_count}" ]] && eval $__total_files_count=$__tmp_total_files_count
+			# Check deleted files
+			if [[ ! -e "${__target_file}" ]]; then
+				# Record deletion if not NO_DELETE
+				if [[ -z "${NO_DELETE}" ]]; then
+					echolog "${RED}File to be deleted ${__source_file}${NC}" ${silent}
+					__tmp_deletion_count=$(expr ${__tmp_deletion_count} + 1)
+				else
+					echolog "${RED}File to be deleted ${__source_file} ${YELLOW}SKIPPED${NC}" ${silent}
+				fi
+				# Append to changes list
+				if [[ -z ${__tmp_deletion_list} ]]; then
+					__tmp_deletion_list="${__source_file}"
+				else
+					__tmp_deletion_list="${__tmp_deletion_list}\n${__source_file}"
+				fi
+			fi
+			# Increment total files compared
+			__tmp_total_files_count=$(expr ${__tmp_total_files_count} + 1)
+		done < <(find "${__source}" -not -path "*/.git/*" -type f -print0) # Process substitution for outside variables
+	else                                                                # Non-directory dotfile
+		# Check deleted files
+		if [[ ! -e "${__target}" ]]; then
+			echolog "${RED}File does not exist ${__source}${NC}" ${silent}
+			# Record changes
+			__tmp_deletion_count=$(expr ${__tmp_deletion_count} + 1)
+			if [[ -z ${__tmp_deletion_list} ]]; then
+				__tmp_deletion_list="${__source}"
+			else
+				__tmp_deletion_list="${__tmp_deletion_list}\n${__source}"
+			fi
+		fi
+		# Increment total files compared
+		__tmp_total_files_count=$(expr ${__tmp_total_files_count} + 1)
+	fi
+	# Return variables
+	[[ -n "${__deletion_list}" ]] && eval $__deletion_list="'$__tmp_deletion_list'"
+	[[ -n "${__deletion_count}" ]] && eval $__deletion_count=$__tmp_deletion_count
+	[[ -n "${__total_files_count}" ]] && eval $__total_files_count=$__tmp_total_files_count
 }
-

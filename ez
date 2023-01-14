@@ -17,80 +17,96 @@ include "${EZ_INSTALL_HOME}/actions.sh"
 ################################################## CONSTANT GLOBAL VARIABLES ###
 
 readonly EZ_VERSION="0.3 BETA"
-readonly SCRIPT_ARGS=( "${@}" )
+readonly SCRIPT_ARGS=("${@}")
 
 ############################################################### FLAG OPTIONS ###
 
 function usage() {
-  print_page "${EZ_INSTALL_HOME}/man/ez_usage"
+	print_page "${EZ_INSTALL_HOME}/man/ez_usage"
 }
-
 
 # TODO: Auto generate exit codes.
-function manual () {
-  ${EZ_COMMAND_INSTALL} -h
-  ${EZ_COMMAND_GEN} -h
-  print_page "${EZ_INSTALL_HOME}/man/ez_manual"
+function manual() {
+	${EZ_COMMAND_INSTALL} -h
+	${EZ_COMMAND_GEN} -h
+	print_page "${EZ_INSTALL_HOME}/man/ez_manual"
 }
 
-
 function handle_args() {
-  # Disallow piped cli args
-  if [[ -p /dev/stdin ]];             then usage; error "Piped arguments not supported" "$BASH_SYS_EX_USAGE"; fi
-  # Disallow Stdin redirection
-  if [[ ! -t 0 && ! -p /dev/stdin ]]; then usage; error "Stdin redirection not supported" "$BASH_SYS_EX_USAGE"; fi
-  # Require arguments
-  if [[ -z "${1+x}" ]];               then usage; error "${BASH_SYS_MSG_USAGE_MISSARG}" "$BASH_SYS_EX_USAGE"; fi
+	# Disallow piped cli args
+	if [[ -p /dev/stdin ]]; then
+		usage
+		error "Piped arguments not supported" "$BASH_SYS_EX_USAGE"
+	fi
+	# Disallow Stdin redirection
+	if [[ ! -t 0 && ! -p /dev/stdin ]]; then
+		usage
+		error "Stdin redirection not supported" "$BASH_SYS_EX_USAGE"
+	fi
+	# Require arguments
+	if [[ -z "${1+x}" ]]; then
+		usage
+		error "${BASH_SYS_MSG_USAGE_MISSARG}" "$BASH_SYS_EX_USAGE"
+	fi
 
-  # Catch command and throw it away to focus on the rest of args to pass to the command execution
-  local command="${1}"
-  shift 1
+	# Catch command and throw it away to focus on the rest of args to pass to the command execution
+	local command="${1}"
+	shift 1
 
-  # Ref: https://stackoverflow.com/a/1669493
-  # Transform args to string to quote OPTARG with whitespace.
-  # WARNING: Receiving end needs to use `eval set -- "${@:-}"`
-  local command_args=""
-  for i in "$@"; do
-    if [[ $i =~ ^--.*= ]]; then
-      i="$(sed -e "s/\(--.*=\)\(.*\)/\1'\2'/" <<< "$i")"
-    elif [[ $i =~ [[:space:]] ]]; then
-      i="'$i'"
-    fi
-    command_args="${command_args} $i"
-  done
+	# Ref: https://stackoverflow.com/a/1669493
+	# Transform args to string to quote OPTARG with whitespace.
+	# WARNING: Receiving end needs to use `eval set -- "${@:-}"`
+	local command_args=""
+	for i in "$@"; do
+		if [[ $i =~ ^--.*= ]]; then
+			i="$(sed -e "s/\(--.*=\)\(.*\)/\1'\2'/" <<<"$i")"
+		elif [[ $i =~ [[:space:]] ]]; then
+			i="'$i'"
+		fi
+		command_args="${command_args} $i"
+	done
 
-  case "${command}" in
-    dot)            ${EZ_COMMAND_DOT}     "${command_args}" ;;
-    gen)            ${EZ_COMMAND_GEN}     "${command_args}" ;;
-    install)        ${EZ_COMMAND_INSTALL} "${command_args}" ;;
-    -h|--help)      usage; manual; exit "$BASH_EX_OK" ;;
-    -V|--version)   echo "${SCRIPT_NAME} ${EZ_VERSION}"; exit "$BASH_EX_OK" ;;
-    *)
-      usage
-      error "Command '${1}' not found" "$BASH_EZ_EX_COMMAND_NOTFOUND"
-  esac
+	case "${command}" in
+	dot) ${EZ_COMMAND_DOT} "${command_args}" ;;
+	gen) ${EZ_COMMAND_GEN} "${command_args}" ;;
+	install) ${EZ_COMMAND_INSTALL} "${command_args}" ;;
+	-h | --help)
+		usage
+		manual
+		exit "$BASH_EX_OK"
+		;;
+	-V | --version)
+		echo "${SCRIPT_NAME} ${EZ_VERSION}"
+		exit "$BASH_EX_OK"
+		;;
+	*)
+		usage
+		error "Command '${1}' not found" "$BASH_EZ_EX_COMMAND_NOTFOUND"
+		;;
+	esac
 }
 
 ###################################################################### UTILS ###
 
 function _ctrl_c() {
-  if "${DEBUG}"; then
-    echo ""
-    log 'error' "$(basename -- "${BASH_SOURCE[1]}").${FUNCNAME[1]}(): Interrupted!" "$BASH_EX_TERMCTRLC"
-  fi
+	if "${DEBUG}"; then
+		echo ""
+		log 'error' "$(basename -- "${BASH_SOURCE[1]}").${FUNCNAME[1]}(): Interrupted!" "$BASH_EX_TERMCTRLC"
+	fi
 }
 
 ############################################################# MAIN EXECUTION ###
 
-function _main () {
-  # Set up trap
-  trap _ctrl_c INT TERM
+function _main() {
+	# Set up trap
+	trap _ctrl_c INT TERM
 
-  script_vars
-  handle_args "$@"
-  return $?
+	script_vars
+	handle_args "$@"
+	return $?
 }
 
-
-res=0; _main "${SCRIPT_ARGS[@]}"; res=$?
+res=0
+_main "${SCRIPT_ARGS[@]}"
+res=$?
 exit $res

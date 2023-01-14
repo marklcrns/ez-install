@@ -15,9 +15,6 @@ set -o nounset
 # Date   : 2020-08-02
 ################################################################################
 
-
-
-
 # Essential sources
 source "$(dirname -- "$(realpath -- "${BASH_SOURCE[0]}")")/../../.ez-installrc"
 source "${EZ_INSTALL_HOME}/common/include.sh"
@@ -25,7 +22,7 @@ source "${EZ_INSTALL_HOME}/common/include.sh"
 ################################################## CONSTANT GLOBAL VARIABLES ###
 
 readonly EZ_DOT_BACKUP_VERSION="0.1 BETA"
-readonly SCRIPT_ARGS=( "${@}" )
+readonly SCRIPT_ARGS=("${@}")
 
 # Source rc file if exist
 [[ -e "${DOTFILESRC}" ]] && source "${DOTFILESRC}"
@@ -41,323 +38,340 @@ include "${EZ_INSTALL_HOME}/actions.sh"
 ############################################################### FLAG OPTIONS ###
 
 function usage() {
-  print_page "${EZ_INSTALL_HOME}/man/ez_dot_backup_usage"
+	print_page "${EZ_INSTALL_HOME}/man/ez_dot_backup_usage"
 }
 
-
 function handle_args() {
-  # Standard configs
-  [[ -z "${SKIP_CONFIRM+x}" ]]    && SKIP_CONFIRM=false
-  [[ -z "${VERBOSE+x}" ]]         && VERBOSE=true
-  [[ -z "${DEBUG+x}" ]]           && DEBUG=false
-  [[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=4
-  [[ -z "${ENABLE_COLORS+x}" ]]   && ENABLE_COLORS=true
+	# Standard configs
+	[[ -z "${SKIP_CONFIRM+x}" ]] && SKIP_CONFIRM=false
+	[[ -z "${VERBOSE+x}" ]] && VERBOSE=true
+	[[ -z "${DEBUG+x}" ]] && DEBUG=false
+	[[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=4
+	[[ -z "${ENABLE_COLORS+x}" ]] && ENABLE_COLORS=true
 
-  # backup configs
-  [[ -z "${DOT_BACKUP_AUTO_CLEAN+x}" ]]  && DOT_BACKUP_AUTO_CLEAN=false
-  [[ -z "${CLEAN_BACKUPS+x}" ]]          && CLEAN_BACKUPS=false
+	# backup configs
+	[[ -z "${DOT_BACKUP_AUTO_CLEAN+x}" ]] && DOT_BACKUP_AUTO_CLEAN=false
+	[[ -z "${CLEAN_BACKUPS+x}" ]] && CLEAN_BACKUPS=false
 
-  #== parse options ==#
-  # Ref: https://www.uxora.com/unix/shell-script/22-handle-long-options-with-getopts
+	#== parse options ==#
+	# Ref: https://www.uxora.com/unix/shell-script/22-handle-long-options-with-getopts
 
-  # Especially useful when relaying script args with group quoted OPTARG
-  eval set -- "${@:-}"
+	# Especially useful when relaying script args with group quoted OPTARG
+	eval set -- "${@:-}"
 
-  local -A long_opts_map
-  long_opts_map=(
-    ['auto-clean']=a
-    ['clean-backups']=c
-    ['quiet']=q
-    ['debug']=x
-    ['skip-confirm']=y
-    ['no-colors']=z
-    ['help']=h
-    ['version']=V
-  )
+	local -A long_opts_map
+	long_opts_map=(
+		['auto-clean']=a
+		['clean-backups']=c
+		['quiet']=q
+		['debug']=x
+		['skip-confirm']=y
+		['no-colors']=z
+		['help']=h
+		['version']=V
+	)
 
-  local script_opts=':acqxyzhV-:'
-  local script_args_num=$#
+	local script_opts=':acqxyzhV-:'
+	local script_args_num=$#
 
-  local OPTIND=1
-  while getopts ${script_opts} OPTION; do
-    #== translate long options to short ==#
-    if [[ "x$OPTION" == "x-" ]]; then
-      LONG_OPTION=$OPTARG
-      LONG_OPTARG=$(echo "$LONG_OPTION" | grep "=" | cut -d'=' -f2)
-      LONG_OPTIND=-1
+	local OPTIND=1
+	while getopts ${script_opts} OPTION; do
+		#== translate long options to short ==#
+		if [[ "x$OPTION" == "x-" ]]; then
+			LONG_OPTION=$OPTARG
+			LONG_OPTARG=$(echo "$LONG_OPTION" | grep "=" | cut -d'=' -f2)
+			LONG_OPTIND=-1
 
-      [[ "x$LONG_OPTARG" = "x" ]] && LONG_OPTIND=$OPTIND || LONG_OPTION=$(echo "$OPTARG" | cut -d'=' -f1)
-      [[ $LONG_OPTIND -ne -1 ]] && eval LONG_OPTARG="\$$LONG_OPTIND"
+			[[ "x$LONG_OPTARG" = "x" ]] && LONG_OPTIND=$OPTIND || LONG_OPTION=$(echo "$OPTARG" | cut -d'=' -f1)
+			[[ $LONG_OPTIND -ne -1 ]] && eval LONG_OPTARG="\$$LONG_OPTIND"
 
-      OPTION=${long_opts_map[$LONG_OPTION]}
-      [[ "x$OPTION" = "x" ]] &&  OPTION="?" OPTARG="-$LONG_OPTION"
+			OPTION=${long_opts_map[$LONG_OPTION]}
+			[[ "x$OPTION" = "x" ]] && OPTION="?" OPTARG="-$LONG_OPTION"
 
-      if [[ $( echo "${script_opts}" | grep -c "${OPTION}:" ) -eq 1 ]]; then
-        # OPTION followed by another option instead of argument will be omitted.
-        if [[ "x${LONG_OPTARG}" = "x" ]] || [[ "${LONG_OPTARG}" = -* ]]; then
-          OPTION=":" OPTARG="-$LONG_OPTION"
-        else
-          OPTARG="$LONG_OPTARG";
-          if [[ $LONG_OPTIND -ne -1 ]]; then
-            [[ $OPTIND -le $script_args_num ]] && OPTIND=$(( OPTIND+1 ))
-            shift $OPTIND
-            OPTIND=1
-          fi
-        fi
-      fi
-    fi
+			if [[ $(echo "${script_opts}" | grep -c "${OPTION}:") -eq 1 ]]; then
+				# OPTION followed by another option instead of argument will be omitted.
+				if [[ "x${LONG_OPTARG}" = "x" ]] || [[ "${LONG_OPTARG}" = -* ]]; then
+					OPTION=":" OPTARG="-$LONG_OPTION"
+				else
+					OPTARG="$LONG_OPTARG"
+					if [[ $LONG_OPTIND -ne -1 ]]; then
+						[[ $OPTIND -le $script_args_num ]] && OPTIND=$((OPTIND + 1))
+						shift $OPTIND
+						OPTIND=1
+					fi
+				fi
+			fi
+		fi
 
-    # OPTION followed by another option instead of argument will be omitted.
-    if [[ "x${OPTION}" != "x:" ]] && [[ "x${OPTION}" != "x?" ]] && [[ "${OPTARG:-}" = -* ]]; then
-      OPTARG="$OPTION" OPTION=":"
-    fi
+		# OPTION followed by another option instead of argument will be omitted.
+		if [[ "x${OPTION}" != "x:" ]] && [[ "x${OPTION}" != "x?" ]] && [[ "${OPTARG:-}" = -* ]]; then
+			OPTARG="$OPTION" OPTION=":"
+		fi
 
-    #== manage options ==#
-    case "$OPTION" in
-      a) DOT_BACKUP_AUTO_CLEAN=true ;;
-      c) CLEAN_BACKUPS=true ;;
-      y) SKIP_CONFIRM=true ;;
-      q) VERBOSE=false; LOG_DEBUG_LEVEL=3 ;;
-      x) DEBUG=true; LOG_DEBUG_LEVEL=7 ;;
-      z) ENABLE_COLORS=false
-         include "${EZ_INSTALL_HOME}/common/colors.sh"
-         ;;
-      h) usage; exit "$BASH_EX_OK" ;;
-      V) echo "${SCRIPT_NAME} ${EZ_DOT_BACKUP_VERSION}"; exit "$BASH_EX_OK" ;;
-      \?) error "${BASH_SYS_MSG_USAGE_INVARG}: ${OPTARG:-}" "$BASH_EX_GENERAL" ;;
-      :) error "The additional argument for option ${OPTARG:-} was omitted." "$BASH_EX_GENERAL" ;;
-      *) usage; error "Invalid flag option(s)" "$BASH_SYS_EX_USAGE" ;;
-    esac
+		#== manage options ==#
+		case "$OPTION" in
+		a) DOT_BACKUP_AUTO_CLEAN=true ;;
+		c) CLEAN_BACKUPS=true ;;
+		y) SKIP_CONFIRM=true ;;
+		q)
+			VERBOSE=false
+			LOG_DEBUG_LEVEL=3
+			;;
+		x)
+			DEBUG=true
+			LOG_DEBUG_LEVEL=7
+			;;
+		z)
+			ENABLE_COLORS=false
+			include "${EZ_INSTALL_HOME}/common/colors.sh"
+			;;
+		h)
+			usage
+			exit "$BASH_EX_OK"
+			;;
+		V)
+			echo "${SCRIPT_NAME} ${EZ_DOT_BACKUP_VERSION}"
+			exit "$BASH_EX_OK"
+			;;
+		\?) error "${BASH_SYS_MSG_USAGE_INVARG}: ${OPTARG:-}" "$BASH_EX_GENERAL" ;;
+		:) error "The additional argument for option ${OPTARG:-} was omitted." "$BASH_EX_GENERAL" ;;
+		*)
+			usage
+			error "Invalid flag option(s)" "$BASH_SYS_EX_USAGE"
+			;;
+		esac
 
-  done
-  shift $(( OPTIND-1 ))
+	done
+	shift $((OPTIND - 1))
 
+	# Disallow piped cli args
+	if [[ -p /dev/stdin ]]; then
+		usage
+		error "Piped arguments not supported" "$BASH_SYS_EX_USAGE"
+	fi
+	# Disallow Stdin redirection
+	if [[ ! -t 0 && ! -p /dev/stdin ]]; then
+		usage
+		error "Stdin redirection not supported" "$BASH_SYS_EX_USAGE"
+	fi
 
-  # Disallow piped cli args
-  if [[ -p /dev/stdin ]];             then usage; error "Piped arguments not supported" "$BASH_SYS_EX_USAGE"; fi
-  # Disallow Stdin redirection
-  if [[ ! -t 0 && ! -p /dev/stdin ]]; then usage; error "Stdin redirection not supported" "$BASH_SYS_EX_USAGE"; fi
+	# Validate local dotfiles directory argument
+	if [[ -n "${1+x}" ]]; then
+		_dot_local_dir="${1}"
+		if [[ -d "${_dot_local_dir}" ]]; then
+			DOT_LOCAL_DIR="${_dot_local_dir}"
+		else
+			error "Invalid local dotfiles directory path '${DOT_LOCAL_DIR}'" 1
+		fi
 
+		# Validate dotfiles backup directory argument
+		if [[ -n "${2+x}" ]]; then
+			_dot_backup_dir="${2}"
+			if [[ -d "${_dot_backup_dir}" ]]; then
+				DOT_BACKUP_DIR="${_dot_backup_dir}"
+			else
+				error "Invalid dotfiles backup directory path '${DOT_BACKUP_DIR}'" 1
+			fi
+		else
+			error "Missing dotfiles backup directory path argument" 1
+		fi
+	fi
 
-  # Validate local dotfiles directory argument
-  if [[ -n "${1+x}" ]]; then
-    _dot_local_dir="${1}"
-    if [[ -d "${_dot_local_dir}" ]]; then
-      DOT_LOCAL_DIR="${_dot_local_dir}"
-    else
-      error "Invalid local dotfiles directory path '${DOT_LOCAL_DIR}'" 1
-    fi
+	strip_trailing_forwardslash DOT_BACKUP_DIR
+	strip_trailing_forwardslash DOT_LOCAL_DIR
 
-    # Validate dotfiles backup directory argument
-    if [[ -n "${2+x}" ]]; then
-      _dot_backup_dir="${2}"
-      if [[ -d "${_dot_backup_dir}" ]]; then
-        DOT_BACKUP_DIR="${_dot_backup_dir}"
-      else
-        error "Invalid dotfiles backup directory path '${DOT_BACKUP_DIR}'" 1
-      fi
-    else
-      error "Missing dotfiles backup directory path argument" 1
-    fi
-  fi
+	# if [[ -n "${HAS_RC_FILE}" ]]; then
+	#   if [[ -e "${tmp_rc_file_path}" ]]; then
+	#     source "${tmp_rc_file_path}"
+	#   else
+	#     error "Invalid rc file path '${tmp_rc_file_path}'" 1
+	#   fi
+	# fi
 
-  strip_trailing_forwardslash DOT_BACKUP_DIR
-  strip_trailing_forwardslash DOT_LOCAL_DIR
-
-  # if [[ -n "${HAS_RC_FILE}" ]]; then
-  #   if [[ -e "${tmp_rc_file_path}" ]]; then
-  #     source "${tmp_rc_file_path}"
-  #   else
-  #     error "Invalid rc file path '${tmp_rc_file_path}'" 1
-  #   fi
-  # fi
-
-  return "$BASH_EX_OK"
+	return "$BASH_EX_OK"
 }
 
 ###################################################################### UTILS ###
 
 function _ctrl_c() {
-  if "${DEBUG}"; then
-    echo ""
-    log 'error' "$(basename -- "${BASH_SOURCE[1]}").${FUNCNAME[1]}(): Interrupted!" "$BASH_EX_TERMCTRLC"
-  fi
+	if "${DEBUG}"; then
+		echo ""
+		log 'error' "$(basename -- "${BASH_SOURCE[1]}").${FUNCNAME[1]}(): Interrupted!" "$BASH_EX_TERMCTRLC"
+	fi
 }
 
-
 function backup_disposal() {
-  echo -e "\nDetecting all backup files...\n$(ls "${DOT_BACKUP_DIR}")"
+	echo -e "\nDetecting all backup files...\n$(ls "${DOT_BACKUP_DIR}")"
 
-  # Assess backups to be be removed
-  backup_dir_count=$(ls "${DOT_BACKUP_DIR}" | wc -l)
-  
-  if ${CLEAN_BACKUPS}; then
-    to_remove_count=$backup_dir_count
-  else
-    to_remove_count=$(( backup_dir_count - DOT_BACKUP_LIMIT ))
+	# Assess backups to be be removed
+	backup_dir_count=$(ls "${DOT_BACKUP_DIR}" | wc -l)
 
-    # Cache backup directories to be removed
-    if [[ ${to_remove_count} -lt 0 ]]; then
-      to_remove_count=0
-    fi
-  fi 
+	if ${CLEAN_BACKUPS}; then
+		to_remove_count=$backup_dir_count
+	else
+		to_remove_count=$((backup_dir_count - DOT_BACKUP_LIMIT))
 
-  echo -e "\nTotal backups: \t\t\t${backup_dir_count}"
-  echo -e "Oldest backups to remove: \t${to_remove_count}"
-  echo -e "Backup limit: \t\t\t${DOT_BACKUP_LIMIT}\n"
+		# Cache backup directories to be removed
+		if [[ ${to_remove_count} -lt 0 ]]; then
+			to_remove_count=0
+		fi
+	fi
 
-  # Skip clearing if backup still below limit
-  if [[ ${to_remove_count} -eq 0 ]]; then
-    abort "Backups still below limit. Skipping deletion..."
-  fi
+	echo -e "\nTotal backups: \t\t\t${backup_dir_count}"
+	echo -e "Oldest backups to remove: \t${to_remove_count}"
+	echo -e "Backup limit: \t\t\t${DOT_BACKUP_LIMIT}\n"
 
-  confirm || exit "$BASH_EX_GENERAL"
+	# Skip clearing if backup still below limit
+	if [[ ${to_remove_count} -eq 0 ]]; then
+		abort "Backups still below limit. Skipping deletion..."
+	fi
 
-  echo -e "Removing excess backups...\n"
+	confirm || exit "$BASH_EX_GENERAL"
 
-  # TODO: Convert list to array
-  # Get oldest backups amount based on DOT_BACKUP_LIMIT
-  to_remove_list="$(find "${DOT_BACKUP_DIR}" -maxdepth 1 -mindepth 1 -type d | sort | head -${to_remove_count})"
-  removed_count=0
+	echo -e "Removing excess backups...\n"
 
-  # Execute backups removal
-  while IFS= read -r backup_file; do
-    if execlog "rm -rf '${backup_file}'"; then
-      if ! [[ -e "${backup_file}" ]]; then
-        warning "${backup_file} deleted"
-      else
-        warning "Failed to remove ${backup_file}"
-      fi
-      # Increment removed count
-      removed_count=$((removed_count+1))
-    else
-      error "Failed to remove ${backup_file}"
-    fi
-  done <<< "${to_remove_list}"
+	# TODO: Convert list to array
+	# Get oldest backups amount based on DOT_BACKUP_LIMIT
+	to_remove_list="$(find "${DOT_BACKUP_DIR}" -maxdepth 1 -mindepth 1 -type d | sort | head -${to_remove_count})"
+	removed_count=0
 
-  #== wrap up ==#
+	# Execute backups removal
+	while IFS= read -r backup_file; do
+		if execlog "rm -rf '${backup_file}'"; then
+			if ! [[ -e "${backup_file}" ]]; then
+				warning "${backup_file} deleted"
+			else
+				warning "Failed to remove ${backup_file}"
+			fi
+			# Increment removed count
+			removed_count=$((removed_count + 1))
+		else
+			error "Failed to remove ${backup_file}"
+		fi
+	done <<<"${to_remove_list}"
 
-  # Final check
-  new_backup_dir_count=$(find "${DOT_BACKUP_DIR}" -maxdepth 1 -mindepth 1 -type d | wc -l)
-  # Check if all backups due for deletion are deleted
-  if [[ $(( new_backup_dir_count + removed_count )) -eq ${backup_dir_count} ]]; then
-    ok "\nTotal removed: ${removed_count}"
-  else
-    error "Clearing dotfiles backups failed" "$BASH_EX_GENERAL"
-  fi
+	#== wrap up ==#
 
-  finish "Dotfiles backups cleared!"
+	# Final check
+	new_backup_dir_count=$(find "${DOT_BACKUP_DIR}" -maxdepth 1 -mindepth 1 -type d | wc -l)
+	# Check if all backups due for deletion are deleted
+	if [[ $((new_backup_dir_count + removed_count)) -eq ${backup_dir_count} ]]; then
+		ok "\nTotal removed: ${removed_count}"
+	else
+		error "Clearing dotfiles backups failed" "$BASH_EX_GENERAL"
+	fi
+
+	finish "Dotfiles backups cleared!"
 }
 
 ############################################################# MAIN EXECUTION ###
 
-function _main () {
-  # Set up trap
-  trap _ctrl_c INT TERM
+function _main() {
+	# Set up trap
+	trap _ctrl_c INT TERM
 
-  local res=0
+	local res=0
 
-  script_vars
-  handle_args "$@"
-  res=$?
-  [[ $res -ne $BASH_EX_OK ]] && return $res
+	script_vars
+	handle_args "$@"
+	res=$?
+	[[ $res -ne $BASH_EX_OK ]] && return $res
 
+	# Backup dotfiles (if not in cleaning mode)
+	if ! ${CLEAN_BACKUPS}; then
+		local -a dotfiles=("${DOTFILES_LIST[@]}")
+		dotfiles_count=0
 
-  # Backup dotfiles (if not in cleaning mode)
-  if ! ${CLEAN_BACKUPS}; then
-    local -a dotfiles=( "${DOTFILES_LIST[@]}" )
-    dotfiles_count=0
+		# Display dotfiles to backup
+		info "Backing up the following files in '${DOT_BACKUP_DIR}/${DOT_BACKUP_DIR_NAME}'..."
+		for dotfile in "${dotfiles[@]}"; do
+			echo "${dotfile}"
+			((dotfiles_count++))
+		done
 
-    # Display dotfiles to backup
-    info "Backing up the following files in '${DOT_BACKUP_DIR}/${DOT_BACKUP_DIR_NAME}'..."
-    for dotfile in "${dotfiles[@]}"; do
-      echo "${dotfile}"
-      (( dotfiles_count++ ))
-    done
+		# Abort if no dotfiles detected
+		if [[ ${dotfiles_count} -eq 0 ]]; then
+			abort "\nAborting... No dotfiles to backup."
+		fi
 
-    # Abort if no dotfiles detected
-    if [[ ${dotfiles_count} -eq 0 ]]; then
-      abort "\nAborting... No dotfiles to backup."
-    fi
+		echo "Total dotfiles: ${dotfiles_count}"
 
-    echo "Total dotfiles: ${dotfiles_count}"
+		confirm || exit "$BASH_EX_GENERAL"
 
-    confirm || exit "$BASH_EX_GENERAL"
-    
-    
-    info "\nBacking up local dotfiles...\n"
+		info "\nBacking up local dotfiles...\n"
 
-    # Create backup directory
-    execlog "mkdir -p '${DOT_BACKUP_DIR}/${DOT_BACKUP_DIR_NAME}'" 1
+		# Create backup directory
+		execlog "mkdir -p '${DOT_BACKUP_DIR}/${DOT_BACKUP_DIR_NAME}'" 1
 
-    # Backup all dotfiles
-    for dotfile in "${dotfiles[@]}"; do
-      # Strip source directory from path
-      dotfile_stripped="$(echo "$dotfile" | sed "s,${DOT_LOCAL_DIR}/,,")"
-      # Strip basename for non-directory or last subdirectory
-      subdir="$(echo "${dotfile_stripped}" | sed "s,$(basename "$dotfile").*,,")"
+		# Backup all dotfiles
+		for dotfile in "${dotfiles[@]}"; do
+			# Strip source directory from path
+			dotfile_stripped="$(echo "$dotfile" | sed "s,${DOT_LOCAL_DIR}/,,")"
+			# Strip basename for non-directory or last subdirectory
+			subdir="$(echo "${dotfile_stripped}" | sed "s,$(basename "$dotfile").*,,")"
 
-      strip_trailing_forwardslash subdir
-      strip_trailing_forwardslash dotfile_stripped
+			strip_trailing_forwardslash subdir
+			strip_trailing_forwardslash dotfile_stripped
 
-      full_backup_dir="${DOT_BACKUP_DIR}/${DOT_BACKUP_DIR_NAME}"
+			full_backup_dir="${DOT_BACKUP_DIR}/${DOT_BACKUP_DIR_NAME}"
 
-      # Append subdir to full path
-      if [[ -n "${subdir}" ]]; then
-        full_backup_dir="${full_backup_dir}/${subdir}"
-        # Create subdirectories
-        execlog "mkdir -p '${full_backup_dir}'"
-      fi
-      # Copy dotfile into backup directory if existing
-      if [[ -e "${DOT_LOCAL_DIR}/${dotfile_stripped}" ]]; then
-        if execlog "cp -rL '${DOT_LOCAL_DIR}/${dotfile_stripped}' '${full_backup_dir}'" 1; then
-          warning "${DOT_LOCAL_DIR}/${dotfile_stripped} -> ${full_backup_dir}" ""
-        else
-          error "Failed to copy ${DOT_LOCAL_DIR}/${dotfile_stripped} -> ${full_backup_dir}"
-        fi
-      fi
-    done
+			# Append subdir to full path
+			if [[ -n "${subdir}" ]]; then
+				full_backup_dir="${full_backup_dir}/${subdir}"
+				# Create subdirectories
+				execlog "mkdir -p '${full_backup_dir}'"
+			fi
+			# Copy dotfile into backup directory if existing
+			if [[ -e "${DOT_LOCAL_DIR}/${dotfile_stripped}" ]]; then
+				if execlog "cp -rL '${DOT_LOCAL_DIR}/${dotfile_stripped}' '${full_backup_dir}'" 1; then
+					warning "${DOT_LOCAL_DIR}/${dotfile_stripped} -> ${full_backup_dir}" ""
+				else
+					error "Failed to copy ${DOT_LOCAL_DIR}/${dotfile_stripped} -> ${full_backup_dir}"
+				fi
+			fi
+		done
 
-    #== wrap up ==#
+		#== wrap up ==#
 
-    errors_count=0
+		errors_count=0
 
-    # Final check if all files and directories are copied
-    for dotfile in "${dotfiles[@]}"; do
-      # Strip source directory from path
-      dotfile_stripped="$(echo "$dotfile" | sed "s,${DOT_LOCAL_DIR}/,,")"
-      full_backup_dir="${DOT_BACKUP_DIR}/${DOT_BACKUP_DIR_NAME}"
-      # Only check existing local dotfiles
-      if [[ -e "${DOT_LOCAL_DIR}/${dotfile_stripped}" ]]; then
-        # Append to error if dotfile is not in backups
-        if [[ ! -e "${full_backup_dir}/${dotfile_stripped}" ]]; then
-          error "'${dotfile_stripped}' is missing from '${full_backup_dir}'"
-          errors_count=$((errors_count+1))
-        fi
-      fi
-    done
+		# Final check if all files and directories are copied
+		for dotfile in "${dotfiles[@]}"; do
+			# Strip source directory from path
+			dotfile_stripped="$(echo "$dotfile" | sed "s,${DOT_LOCAL_DIR}/,,")"
+			full_backup_dir="${DOT_BACKUP_DIR}/${DOT_BACKUP_DIR_NAME}"
+			# Only check existing local dotfiles
+			if [[ -e "${DOT_LOCAL_DIR}/${dotfile_stripped}" ]]; then
+				# Append to error if dotfile is not in backups
+				if [[ ! -e "${full_backup_dir}/${dotfile_stripped}" ]]; then
+					error "'${dotfile_stripped}' is missing from '${full_backup_dir}'"
+					errors_count=$((errors_count + 1))
+				fi
+			fi
+		done
 
-    if [[ ${errors_count} -gt 0 ]]; then
-      error "Missing files in backup directory"
-    else
-      ok "${DOT_BACKUP_DIR}/${DOT_BACKUP_DIR_NAME} backup created"
-    fi
-  fi
+		if [[ ${errors_count} -gt 0 ]]; then
+			error "Missing files in backup directory"
+		else
+			ok "${DOT_BACKUP_DIR}/${DOT_BACKUP_DIR_NAME} backup created"
+		fi
+	fi
 
-  res=0
-  
-  # Auto clean backup directory if is DOT_BACKUP_AUTO_CLEAN
-  if ${DOT_BACKUP_AUTO_CLEAN} || ${CLEAN_BACKUPS}; then
-    backup_disposal
-    res=$?
-    [[ $res -ne 0 ]] && error "Failed to clear backup files" $res
-  fi
-  
-  finish "Dotfiles backup successful!"
+	res=0
+
+	# Auto clean backup directory if is DOT_BACKUP_AUTO_CLEAN
+	if ${DOT_BACKUP_AUTO_CLEAN} || ${CLEAN_BACKUPS}; then
+		backup_disposal
+		res=$?
+		[[ $res -ne 0 ]] && error "Failed to clear backup files" $res
+	fi
+
+	finish "Dotfiles backup successful!"
 }
 
-
-res=0; _main "${SCRIPT_ARGS[@]}"; res=$?
+res=0
+_main "${SCRIPT_ARGS[@]}"
+res=$?
 
 # Standard configs
 unset SKIP_CONFIRM
@@ -370,4 +384,3 @@ unset DOT_BACKUP_AUTO_CLEAN
 unset CLEAN_BACKUPS
 
 exit $res
-

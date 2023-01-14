@@ -19,368 +19,424 @@ include "${EZ_INSTALL_HOME}/actions.sh"
 ################################################## CONSTANT GLOBAL VARIABLES ###
 
 readonly EZ_GEN_VERSION="0.3 BETA"
-readonly SCRIPT_ARGS=( "${@}" )
+readonly SCRIPT_ARGS=("${@}")
 
 ############################################################### FLAG OPTIONS ###
 
 function usage() {
-  print_page "${EZ_INSTALL_HOME}/man/ez_gen_usage"
+	print_page "${EZ_INSTALL_HOME}/man/ez_gen_usage"
 }
 
-
 function handle_args() {
-  # Standard configs
-  [[ -z "${SKIP_CONFIRM+x}" ]]    && SKIP_CONFIRM=false
-  [[ -z "${VERBOSE+x}" ]]         && VERBOSE=true
-  [[ -z "${DEBUG+x}" ]]           && DEBUG=false
-  [[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=3
-  [[ -z "${ENABLE_COLORS+x}" ]]   && ENABLE_COLORS=true
+	# Standard configs
+	[[ -z "${SKIP_CONFIRM+x}" ]] && SKIP_CONFIRM=false
+	[[ -z "${VERBOSE+x}" ]] && VERBOSE=true
+	[[ -z "${DEBUG+x}" ]] && DEBUG=false
+	[[ -z "${LOG_DEBUG_LEVEL+x}" ]] && LOG_DEBUG_LEVEL=3
+	[[ -z "${ENABLE_COLORS+x}" ]] && ENABLE_COLORS=true
 
-  # Genenerate configs
-  ARGS=""
-  AUTHOR=""
-  COMMAND_NAME=""
-  DEPENDENCIES=""
-  PACKAGE_MANAGER=""
-  PACKAGE_NAME=""
-  DESTINATION=""
-  GEN_PACKAGE_ROOT_DIR=""
-  GEN_PACKAGE_DIR=""
-  INTERACTIVE=false
-  GENERATE_MAIN=true
-  GENERATE_PRE=false
-  GENERATE_POST=false
-  AS_ROOT=false
-  ALLOW_DEP_FAIL=false
-  SKIP_EDIT=false
-  EXECUTE=false
-  FORCE=false
-  GLOBAL=false
-  UPDATE=false
+	# Genenerate configs
+	ARGS=""
+	AUTHOR=""
+	COMMAND_NAME=""
+	DEPENDENCIES=""
+	PACKAGE_MANAGER=""
+	PACKAGE_NAME=""
+	DESTINATION=""
+	GEN_PACKAGE_ROOT_DIR=""
+	GEN_PACKAGE_DIR=""
+	INTERACTIVE=false
+	GENERATE_MAIN=true
+	GENERATE_PRE=false
+	GENERATE_POST=false
+	AS_ROOT=false
+	ALLOW_DEP_FAIL=false
+	SKIP_EDIT=false
+	EXECUTE=false
+	FORCE=false
+	GLOBAL=false
+	UPDATE=false
 
-  CONFIG=""
+	CONFIG=""
 
-  #== parse options ==#
-  # Ref: https://www.uxora.com/unix/shell-script/22-handle-long-options-with-getopts
+	#== parse options ==#
+	# Ref: https://www.uxora.com/unix/shell-script/22-handle-long-options-with-getopts
 
-  # Especially useful when relaying script args with group quoted OPTARG
-  eval set -- "${@:-}"
+	# Especially useful when relaying script args with group quoted OPTARG
+	eval set -- "${@:-}"
 
-  local -A long_opts_map
-  long_opts_map=(
-    ['args']=a
-    ['author']=A
-    ['command-name']=c
-    ['dependency']=d
-    ['package-dir']=D
-    ['execute']=e
-    ['no-execute']=E
-    ['force']=f
-    ['no-force']=F
-    ['package-manager']=m
-    ['package-name']=n
-    ['destination']=o
-    ['global']=G
-    ['interactive']=i
-    ['skip-main']=M
-    ['pre']=p
-    ['post']=P
-    ['quiet']=q
-    ['as-root']=s
-    ['no-root']=S
-    ['skip-edit']=t
-    ['update']=u
-    ['no-update']=U
-    ['debug']=x
-    ['skip-confirm']=y
-    ['no-colors']=z
-    ['help']=h
-    ['version']=V
-  )
+	local -A long_opts_map
+	long_opts_map=(
+		['args']=a
+		['author']=A
+		['command-name']=c
+		['dependency']=d
+		['package-dir']=D
+		['execute']=e
+		['no-execute']=E
+		['force']=f
+		['no-force']=F
+		['package-manager']=m
+		['package-name']=n
+		['destination']=o
+		['global']=G
+		['interactive']=i
+		['skip-main']=M
+		['pre']=p
+		['post']=P
+		['quiet']=q
+		['as-root']=s
+		['no-root']=S
+		['skip-edit']=t
+		['update']=u
+		['no-update']=U
+		['debug']=x
+		['skip-confirm']=y
+		['no-colors']=z
+		['help']=h
+		['version']=V
+	)
 
-  local script_opts=':a:A:c:d:m:n:o:D:eEfFsSuUwWGiMpPtqxyzhV-:'
-  local script_args_num=$#
+	local script_opts=':a:A:c:d:m:n:o:D:eEfFsSuUwWGiMpPtqxyzhV-:'
+	local script_args_num=$#
 
-  local OPTIND=1
-  while getopts ${script_opts} OPTION; do
-    #== translate long options to short ==#
-    if [[ "x$OPTION" == "x-" ]]; then
-      LONG_OPTION=$OPTARG
-      LONG_OPTARG=$(echo "$LONG_OPTION" | grep "=" | cut -d'=' -f2)
-      LONG_OPTIND=-1
+	local OPTIND=1
+	while getopts ${script_opts} OPTION; do
+		#== translate long options to short ==#
+		if [[ "x$OPTION" == "x-" ]]; then
+			LONG_OPTION=$OPTARG
+			LONG_OPTARG=$(echo "$LONG_OPTION" | grep "=" | cut -d'=' -f2)
+			LONG_OPTIND=-1
 
-      [[ "x$LONG_OPTARG" = "x" ]] && LONG_OPTIND=$OPTIND || LONG_OPTION=$(echo "$OPTARG" | cut -d'=' -f1)
-      [[ $LONG_OPTIND -ne -1 ]] && eval LONG_OPTARG="\$$LONG_OPTIND"
+			[[ "x$LONG_OPTARG" = "x" ]] && LONG_OPTIND=$OPTIND || LONG_OPTION=$(echo "$OPTARG" | cut -d'=' -f1)
+			[[ $LONG_OPTIND -ne -1 ]] && eval LONG_OPTARG="\$$LONG_OPTIND"
 
-      OPTION=${long_opts_map[$LONG_OPTION]}
-      [[ "x$OPTION" = "x" ]] &&  OPTION="?" OPTARG="-$LONG_OPTION"
+			OPTION=${long_opts_map[$LONG_OPTION]}
+			[[ "x$OPTION" = "x" ]] && OPTION="?" OPTARG="-$LONG_OPTION"
 
-      if [[ $( echo "${script_opts}" | grep -c "${OPTION}:" ) -eq 1 ]]; then
-        # OPTION followed by another option instead of argument will be omitted.
-        if [[ "x${LONG_OPTARG}" = "x" ]] || [[ "${LONG_OPTARG}" = -* ]] \
-           && [[ "x${OPTION}" != 'xa' ]]; then  # Do not omit 'a' flag
-          OPTION=":" OPTARG="-$LONG_OPTION"
-        else
-          OPTARG="$LONG_OPTARG";
-          if [[ $LONG_OPTIND -ne -1 ]]; then
-            [[ $OPTIND -le $script_args_num ]] && OPTIND=$(( OPTIND+1 ))
-            shift $OPTIND
-            OPTIND=1
-          fi
-        fi
-      fi
-    fi
+			if [[ $(echo "${script_opts}" | grep -c "${OPTION}:") -eq 1 ]]; then
+				# OPTION followed by another option instead of argument will be omitted.
+				if [[ "x${LONG_OPTARG}" = "x" ]] || [[ "${LONG_OPTARG}" = -* ]] &&
+					[[ "x${OPTION}" != 'xa' ]]; then # Do not omit 'a' flag
+					OPTION=":" OPTARG="-$LONG_OPTION"
+				else
+					OPTARG="$LONG_OPTARG"
+					if [[ $LONG_OPTIND -ne -1 ]]; then
+						[[ $OPTIND -le $script_args_num ]] && OPTIND=$((OPTIND + 1))
+						shift $OPTIND
+						OPTIND=1
+					fi
+				fi
+			fi
+		fi
 
-    # OPTION followed by another option instead of argument will be omitted.
-    if [[ "x${OPTION}" != "x:" ]] && [[ "x${OPTION}" != "x?" ]] && [[ "${OPTARG:-}" = -* ]] \
-       && [[ "x${OPTION}" != 'xa' ]]; then  # Do not omit 'a' flag
-      OPTARG="$OPTION" OPTION=":"
-    fi
+		# OPTION followed by another option instead of argument will be omitted.
+		if [[ "x${OPTION}" != "x:" ]] && [[ "x${OPTION}" != "x?" ]] && [[ "${OPTARG:-}" = -* ]] &&
+			[[ "x${OPTION}" != 'xa' ]]; then # Do not omit 'a' flag
+			OPTARG="$OPTION" OPTION=":"
+		fi
 
-    #== manage options ==#
-    case "$OPTION" in
-      # For single package
-      a) ARGS=${OPTARG} ;;
-      c) COMMAND_NAME=${OPTARG} ;;
-      d) DEPENDENCIES=${OPTARG} ;;
-      n) PACKAGE_NAME=${OPTARG} ;;
-      # Inherited by all packages but can be overridden by file extension
-      m) PACKAGE_MANAGER=${OPTARG} ;;
-      M) GENERATE_MAIN=false ;;
-      p) GENERATE_PRE=true ;;
-      P) GENERATE_POST=true ;;
-      # Inherited by all packages
-      A) AUTHOR=${OPTARG};          CONFIG="${CONFIG} -${OPTION} '${OPTARG}'" ;;
-      o) DESTINATION=${OPTARG} ;;
-      # TODO: Add in-line package opts for flag switches
-      e) EXECUTE=true;              CONFIG="${CONFIG} -${OPTION}" ;;
-      E) EXECUTE=false;             CONFIG="${CONFIG} -${OPTION}" ;;
-      f) FORCE=true;                CONFIG="${CONFIG} -${OPTION}" ;;
-      F) FORCE=false;               CONFIG="${CONFIG} -${OPTION}" ;;
-      s) AS_ROOT=true;              CONFIG="${CONFIG} -${OPTION}" ;;
-      S) AS_ROOT=false;             CONFIG="${CONFIG} -${OPTION}" ;;
-      u) UPDATE=true;               CONFIG="${CONFIG} -${OPTION}" ;;
-      U) UPDATE=false;              CONFIG="${CONFIG} -${OPTION}" ;;
-      w) ALLOW_DEP_FAIL=true;       CONFIG="${CONFIG} -${OPTION}" ;;
-      W) ALLOW_DEP_FAIL=false;      CONFIG="${CONFIG} -${OPTION}" ;;
-      t) SKIP_EDIT=true;            CONFIG="${CONFIG} -${OPTION}" ;;
-      D) GEN_PACKAGE_ROOT_DIR=${OPTARG} ;;
-      G) GLOBAL=true ;;
-      i) INTERACTIVE=true ;;
-      q) VERBOSE=false; LOG_DEBUG_LEVEL=3 ;;
-      x) DEBUG=true; LOG_DEBUG_LEVEL=7 ;;
-      y) SKIP_CONFIRM=true ;;
-      z) ENABLE_COLORS=false
-         include "${EZ_INSTALL_HOME}/common/colors.sh"
-         ;;
-      h) usage; exit 0 ;;
-      V) echo "${SCRIPT_NAME} ${EZ_GEN_VERSION}"; exit "$BASH_EX_OK" ;;
-      \?) error "${BASH_SYS_MSG_USAGE_INVARG}: ${OPTARG:-}" "$BASH_EX_GENERAL" ;;
-      :) error "The additional argument for option ${OPTARG:-} was omitted." "$BASH_EX_GENERAL" ;;
-      *) usage; error "Invalid flag option(s)" "$BASH_SYS_EX_USAGE" ;;
-    esac
-  done
-  shift $(( OPTIND-1 ))
+		#== manage options ==#
+		case "$OPTION" in
+		# For single package
+		a) ARGS=${OPTARG} ;;
+		c) COMMAND_NAME=${OPTARG} ;;
+		d) DEPENDENCIES=${OPTARG} ;;
+		n) PACKAGE_NAME=${OPTARG} ;;
+		# Inherited by all packages but can be overridden by file extension
+		m) PACKAGE_MANAGER=${OPTARG} ;;
+		M) GENERATE_MAIN=false ;;
+		p) GENERATE_PRE=true ;;
+		P) GENERATE_POST=true ;;
+		# Inherited by all packages
+		A)
+			AUTHOR=${OPTARG}
+			CONFIG="${CONFIG} -${OPTION} '${OPTARG}'"
+			;;
+		o) DESTINATION=${OPTARG} ;;
+		# TODO: Add in-line package opts for flag switches
+		e)
+			EXECUTE=true
+			CONFIG="${CONFIG} -${OPTION}"
+			;;
+		E)
+			EXECUTE=false
+			CONFIG="${CONFIG} -${OPTION}"
+			;;
+		f)
+			FORCE=true
+			CONFIG="${CONFIG} -${OPTION}"
+			;;
+		F)
+			FORCE=false
+			CONFIG="${CONFIG} -${OPTION}"
+			;;
+		s)
+			AS_ROOT=true
+			CONFIG="${CONFIG} -${OPTION}"
+			;;
+		S)
+			AS_ROOT=false
+			CONFIG="${CONFIG} -${OPTION}"
+			;;
+		u)
+			UPDATE=true
+			CONFIG="${CONFIG} -${OPTION}"
+			;;
+		U)
+			UPDATE=false
+			CONFIG="${CONFIG} -${OPTION}"
+			;;
+		w)
+			ALLOW_DEP_FAIL=true
+			CONFIG="${CONFIG} -${OPTION}"
+			;;
+		W)
+			ALLOW_DEP_FAIL=false
+			CONFIG="${CONFIG} -${OPTION}"
+			;;
+		t)
+			SKIP_EDIT=true
+			CONFIG="${CONFIG} -${OPTION}"
+			;;
+		D) GEN_PACKAGE_ROOT_DIR=${OPTARG} ;;
+		G) GLOBAL=true ;;
+		i) INTERACTIVE=true ;;
+		q)
+			VERBOSE=false
+			LOG_DEBUG_LEVEL=3
+			;;
+		x)
+			DEBUG=true
+			LOG_DEBUG_LEVEL=7
+			;;
+		y) SKIP_CONFIRM=true ;;
+		z)
+			ENABLE_COLORS=false
+			include "${EZ_INSTALL_HOME}/common/colors.sh"
+			;;
+		h)
+			usage
+			exit 0
+			;;
+		V)
+			echo "${SCRIPT_NAME} ${EZ_GEN_VERSION}"
+			exit "$BASH_EX_OK"
+			;;
+		\?) error "${BASH_SYS_MSG_USAGE_INVARG}: ${OPTARG:-}" "$BASH_EX_GENERAL" ;;
+		:) error "The additional argument for option ${OPTARG:-} was omitted." "$BASH_EX_GENERAL" ;;
+		*)
+			usage
+			error "Invalid flag option(s)" "$BASH_SYS_EX_USAGE"
+			;;
+		esac
+	done
+	shift $((OPTIND - 1))
 
+	# Require arguments if not interactive and make sure local package manager is
+	# only for interactive mode
+	if ! $INTERACTIVE && [[ -z "${*+x}" ]] && [[ "${PACKAGE_MANAGER}" != "local" ]]; then
+		usage
+		error "${BASH_SYS_MSG_USAGE_MISSARG}" "$BASH_SYS_EX_USAGE"
+	fi
 
-  # Require arguments if not interactive and make sure local package manager is 
-  # only for interactive mode
-  if ! $INTERACTIVE && [[ -z "${*+x}" ]] && [[ "${PACKAGE_MANAGER}" != "local" ]]; then
-    usage
-    error "${BASH_SYS_MSG_USAGE_MISSARG}" "$BASH_SYS_EX_USAGE"
-  fi
+	# Use appropriate package directory based on machine distro
+	resolve_package_dir
 
-  # Use appropriate package directory based on machine distro
-  resolve_package_dir
+	# Require package name for data transfer/downloader programs such as curl.
+	if [[ ${PACKAGE_MANAGER} == "curl" ]] || [[ ${PACKAGE_MANAGER} == "wget" ]] || [[ ${PACKAGE_MANAGER} == "git" ]]; then
+		if [[ -z "${PACKAGE_NAME}" ]]; then
+			usage
+			error "Package name required for '${PACKAGE_MANAGER}'" "$BASH_SYS_EX_USAGE"
+		fi
+	fi
 
-  # Require package name for data transfer/downloader programs such as curl.
-  if [[ ${PACKAGE_MANAGER} == "curl" ]] || [[ ${PACKAGE_MANAGER} == "wget" ]] || [[ ${PACKAGE_MANAGER} == "git" ]]; then
-    if [[ -z "${PACKAGE_NAME}" ]]; then
-      usage
-      error "Package name required for '${PACKAGE_MANAGER}'" "$BASH_SYS_EX_USAGE"
-    fi
-  fi
+	# Arguments from terminal into $PACKAGES
+	if [[ -t 0 ]]; then
+		if [[ -n "${*+x}" ]]; then
+			IFS=" " read -r -a PACKAGES <<<"${@}"
+			readonly PACKAGES
+		else
+			usage
+			error "No package(s) provided. Provide at least one" "$BASH_SYS_EX_USAGE"
+		fi
+	fi
 
-  # Arguments from terminal into $PACKAGES
-  if [[ -t 0 ]]; then
-    if [[ -n "${*+x}" ]]; then
-      IFS=" " read -r -a PACKAGES <<< "${@}"
-      readonly PACKAGES
-    else
-      usage
-      error "No package(s) provided. Provide at least one" "$BASH_SYS_EX_USAGE"
-    fi
-  fi
+	# Set directory for generated package installers
+	if $GLOBAL; then
+		GEN_PACKAGE_ROOT_DIR="${PACKAGE_ROOT_DIR}"
+		GEN_PACKAGE_DIR="${PACKAGE_DIR}"
+	elif [[ -z "${GEN_PACKAGE_ROOT_DIR}" ]]; then
+		GEN_PACKAGE_ROOT_DIR="${LOCAL_PACKAGE_ROOT_DIR}"
+		GEN_PACKAGE_DIR="${LOCAL_PACKAGE_DIR}"
+	else
+		local distrib_id="${OS_DISTRIB_ID}"
+		to_lower distrib_id
+		local distrib_release="${OS_DISTRIB_RELEASE}"
+		GEN_PACKAGE_DIR="${GEN_PACKAGE_ROOT_DIR}/${distrib_id}/${distrib_release}"
+	fi
 
-  # Set directory for generated package installers
-  if $GLOBAL; then
-    GEN_PACKAGE_ROOT_DIR="${PACKAGE_ROOT_DIR}"
-    GEN_PACKAGE_DIR="${PACKAGE_DIR}"
-  elif [[ -z "${GEN_PACKAGE_ROOT_DIR}" ]]; then
-    GEN_PACKAGE_ROOT_DIR="${LOCAL_PACKAGE_ROOT_DIR}"
-    GEN_PACKAGE_DIR="${LOCAL_PACKAGE_DIR}"
-  else
-    local distrib_id="${OS_DISTRIB_ID}"; to_lower distrib_id
-    local distrib_release="${OS_DISTRIB_RELEASE}"
-    GEN_PACKAGE_DIR="${GEN_PACKAGE_ROOT_DIR}/${distrib_id}/${distrib_release}"
-  fi
-
-  return "$BASH_EX_OK"
+	return "$BASH_EX_OK"
 }
 
 ###################################################################### UTILS ###
 
 function _ctrl_c() {
-  if "${DEBUG}"; then
-    echo ""
-    log 'error' "$(basename -- "${BASH_SOURCE[1]}").${FUNCNAME[1]}(): Interrupted!" "$BASH_EX_TERMCTRLC"
-  fi
+	if "${DEBUG}"; then
+		echo ""
+		log 'error' "$(basename -- "${BASH_SOURCE[1]}").${FUNCNAME[1]}(): Interrupted!" "$BASH_EX_TERMCTRLC"
+	fi
 }
 
 ############################################################# MAIN EXECUTION ###
 
 function _main() {
-  # Set up trap
-  trap _ctrl_c INT TERM
-  
-  local res=0
+	# Set up trap
+	trap _ctrl_c INT TERM
 
-  script_vars
-  handle_args "$@"
-  res=$?
-  [[ $res -ne $BASH_EX_OK ]] && return $res
+	local res=0
 
-  # Sort packages from cli args
-  local -a packages=( "${PACKAGES[@]}" )
-  array_unique packages
+	script_vars
+	handle_args "$@"
+	res=$?
+	[[ $res -ne $BASH_EX_OK ]] && return $res
 
-  for package_full in "${packages[@]}"; do
-    # TODO: In-line opts config
-    parse_inline_opts "${package_full}"
-    package_full="${package_full%#*}" # Strip #opts
+	# Sort packages from cli args
+	local -a packages=("${PACKAGES[@]}")
+	array_unique packages
 
-    local package_manager=""
-    local hook=""
-    local package=""
-    local args=""
-    local command_name=""
-    local dependencies=""
-    local package_name=""
-    local generate_main=${GENERATE_MAIN:-true}
-    local generate_pre=${GENERATE_PRE:-false}
-    local generate_post=${GENERATE_POST:-false}
-    local config="${CONFIG}"
-    local config_hook="${CONFIG}"
+	for package_full in "${packages[@]}"; do
+		# TODO: In-line opts config
+		parse_inline_opts "${package_full}"
+		package_full="${package_full%#*}" # Strip #opts
 
-    if is_package_manager_downloader "${PACKAGE_MANAGER}" || [[ "${PACKAGE_MANAGER}" == 'apt-add' ]]; then
-      package_manager="${PACKAGE_MANAGER}"
-      package="${package_full}"
-    elif is_package_ppa "${package_full}"; then
-      package_manager="apt-add"
-      package="${package_full}"
-    else
-      # Ref: https://unix.stackexchange.com/a/241282
-      package_manager="$(sed -n "s/^.*\.\(${EZ_SUPPORTED_PACKAGE_MANAGER// /\\.\\?\\|}\).*/\1/p" <<< "${package_full}")"
-      package="$(sed "s/\.\(${EZ_SUPPORTED_PACKAGE_MANAGER// /\\.\\?\\|}\)\?\(\.pre\|\.post\)\?$//" <<< "${package_full}")"
-      hook="$(sed -n "s/^.*\.\(pre\|post\)$/\1/p" <<< "${package_full}")"
-    fi
+		local package_manager=""
+		local hook=""
+		local package=""
+		local args=""
+		local command_name=""
+		local dependencies=""
+		local package_name=""
+		local generate_main=${GENERATE_MAIN:-true}
+		local generate_pre=${GENERATE_PRE:-false}
+		local generate_post=${GENERATE_POST:-false}
+		local config="${CONFIG}"
+		local config_hook="${CONFIG}"
 
-    [[ -z "${package_manager}" ]] && package_manager="${PACKAGE_MANAGER}"
-    to_lower package_manager
+		if is_package_manager_downloader "${PACKAGE_MANAGER}" || [[ "${PACKAGE_MANAGER}" == 'apt-add' ]]; then
+			package_manager="${PACKAGE_MANAGER}"
+			package="${package_full}"
+		elif is_package_ppa "${package_full}"; then
+			package_manager="apt-add"
+			package="${package_full}"
+		else
+			# Ref: https://unix.stackexchange.com/a/241282
+			package_manager="$(sed -n "s/^.*\.\(${EZ_SUPPORTED_PACKAGE_MANAGER// /\\.\\?\\|}\).*/\1/p" <<<"${package_full}")"
+			package="$(sed "s/\.\(${EZ_SUPPORTED_PACKAGE_MANAGER// /\\.\\?\\|}\)\?\(\.pre\|\.post\)\?$//" <<<"${package_full}")"
+			hook="$(sed -n "s/^.*\.\(pre\|post\)$/\1/p" <<<"${package_full}")"
+		fi
 
-    # Skip main template generation when hook detected
-    if [[ "${hook}" == 'pre' ]]; then
-      generate_pre=true
-      generate_main=false
-    elif [[ "${hook}" == 'post' ]]; then
-      generate_post=true
-      generate_main=false
-    fi
+		[[ -z "${package_manager}" ]] && package_manager="${PACKAGE_MANAGER}"
+		to_lower package_manager
 
-    # Some configs may only apply on single package generation
-    if [[ ${#PACKAGES[@]} -eq 1 ]]; then
-      args="${ARGS}"
-      command_name="${COMMAND_NAME}"
-      dependencies="${DEPENDENCIES}"
-      destination="${DESTINATION}"
-      package_name="${PACKAGE_NAME:-${package}}"
-    else
-      destination="${DESTINATION}"
-      package_name="${package}"
-    fi
+		# Skip main template generation when hook detected
+		if [[ "${hook}" == 'pre' ]]; then
+			generate_pre=true
+			generate_main=false
+		elif [[ "${hook}" == 'post' ]]; then
+			generate_post=true
+			generate_main=false
+		fi
 
-    [[ -n "${args}" ]]            && config="${config} -a '${args}'"
-    [[ -n "${command_name}" ]]    && config="${config} -c '${command_name}'"
-    [[ -n "${dependencies}" ]]    && config="${config} -d '${dependencies}'"
-    [[ -n "${package}" ]]         && config="${config} -p '${package}'"
-    [[ -n "${package_name}" ]]    && config="${config} -n '${package_name}'"
-    [[ -n "${package_manager}" ]] && config="${config} -m '${package_manager}'"
-    [[ -n "${destination}" ]]     && config="${config} -o '${destination}'"
-    ${SKIP_EDIT}                  && config="${config} -t"
+		# Some configs may only apply on single package generation
+		if [[ ${#PACKAGES[@]} -eq 1 ]]; then
+			args="${ARGS}"
+			command_name="${COMMAND_NAME}"
+			dependencies="${DEPENDENCIES}"
+			destination="${DESTINATION}"
+			package_name="${PACKAGE_NAME:-${package}}"
+		else
+			destination="${DESTINATION}"
+			package_name="${package}"
+		fi
 
-    [[ -n "${package}" ]]         && config_hook="${config_hook} -p '${package}'"
-    [[ -n "${package_name}" ]]    && config_hook="${config_hook} -n '${package_name}'"
-    [[ -n "${package_manager}" ]] && config_hook="${config_hook} -m '${package_manager}'"
-    ${SKIP_EDIT}                  && config_hook="${config_hook} -t"
+		[[ -n "${args}" ]] && config="${config} -a '${args}'"
+		[[ -n "${command_name}" ]] && config="${config} -c '${command_name}'"
+		[[ -n "${dependencies}" ]] && config="${config} -d '${dependencies}'"
+		[[ -n "${package}" ]] && config="${config} -p '${package}'"
+		[[ -n "${package_name}" ]] && config="${config} -n '${package_name}'"
+		[[ -n "${package_manager}" ]] && config="${config} -m '${package_manager}'"
+		[[ -n "${destination}" ]] && config="${config} -o '${destination}'"
+		${SKIP_EDIT} && config="${config} -t"
 
-    # Resolve filepath
-    if [[ -z "${package_manager}" ]]; then
-      local file_path="${GEN_PACKAGE_DIR}/${package_name}"
-    else
-      local file_path="${GEN_PACKAGE_DIR}/${package_name}.${package_manager}"
-    fi
+		[[ -n "${package}" ]] && config_hook="${config_hook} -p '${package}'"
+		[[ -n "${package_name}" ]] && config_hook="${config_hook} -n '${package_name}'"
+		[[ -n "${package_manager}" ]] && config_hook="${config_hook} -m '${package_manager}'"
+		${SKIP_EDIT} && config_hook="${config_hook} -t"
 
-    if $INTERACTIVE; then
-      warning "Entering interactive template generation for '${package}'..."
+		# Resolve filepath
+		if [[ -z "${package_manager}" ]]; then
+			local file_path="${GEN_PACKAGE_DIR}/${package_name}"
+		else
+			local file_path="${GEN_PACKAGE_DIR}/${package_name}.${package_manager}"
+		fi
 
-      if [[ -n "${hook}" ]]; then
-        i_generate_template_hook "${config_hook}" -- "${file_path}" "${hook}"
-      else
-        $generate_main && prompt_boolean generate_main "Generate main package (default=${generate_main})? "
-        ! $generate_pre && prompt_boolean generate_pre "Generate pre package (default=${generate_pre})? "
-        ! $generate_post && prompt_boolean generate_post "Generate post package (default=${generate_post})? "
+		if $INTERACTIVE; then
+			warning "Entering interactive template generation for '${package}'..."
 
-        $generate_main && i_generate_template_main "${config_hook}" -- "${file_path}"
-        $generate_pre  && i_generate_template_pre  "${config_hook}" -- "${file_path}"
-        $generate_post && i_generate_template_post "${config_hook}" -- "${file_path}"
-      fi
-    else
-      # Ensure destination directory
-      if [[ ! -d "${GEN_PACKAGE_DIR}" ]]; then
-        if execlog "mkdir -p '${GEN_PACKAGE_DIR}'"; then
-          ok "'${GEN_PACKAGE_DIR}' directory created"
-        else
-          res=$?
-          error "'${GEN_PACKAGE_DIR}' creation failed"
-          return "$BASH_SYS_EX_CANTCREAT"
-        fi
-      fi
+			if [[ -n "${hook}" ]]; then
+				i_generate_template_hook "${config_hook}" -- "${file_path}" "${hook}"
+			else
+				$generate_main && prompt_boolean generate_main "Generate main package (default=${generate_main})? "
+				! $generate_pre && prompt_boolean generate_pre "Generate pre package (default=${generate_pre})? "
+				! $generate_post && prompt_boolean generate_post "Generate post package (default=${generate_post})? "
 
-      if $GENERATE_PRE || $GENERATE_POST; then
-        if $GENERATE_MAIN && confirm "Would you like to generate the main package template? (Y/y): "; then
-          generate_template_main "${config}" -- "${file_path}"
-          res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
-        fi
-        if $GENERATE_PRE; then
-          generate_template_pre "${config}" -- "${file_path}.pre"
-          res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
-        fi
-        if $GENERATE_POST; then
-          generate_template_post "${config}" -- "${file_path}.post"
-          res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
-        fi
-      else
-        generate_template_main "${config}" -- "${file_path}"
-        res=$?; [[ $res -ne $BASH_EX_OK ]] && return $res
-      fi
-    fi
-  done
+				$generate_main && i_generate_template_main "${config_hook}" -- "${file_path}"
+				$generate_pre && i_generate_template_pre "${config_hook}" -- "${file_path}"
+				$generate_post && i_generate_template_post "${config_hook}" -- "${file_path}"
+			fi
+		else
+			# Ensure destination directory
+			if [[ ! -d "${GEN_PACKAGE_DIR}" ]]; then
+				if execlog "mkdir -p '${GEN_PACKAGE_DIR}'"; then
+					ok "'${GEN_PACKAGE_DIR}' directory created"
+				else
+					res=$?
+					error "'${GEN_PACKAGE_DIR}' creation failed"
+					return "$BASH_SYS_EX_CANTCREAT"
+				fi
+			fi
 
-  return $res
+			if $GENERATE_PRE || $GENERATE_POST; then
+				if $GENERATE_MAIN && confirm "Would you like to generate the main package template? (Y/y): "; then
+					generate_template_main "${config}" -- "${file_path}"
+					res=$?
+					[[ $res -ne $BASH_EX_OK ]] && return $res
+				fi
+				if $GENERATE_PRE; then
+					generate_template_pre "${config}" -- "${file_path}.pre"
+					res=$?
+					[[ $res -ne $BASH_EX_OK ]] && return $res
+				fi
+				if $GENERATE_POST; then
+					generate_template_post "${config}" -- "${file_path}.post"
+					res=$?
+					[[ $res -ne $BASH_EX_OK ]] && return $res
+				fi
+			else
+				generate_template_main "${config}" -- "${file_path}"
+				res=$?
+				[[ $res -ne $BASH_EX_OK ]] && return $res
+			fi
+		fi
+	done
+
+	return $res
 }
 
-
-res=0; _main "${SCRIPT_ARGS[@]}"; res=$?
+res=0
+_main "${SCRIPT_ARGS[@]}"
+res=$?
 
 unset SKIP_CONFIRM
 unset VERBOSE
