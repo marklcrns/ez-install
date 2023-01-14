@@ -638,7 +638,7 @@ function open_editor_package() {
 	fi
 
 	local file_path="${1}"
-	local editor="${EZ_EDITOR:-${EDITOR}}"
+	local editor="${EZ_EDITOR:-${EDITOR:-vim}}"
 
 	if [[ -z "${editor}" ]]; then
 		error "No \$EDITOR specified to edit package"
