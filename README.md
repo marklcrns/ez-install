@@ -494,6 +494,7 @@ See sample packages
   - [X] Option to generate package dependency
   - [X] Interactive package installer generator
   - [ ] Generate package installer from command history
+- [ ] Add Wiki page for all global package installers
 - [X] Handle package dependencies
   - [X] Dependency system
   - [X] Print dependency tree before installation
