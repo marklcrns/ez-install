@@ -507,6 +507,7 @@ See sample packages
 - [ ] Add more features
   - [ ] Cache all installed packages
   - [ ] Uninstall
+  - [ ] Install specific versions
   - [ ] Package update
 - [ ] OS support
   - [x] Debian/Ubuntu
