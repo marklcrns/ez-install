@@ -1,0 +1,301 @@
+#!/usr/bin/env bash
+
+set -o pipefail
+set -o nounset
+
+function _main() {
+	local -a _essentials=(
+		"-s build-essential"
+		"-s software-properties-common"
+		"-s ca-certificates"
+		"-s libffi-dev"
+		"-s libssl-dev"
+		"-s net-tools"
+		"-s -c lsb-release lsb-release"
+		"-s -c cmake cmake"
+		"-s -c curl curl"
+		"-s -c wget wget"
+		"-s -c zip zip"
+		"-s -c unzip unzip"
+		"-s -c unar unar"
+		"-s -c git git"
+		"-s -d git -c git-lfs git-lfs"
+		"-s -c gpg gnupg"
+		"-s -c gpg2 gnupg2"
+		"-s -c shc shc"
+		"-s -c gcc gcc"
+		"-s -c valgrind valgrind"
+		"-s -c jq jq"
+	)
+
+	local -a _languages=(
+		# Python
+		"-s python3-venv"
+		"-s -c python python"
+		"-s -c python2 python2"
+		"-s -c python2 python2-dev"
+		"-s -c python3 python3"
+		"-s -c python3 python3-dev"
+		"-s -c pip3 python3-pip"
+		# Java
+		"-s default-jre"
+		"-s default-jdk"
+		"-s openjdk-8-jdk"
+		"-s openjdk-8-jre"
+		"-s openjdk-11-jdk"
+		"-s openjdk-11-jre"
+		"-s openjdk-13-jdk"
+		"-s openjdk-13-jre"
+		"-s -c mvn maven"
+		# R
+		"-s -c R r-base"
+		# C++
+		"-s -c ccls ccls"
+	)
+
+	local -a _package_manager=(
+		"-s yarn"
+		"-m npm -d nodejs -c browser-sync browser-sync"
+		"-m npm -d nodejs -c gulp gulp-cli"
+		"-m curl -n nvm -e -o '~/.nvm' -c nvm -- https://raw.githubusercontent.com/creationix/nvm/master/install.sh"
+		"-m curl -n cargo -e -c cargo -- https://sh.rustup.rs"
+		"-m curl -n nix -e -c nix -- https://nixos.org/nix/install"
+	)
+
+	local -a _shell=(
+		"-s zsh"
+		"-m curl -d zsh -n oh-my-zsh -e -- https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh"
+		"-m git -a '--depth=1' -d oh-my-zsh -n zsh-autosuggestions -o '\${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions' -- 'https://github.com/zsh-users/zsh-autosuggestions'"
+		"-m git -a '--depth=1' -d oh-my-zsh -n zsh-syntax-highlighting -o '\${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting' -- 'https://github.com/zsh-users/zsh-syntax-highlighting.git'"
+		"-m git -a '--depth=1' -d oh-my-zsh -n powerlevel10k -o '~/.oh-my-zsh/themes/powerlevel10k' -- 'https://github.com/romkatv/powerlevel10k.git'"
+	)
+
+	local -a _session_manager=(
+		"-s -c tmux tmux"
+		"-s -d tmux -c tmuxinator tmuxinator"
+		"-s -c gawk gawk"
+		"-s -c urlview urlview"
+		"-m pip -d python -c spotifycli spotify-cli-linux"
+		"-m pip2 -d python2 -c spotifycli spotify-cli-linux"
+		"-m pip3 -d python3 -c spotifycli spotify-cli-linux"
+		"-m git -a '--depth=1' -d tmux -n tpm -o '~/.tmux/plugins/tpm' 'https://github.com/tmux-plugins/tpm'"
+	)
+
+	local -a _file_manager=(
+		"-s -c ranger ranger"
+		"-s -c highlight highlight"
+		"-s -c atool atool"
+		"-s -c w3m w3m"
+		"-s -c zathura zathura"
+		"-s -c xdotool xdotool"
+		"-s -c mediainfo mediainfo"
+		"-s -c mupdf mupdf"
+		"-s poppler-utils"
+		"-s caca-utils"
+		"-s w3m-img"
+		"-s mupdf-tools"
+		"-m git -a '--depth=1' -n ranger_devicons -o '~/.config/ranger/plugins/ranger_devicons' 'https://github.com/alexanderjeurissen/ranger_devicons'"
+	)
+
+	local -a _text_editor=(
+		"-s -c nvim neovim"
+		"-m npm -d nodejs,neovim neovim"
+		"-m npm -d nodejs eslint"
+		"-m npm -d nodejs stylelint"
+		"-m npm -d nodejs prettier"
+		"-m npm -d nodejs staticrypt"
+		"-m git -d 'cargo,gnupg,ca-certificates,git,curl,gcc-multilib,g++-multilib,cmake,libssl-dev,pkg-config,libfreetype6-dev,libasound2-dev,libexpat1-dev,libxcb-composite0-dev,libbz2-dev,libsndio-dev,freeglut3-dev,libxmu-dev,libxi-dev,libfontconfig1-dev' -n neovide -c neovide  -- 'https://github.com/neovide/neovide'"
+	)
+
+	local -a _tools=(
+		"-s -c font-manager font-manager"
+		"-s -c fontforge fontforge"
+		"-s -c tree tree"
+		"-s -c xclip xclip"
+		"-s -c tldr tldr"
+		"-s -c xdg-open xdg-utils"
+		"-s -c fdfind fd-find"
+		"-s -c mlocate mlocate"
+		"-s -c autojump autojump"
+		"-s -c rg ripgrep"
+		"-s -c neofetch neofetch"
+		"-s -c htop htop"
+		"-s -c neomutt neomutt"
+		"-s -c trash-put trash-cli"
+		"-s -c task taskwarrior"
+		"-s -c timew timewarrior"
+		"-m git -a '--recursive' -n 'timewarrior' -c timew -- 'https://github.com/GothenburgBitFactory/timewarrior'"
+		"-m git -a '--recursive -b stable' -n 'taskwarrior' -c task -- 'https://github.com/GothenburgBitFactory/taskwarrior'"
+		"-m git -a '--depth=1' -n fzf -o '~/.fzf' -c fzf -- 'https://github.com/junegunn/fzf.git'"
+		"-m curl -n rclone -e -- https://rclone.org/install.sh"
+		# Python packages
+		"-m pip -d python wheel"
+		"-m pip -d python -c pipenv pipenv"
+		"-m pip -d python -c virtualenv virtualenv"
+		"-m pip -d python -c send2trash Send2Trash"
+		"-m pip -d python -c trash-put trash-cli"
+		"-m pip2 -d python2 wheel"
+		"-m pip2 -d python2 -c pipenv pipenv"
+		"-m pip2 -d python2 -c virtualenv virtualenv"
+		"-m pip2 -d python2 -c send2trash Send2Trash"
+		"-m pip2 -d python2 -c trash-put trash-cli"
+		"-m pip3 -d python3 wheel"
+		"-m pip3 -d python3 -c pipenv pipenv"
+		"-m pip3 -d python3 -c virtualenv virtualenv"
+		"-m pip3 -d python3 -c send2trash Send2Trash"
+		"-m pip3 -d python3 -c trash-put trash-cli"
+	)
+
+	local -a _browser=(
+		"-s -c firefox firefox"
+	)
+
+	local -a _server=(
+		"-s apache2"
+		"-s apache2-utils"
+		"-s libsqlite3-dev"
+		"-s -c sqlite3 sqlite3"
+		"-s -c sqlitebrowser sqlitebrowser"
+	)
+
+	local -a _virtualization=(
+		"-s containerd.io"
+		"-s -c docker docker"
+	)
+
+	local -a _misc=(
+		"-s gcc-multilib"
+		"-s g++-multilib"
+		"-s pkg-config"
+		"-s libfreetype6-dev"
+		"-s libasound2-dev"
+		"-s libexpat1-dev"
+		"-s libxcb-composite0-dev"
+		"-s libbz2-dev"
+		"-s libsndio-dev"
+		"-s freeglut3-dev"
+		"-s libxmu-dev"
+		"-s libxi-dev"
+		"-s libfontconfig1-dev"
+		"-s latexmk"
+		"-s -d pandoc pandoc-data"
+		"-s -d pandoc texlive"
+		"-s -d texlive texlive-xetex"
+		"-s -c colordiff colordiff"
+		"-s -c cmatrix cmatrix"
+		"-s -c cowsay cowsay"
+		"-s -c xcowsay xcowsay"
+		"-s -c figlet figlet"
+		"-s -c lolcat lolcat"
+		"-s -c fortune fortune"
+		"-s -c sl sl"
+		"-s -c sysbench sysbench"
+		"-s -c stress stress"
+		"-s -c inotify-tools inotify-tools"
+		"-s -c bat bat"
+		"-s -c pandoc pandoc"
+		"-s -c exa exa"
+		"-s -c ctags universal-ctags"
+	)
+
+	local -a _custom_install=(
+		"-s -m apt -d curl -c yarn -u -- yarn"
+		"-s -m apt-add -n neovim-unstable ppa:neovim-ppa/unstable"
+		"-s -m apt -d neovim-unstable.apt-add -n neovim-unstable -c nvim neovim"
+		"-s -m apt-add -n neovim-stable ppa:neovim-ppa/stable"
+		"-s -m apt -d neovim-stable.apt-add -n neovim-stable -c nvim neovim"
+		"-s -m apt-add -n fontforge ppa:fontforge/fontforge"
+		"-s -m apt -d fontforge.apt-add -n fontforge -c fontforge fontforge"
+		"-s -m apt -d docker-ce-cli,containerd.io -n docker-stable -c docker -u -- docker-ce"
+		"-s -m apt -d ca-certificates,curl,gnupg,lsb-release docker-ce-cli"
+		"-s -m apt-add -n bashtop ppa:bashtop-monitor/bashtop"
+		"-s -m apt -d bashtop.apt-add -c bashtop bashtop"
+		"-s -m apt-add -n lazygit ppa:lazygit-team/release"
+		"-s -m apt -d lazygit.apt-add -c lazygit lazygit"
+		"-m local -d nvm.curl -c node nodejs"
+	)
+
+	local -a _test=(
+		"-m apt test1"
+		"-m npm test1"
+		"-m curl -n test1 test1"
+		"-m git -n test1 test1"
+
+		"-d test1 -m apt test1-1"
+		"-d test1 -m npm test1-1"
+		"-d test1 -m curl -n test1-1 test1-1"
+		"-d test1 -m git -n test1-1 test1-1"
+
+		"-d test1-1 -m apt test1-2"
+		"-d test1-1 -m npm test1-2"
+		"-d test1-1 -m curl -n test1-2 test1-2"
+		"-d test1-1 -m git -n test1-2 test1-2"
+
+		"-d test1-2 -m apt test1-3"
+		"-d test1-2 -m npm test1-3"
+		"-d test1-2 -m curl -n test1-3 test1-3"
+		"-d test1-2 -m git -n test1-3 test1-3"
+
+		"-m local test2"
+		"-m local -d test2 test2-a"
+		"-m local -d test2-a test2-a-i"
+		"-m local -d test2-a-i test2-a-i-1"
+		"-m local -d test2-a-i-1 test2-a-i-1-a"
+
+		"-m local test3"
+		"-m local -d test3.local test3-a"
+		"-m local -d test3-a.local test3-a-1"
+		"-m local -d test3-a.local test3-a-2"
+		"-m local -d test3-a-1.local,test3-a-2.local test3-a-2-i"
+		"-m local -d test3-a-2-i.local test3-a-2-ii"
+		"-m local -d test3-a-2-ii.local test3-b"
+		"-m local -d test3-b.local test3-b-1"
+		"-m local -d test3-b.local test3-b-2"
+		"-m local -d test3-b.local test3-b-3"
+		"-m local -d test3-b-1.local,test3-b-2.local,test3-b-3.local test3-b-3-i"
+
+		"-m local test4"
+		"-m local -d test4 test4-a"
+		"-m local -d test4 test4-b"
+		"-m local -d test4-a,test4-b test4-b-1"
+
+		"test5-a"
+		"test5-b"
+		"test5-c"
+		"test5-d"
+		"test5-e"
+		"-d test5-a,test5-b,test5-c,test5-d,test5-e test5"
+	)
+
+	local -a packages=(
+		"${_essentials[@]}"
+		"${_languages[@]}"
+		"${_package_manager[@]}"
+		"${_shell[@]}"
+		"${_session_manager[@]}"
+		"${_file_manager[@]}"
+		"${_text_editor[@]}"
+		"${_tools[@]}"
+		"${_browser[@]}"
+		"${_server[@]}"
+		"${_virtualization[@]}"
+		"${_misc[@]}"
+		"${_custom_install[@]}"
+	)
+
+	# local -a packages=(
+	#   "${_test[@]}"
+	# )
+
+	for package in "${packages[@]}"; do
+		ez gen --global --skip-confirm --skip-edit ${package}
+	done
+}
+
+res=0
+_main
+res=$?
+
+unset DEBUG
+
+exit $res

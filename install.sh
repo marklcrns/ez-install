@@ -13,3 +13,5 @@ elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
 	if [ -x "$(command -v nix-env)" ]; then sudo nix-env -i jq; fi
 	if [ -x "$(command -v zypper)" ]; then sudo zypper install jq; fi
 fi
+
+"$(dirname -- "$(realpath -- "${BASH_SOURCE[0]}")")"/scripts/generate-packages
