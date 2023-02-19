@@ -28,6 +28,11 @@ function _main() {
 		"-s -c jq jq"
 	)
 
+	local -a _desktop_environment=(
+		"-s -c xfce4-terminal xfce4-terminal"
+		"-s -c startxfce4 xfce4"
+	)
+
 	local -a _languages=(
 		# Python
 		"-s python3-venv"
@@ -113,6 +118,7 @@ function _main() {
 		"-s -c tree tree"
 		"-s -c xclip xclip"
 		"-s -c tldr tldr"
+		"-s -c xeyes x11-apps"
 		"-s -c xdg-open xdg-utils"
 		"-s -c fdfind fd-find"
 		"-s -c mlocate mlocate"

@@ -2,16 +2,38 @@
 
 mkdir -p /usr/local/bin/ && sudo ln -sf ~/.ez-install/ez /usr/local/bin/
 
-if [ "$(uname)" == "Darwin" ]; then
-	brew install jq
-elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
-	if [ -x "$(command -v apk)" ]; then sudo apk add jq; fi
-	if [ -x "$(command -v pkg)" ]; then sudo pkg install jq; fi
-	if [ -x "$(command -v pacman)" ]; then sudo pacman -S jq; fi
-	if [ -x "$(command -v apt)" ]; then sudo apt install jq; fi
-	if [ -x "$(command -v dnf)" ]; then sudo dnf install jq; fi
-	if [ -x "$(command -v nix-env)" ]; then sudo nix-env -i jq; fi
-	if [ -x "$(command -v zypper)" ]; then sudo zypper install jq; fi
+unameOut="$(uname -s)"
+case "${unameOut}" in
+Linux*) machine=Linux ;;
+Darwin*) machine=Mac ;;
+CYGWIN*) machine=Cygwin ;;
+MINGW*) machine=MinGw ;;
+*) machine="UNKNOWN:${unameOut}" ;;
+esac
+
+# Install JQ if not existing
+if ! command -v jq &>/dev/null; then
+	if [ "$machine" == "Mac" ]; then
+		brew install jq
+	elif [ "$machine" == "Linux" ]; then
+		if command -v apk &>/dev/null; then
+			sudo apk add jq
+		elif command -v pkg &>/dev/null; then
+			sudo pkg install jq
+		elif command -v pacman &>/dev/null; then
+			sudo pacman -S jq
+		elif command -v apt &>/dev/null; then
+			sudo apt install jq
+		elif command -v dnf &>/dev/null; then
+			sudo dnf install jq
+		elif command -v zypper &>/dev/null; then
+			sudo zypper install jq
+		elif command -v nix-env &>/dev/null; then
+			sudo nix-env -i jq
+		fi
+	fi
 fi
 
+echo "Generating packages..."
 "$(dirname -- "$(realpath -- "${BASH_SOURCE[0]}")")"/scripts/generate-packages
+echo "Installation done!"
