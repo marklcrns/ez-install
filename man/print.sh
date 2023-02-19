@@ -11,6 +11,7 @@ fi
 	readonly MAN_PRINT_SH_INCLUDED=1 ||
 	return 0
 
+# Helper function to print usage and manual with variable placeholders from file
 function print_page() {
 	eval "cat <<EOF
 $(<${1})

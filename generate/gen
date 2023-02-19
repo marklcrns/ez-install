@@ -290,6 +290,7 @@ function _ctrl_c() {
 
 ############################################################# MAIN EXECUTION ###
 
+# FIX: Issue with not being able to interupt (ctrl-c/d) input when generating
 function _main() {
 	# Set up trap
 	trap _ctrl_c INT TERM
