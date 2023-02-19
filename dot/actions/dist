@@ -34,15 +34,10 @@ readonly SCRIPT_ARGS=("${@}")
 
 include "${EZ_INSTALL_HOME}/common/common.sh"
 include "${EZ_INSTALL_HOME}/common/colors.sh"
-include "${EZ_INSTALL_HOME}/common/const.sh"
 include "${EZ_INSTALL_HOME}/dot/utils/detect.sh"
 include "${EZ_INSTALL_HOME}/man/print.sh"
 include "${EZ_INSTALL_HOME}/actions.sh"
-
-# Default script variables
-DOTFILES_LIST=()
-LOG_FILE_DIR="${HOME}/log"
-LOG_FILE="$(date +"%Y-%m-%dT%H:%M:%S")_$(basename -- $0).log"
+include "${EZ_INSTALL_HOME}/const.sh"
 
 ############################################################### FLAG OPTIONS ###
 
@@ -70,6 +65,7 @@ function handle_args() {
 	# Especially useful when relaying script args with group quoted OPTARG
 	eval set -- "${@:-}"
 
+	# FIX: Long options cli args
 	local -A long_opts_map
 	long_opts_map=(
 		['dotfilesrc']=a
@@ -192,13 +188,13 @@ function handle_args() {
 	strip_trailing_forwardslash DOT_BACKUP_DIR
 	strip_trailing_forwardslash DOT_LOCAL_DIR
 
-	if [[ -n "${HAS_TMP_RC_FILE}" ]]; then
-		if [[ -e "${tmp_rc_file_path}" ]]; then
-			source "${tmp_rc_file_path}"
-		else
-			error "Invalid rc file path '${tmp_rc_file_path}'" 1
-		fi
-	fi
+	# if [[ -n "${HAS_TMP_RC_FILE}" ]]; then
+	# 	if [[ -e "${tmp_rc_file_path}" ]]; then
+	# 		source "${tmp_rc_file_path}"
+	# 	else
+	# 		error "Invalid rc file path '${tmp_rc_file_path}'" 1
+	# 	fi
+	# fi
 
 	return "$BASH_EX_OK"
 }
@@ -238,259 +234,230 @@ while getopts "bdDqr:vVyh" opt; do
 done 2>/dev/null
 shift "$((OPTIND - 1))" # explanation https://unix.stackexchange.com/a/214151
 
-####################################################### PRE-EXECUTION SET UP ###
+############################################################# MAIN EXECUTION ###
 
-# Strip trailing '/' in DIR path variables
-DOT_LOCAL_DIR=$(echo ${DOT_LOCAL_DIR} | sed 's,/*$,,')
-DOT_LOCAL_REPO_DIR=$(echo ${DOT_LOCAL_REPO_DIR} | sed 's,/*$,,')
-LOG_FILE_DIR=$(echo ${LOG_FILE_DIR} | sed 's,/*$,,')
+function _main() {
+	# Set up trap
+	trap _ctrl_c INT TERM
 
-# Log stdout and stderr to $LOG_FILE in $LOG_FILE_DIR
-if [[ -n "${DEBUG}" ]]; then
-	# Append LOG_FILE
-	LOG_FILE_PATH="${LOG_FILE_DIR}/${LOG_FILE}"
-	# Create log directory if not existing
-	if [[ ! -d "${LOG_FILE_DIR}" ]]; then
-		mkdir -p "${LOG_FILE_DIR}"
-	fi
-	# Initialize log file
-	echo -e "${SCRIPT_PATH} log outputs\n" >${LOG_FILE_PATH}
-fi
+	local res=0
 
-################################################## SCRIPT ARGUMENTS HANDLING ###
+	script_vars
+	handle_args "$@"
+	res=$?
+	[[ $res -ne $BASH_EX_OK ]] && return $res
 
-if [[ -n $1 ]]; then
-	tmp_dotfiles_repo="$1"
-	# Validate dotfiles repo directory argument
-	if [[ -d "${tmp_dotfiles_repo}" && -d "${tmp_dotfiles_repo}/.git" ]]; then
-		DOT_LOCAL_REPO_DIR="${tmp_dotfiles_repo}"
-		# Strip trailing '/' in DIR path variables
-		DOT_LOCAL_REPO_DIR=$(echo ${DOT_LOCAL_REPO_DIR} | sed 's,/*$,,')
-	else
-		error "Invalid dotfiles repository directory path '${DOT_LOCAL_REPO_DIR}'" 1
-	fi
-	if [[ -n $2 ]]; then
-		tmp_dotfiles_local="$2"
-		# Validate local dotfiles directory argument
-		if [[ -d "${tmp_dotfiles_local}" ]]; then
-			DOT_LOCAL_DIR="${tmp_dotfiles_local}"
-			# Strip trailing '/' in DIR path variables
-			DOT_LOCAL_DIR=$(echo ${DOT_LOCAL_DIR} | sed 's,/*$,,')
-		else
-			error "Invalid local dotfiles directory path '${DOT_LOCAL_DIR}'" 1
-		fi
-	else
-		error "Missing local dotfiles directory path argument" 1
-	fi
-fi
+	# Distribute dotfiles
 
-if [[ -n "${HAS_TMP_RC_FILE}" ]]; then
-	if [[ -e "${tmp_rc_file_path}" ]]; then
-		source "${tmp_rc_file_path}"
-	else
-		error "Invalid rc file path '${tmp_rc_file_path}'" 1
-	fi
-fi
+	local total_changes_count=0
+	local total_deleted_count=0
+	local total_files_count=0
 
-########################################################## SCRIPT EXECUTIONS ###
+	local -a dotfiles=("${DOTFILES_LIST[@]}")
 
-total_changes_count=0
-total_deleted_count=0
-total_files_count=0
+	info "Detecting dotfiles changes...\n"
+	for dotfile in "${dotfiles[@]}"; do
+		# Strip source directory from path
+		source_stripped=$(echo "${dotfile}" | sed "s,${DOT_LOCAL_DIR}/,,")
 
-echolog "Detecting dotfiles changes..."
-echolog
-for dotfile in ${DOTFILES_LIST[@]}; do
-	# Strip source directory from path
-	source_stripped=$(echo "${dotfile}" | sed "s,${DOT_LOCAL_DIR}/,,")
+		source_file="${DOT_LOCAL_REPO_DIR}/${source_stripped}"
+		target_file="${dotfile}"
 
-	source_file="${DOT_LOCAL_REPO_DIR}/${source_stripped}"
-	target_file="${dotfile}"
+		detect_change "${source_file}" "${target_file}" changes changes_count files_count
+		detect_delete "${target_file}" "${source_file}" delete delete_count files_count
 
-	detect_change "${source_file}" "${target_file}" changes changes_count files_count
-	detect_delete "${target_file}" "${source_file}" delete delete_count
+		# Initialize counters if none
+		[[ -z "${changes_count}" ]] && changes_count=0
+		[[ -z "${delete_count}" ]] && delete_count=0
+		[[ -z "${files_count}" ]] && files_count=0
 
-	# Initialize counters if none
-	[[ -z "${changes_count}" ]] && changes_count=0
-	[[ -z "${delete_count}" ]] && delete_count=0
-	[[ -z "${files_count}" ]] && files_count=0
-
-	# Update changes list
-	if [[ -n "${changes}" ]]; then
-		if [[ -z ${changes_list} ]]; then
-			changes_list="${changes}"
-		else
-			changes_list="${changes_list}\n${changes}"
-		fi
-		# Increment changes counter
-		total_changes_count=$(expr ${total_changes_count} + ${changes_count})
-	fi
-	if [[ -n "${delete}" ]]; then
-		if [[ -z ${changes_list} ]]; then
-			changes_list="${delete}"
-		else
-			changes_list="${changes_list}\n${delete}"
-		fi
-		# Increment delete counter
-		if [[ -z "${NO_DELETE}" ]]; then
-			total_deleted_count=$(expr ${total_deleted_count} + ${delete_count})
-		fi
-	fi
-	# Increment total files counters
-	total_files_count=$(expr ${total_files_count} + ${files_count} + ${delete_count})
-done
-
-# Abort if no changes or delete detected
-[[ ${total_changes_count} -eq 0 ]] && [[ ${total_deleted_count} -eq 0 ]] &&
-	abort "\nAborting... No dotfiles to distribute."
-
-echolog
-echolog "${ULINE}Files with changes:${NC}"
-echolog
-
-modified_files_count=0
-new_files_count=0
-
-# Loop over changes list and diff if IS_VERY_VERBOSE, else echolog source file
-while IFS= read -r file_tuple; do
-	# Split file_tuple
-	IFS=';' read -r -a file_arr <<<"${file_tuple}"
-	source_file="${file_arr[0]}"
-	target_file="${file_arr[1]}"
-	# Copy source to target file
-	if [[ -z "${target_file}" ]]; then # check if target_file is missing
-		if [[ -z "${NO_DELETE}" ]]; then
-			echolog "${RED}-${source_file}${NC}"
-		else
-			echolog "${RED}-${source_file} ${YELLOW}SKIPPED${NC}"
-		fi
-	elif [[ -e "${target_file}" ]]; then # check if target_file not existing
-		# Diff source and target file
-		if [[ -n "${IS_VERY_VERBOSE}" ]] && [[ -z "${IS_QUITE}" ]]; then
-			if command -v colordiff &>/dev/null; then
-				diff -c "${target_file}" "${source_file}" | colordiff
-				log "${source_file}" 1
+		# Update changes list
+		if [[ -n "${changes}" ]]; then
+			if [[ -z ${changes_list} ]]; then
+				changes_list="${changes}"
 			else
-				diff -c "${target_file}" "${source_file}" --color
-				log "${source_file}" 1
+				changes_list="${changes_list}\n${changes}"
 			fi
-		else
-			# echolog source file if not very verbose
-			echolog "${YELLOW}${source_file}${NC}"
+			# Increment changes counter
+			total_changes_count=$(expr ${total_changes_count} + ${changes_count})
 		fi
-		modified_files_count=$((modified_files_count + 1))
+		if [[ -n "${delete}" ]]; then
+			if [[ -z ${changes_list} ]]; then
+				changes_list="${delete}"
+			else
+				changes_list="${changes_list}\n${delete}"
+			fi
+			# Increment delete counter
+			if [[ -z "${NO_DELETE}" ]]; then
+				total_deleted_count=$(expr ${total_deleted_count} + ${delete_count})
+			fi
+		fi
+		# Increment total files counters
+		total_files_count=$(expr ${total_files_count} + ${files_count} + ${delete_count})
+	done
+
+	# Abort if no changes or delete detected
+	[[ ${total_changes_count} -eq 0 ]] && [[ ${total_deleted_count} -eq 0 ]] &&
+		abort "\nAborting... No dotfiles to distribute."
+
+	info "\n${ULINE}Files with changes:${NC}\n"
+
+	local modified_files_count=0
+	local new_files_count=0
+
+	# Loop over changes list and diff if IS_VERY_VERBOSE, else echolog source file
+	while IFS= read -r file_tuple; do
+		# Split file_tuple
+		IFS=';' read -r -a file_arr <<<"${file_tuple}"
+		source_file="${file_arr[0]}"
+		target_file="${file_arr[1]}"
+		# Copy source to target file
+		if [[ -z "${target_file}" ]]; then # check if target_file is missing
+			if [[ -z "${NO_DELETE}" ]]; then
+				info "${RED}-${source_file}${NC}"
+			else
+				info "${RED}-${source_file} ${YELLOW}SKIPPED${NC}"
+			fi
+		elif [[ -e "${target_file}" ]]; then # check if target_file not existing
+			# Diff source and target file
+			if [[ -n "${IS_VERY_VERBOSE}" ]] && [[ -z "${IS_QUITE}" ]]; then
+				if command -v colordiff &>/dev/null; then
+					diff -c "${target_file}" "${source_file}" | colordiff
+					log "${source_file}" 1
+				else
+					diff -c "${target_file}" "${source_file}" --color
+					log "${source_file}" 1
+				fi
+			else
+				# echolog source file if not very verbose
+				info "${YELLOW}${source_file}${NC}"
+			fi
+			modified_files_count=$((modified_files_count + 1))
+		else
+			info "${GREEN}+${target_file}${NC}"
+			new_files_count=$((new_files_count + 1))
+		fi
+	done < <(echo -e "${changes_list}") # Process substitution for outside variables
+
+	# Changes and deletes tally
+	info "\nTotal files to update: \t\t${total_files_count}"
+	if [[ ${modified_files_count} -gt 0 ]]; then
+		info "${YELLOW}Total changed files: \t\t${modified_files_count}${NC}"
+	fi
+	if [[ ${new_files_count} -gt 0 ]]; then
+		info "${GREEN}Total new files: \t\t${new_files_count}${NC}"
+	fi
+	if [[ -z ${NO_DELETE} ]]; then
+		if [[ ${total_deleted_count} -gt 0 ]]; then
+			info "${RED}Total delete files: \t\t${total_deleted_count}${NC}"
+		fi
 	else
-		echolog "${GREEN}+${target_file}${NC}"
-		new_files_count=$((new_files_count + 1))
+		if [[ ${total_deleted_count} -gt 0 ]]; then
+			info "${RED}Total delete files: \t\t${YELLOW}SKIPPED${NC}"
+		fi
 	fi
-done < <(echo -e "${changes_list}") # Process substitution for outside variables
 
-# Changes and deletes tally
-echolog
-echolog "Total files to update: \t\t${total_files_count}"
-if [[ ${modified_files_count} -gt 0 ]]; then
-	echolog "${YELLOW}Total changed files: \t\t${modified_files_count}${NC}"
-fi
-if [[ ${new_files_count} -gt 0 ]]; then
-	echolog "${GREEN}Total new files: \t\t${new_files_count}${NC}"
-fi
-if [[ -z ${NO_DELETE} ]]; then
-	if [[ ${total_deleted_count} -gt 0 ]]; then
-		echolog "${RED}Total delete files: \t\t${total_deleted_count}${NC}"
+	# Confirmation
+	if [[ -z "${SKIP_CONFIRM}" ]]; then
+		log "Do you wish to continue? (Y/y): \n" 1
+		${SCRIPT_DIR}/../../scripting-utils/confirm "Do you wish to continue? (Y/y): "
+		if [[ "${?}" -eq 1 ]]; then
+			abort "Update aborted."
+		elif [[ "${?}" -eq 2 ]]; then
+			error "Unsupported shell"
+		fi
 	fi
-else
-	if [[ ${total_deleted_count} -gt 0 ]]; then
-		echolog "${RED}Total delete files: \t\t${YELLOW}SKIPPED${NC}"
-	fi
-fi
-echolog
 
-# Confirmation
-if [[ -z "${SKIP_CONFIRM}" ]]; then
-	log "Do you wish to continue? (Y/y): \n" 1
-	${SCRIPT_DIR}/../../scripting-utils/confirm "Do you wish to continue? (Y/y): "
-	if [[ "${?}" -eq 1 ]]; then
-		abort "Update aborted."
-	elif [[ "${?}" -eq 2 ]]; then
-		error "Unsupported shell"
+	if [[ -n "${IS_BACKUP}" ]]; then
+		info "Backing up dotfiles...\n"
+		if [[ -n "${IS_VERY_VERBOSE}" ]]; then
+			${SCRIPT_DIR}/dotbackup -Vya
+		elif [[ -n "${IS_VERBOSE}" ]]; then
+			${SCRIPT_DIR}/dotbackup -vya
+		else
+			${SCRIPT_DIR}/dotbackup -ya
+		fi
 	fi
-fi
 
-if [[ -n "${IS_BACKUP}" ]]; then
-	echolog "Backing up dotfiles..."
-	echolog
+	# Catch if dotbackup failed
+	[[ $? -ne 0 ]] && error "Failed to backup files" $?
+
+	info "\nDistributing dotfiles...\n"
+
+	# Copy changes to target directory and delete missing files
+	echo -e "${changes_list}" | while IFS= read -r file_tuple; do
+		IFS=';' read -r -a file_arr <<<"$file_tuple"
+		source_file="${file_arr[0]}"
+		target_file="${file_arr[1]}"
+		target_dir="$(dirname "${target_file}")"
+		if [[ -z "${target_file}" ]]; then # check if target_file is missing
+			if [[ -z "${NO_DELETE}" ]]; then
+				if execlog "rm -f '${source_file}'" 1; then
+					ok "${source_file} deleted"
+				else
+					error "Failed to delete ${source_file}"
+				fi
+			else
+				warning "${source_file} SKIPPING deletion"
+			fi
+		elif [[ -d "${target_dir}" ]]; then # Check target dir path
+			if execlog "cp -rL '${source_file}' '${target_file}'" 1; then
+				ok "${source_file} -> ${target_file}"
+			else
+				error "Failed to copy ${source_file} -> ${target_file}"
+			fi
+		else # Create target dir if not existing
+			execlog "mkdir -p '${target_dir}'"
+			if execlog "cp -rL '${source_file}' '${target_file}'" 1; then
+				ok "${source_file} -> ${target_file}"
+			else
+				error "Failed to copy ${source_file} -> ${target_file}"
+			fi
+		fi
+	done
+
+	#################################################################### WRAP UP ###
+
+	# Final check
+	for dotfile in "${dotfiles[@]}"; do
+		# Strip source directory from path
+		source_stripped=$(echo "$dotfile" | sed "s,${DOT_LOCAL_DIR}/,,")
+
+		source_file="${DOT_LOCAL_REPO_DIR}/${source_stripped}"
+		target_file="${dotfile}"
+
+		detect_change "${source_file}" "${target_file}" changes changes_count files_count 1
+		if [[ -z "${NO_DELETE}" ]]; then
+			detect_delete "${target_file}" "${source_file}" delete delete_count files_count 1
+		fi
+	done
+
+	# Catch final check errors
+	[[ ${changes_count} -gt 0 ]] || [[ ${delete_count} -gt 0 ]] &&
+		error "Dotupdate failed. Changes persists" 2
+
+	# Clean log files
 	if [[ -n "${IS_VERY_VERBOSE}" ]]; then
-		${SCRIPT_DIR}/dotbackup -Vya
-	elif [[ -n "${IS_VERBOSE}" ]]; then
-		${SCRIPT_DIR}/dotbackup -vya
+		[[ -n "${DEBUG}" ]] && cleanlog 1000
 	else
-		${SCRIPT_DIR}/dotbackup -ya
+		[[ -n "${DEBUG}" ]] && cleanlog 1000 1
 	fi
-fi
 
-# Catch if dotbackup failed
-[[ $? -ne 0 ]] && error "Failed to backup files" $?
+	finish "Dotfiles update successful!"
+}
 
-echolog
-echolog "Distributing dotfiles..."
-echolog
-# Copy changes to target directory and delete missing files
-echo -e "${changes_list}" | while IFS= read -r file_tuple; do
-	IFS=';' read -r -a file_arr <<<"$file_tuple"
-	source_file="${file_arr[0]}"
-	target_file="${file_arr[1]}"
-	target_dir="$(dirname "${target_file}")"
-	if [[ -z "${target_file}" ]]; then # check if target_file is missing
-		if [[ -z "${NO_DELETE}" ]]; then
-			if execlog "rm -f '${source_file}'" 1; then
-				ok "${source_file} deleted"
-			else
-				error "Failed to delete ${source_file}"
-			fi
-		else
-			warning "${source_file} SKIPPING deletion"
-		fi
-	elif [[ -d "${target_dir}" ]]; then # Check target dir path
-		if execlog "cp -rL '${source_file}' '${target_file}'" 1; then
-			ok "${source_file} -> ${target_file}"
-		else
-			error "Failed to copy ${source_file} -> ${target_file}"
-		fi
-	else # Create target dir if not existing
-		execlog "mkdir -p '${target_dir}'"
-		if execlog "cp -rL '${source_file}' '${target_file}'" 1; then
-			ok "${source_file} -> ${target_file}"
-		else
-			error "Failed to copy ${source_file} -> ${target_file}"
-		fi
-	fi
-done
+res=0
+_main "${SCRIPT_ARGS[@]}"
+res=$?
 
-#################################################################### WRAP UP ###
+# Standard configs
+unset SKIP_CONFIRM
+unset VERBOSE
+unset DEBUG
+unset LOG_DEBUG_LEVEL
+unset ENABLE_COLORS
+# Dot configs
+unset DOT_BACKUP_AUTO_CLEAN
+unset CLEAN_BACKUPS
 
-# Final check
-for dotfile in ${DOTFILES_LIST[@]}; do
-	# Strip source directory from path
-	source_stripped=$(echo "$dotfile" | sed "s,${DOT_LOCAL_DIR}/,,")
-
-	source_file="${DOT_LOCAL_REPO_DIR}/${source_stripped}"
-	target_file="${dotfile}"
-
-	detect_change "${source_file}" "${target_file}" changes changes_count files_count 1
-	if [[ -z "${NO_DELETE}" ]]; then
-		detect_delete "${target_file}" "${source_file}" delete delete_count files_count 1
-	fi
-done
-
-# Catch final check errors
-[[ ${changes_count} -gt 0 ]] || [[ ${delete_count} -gt 0 ]] &&
-	error "Dotupdate failed. Changes persists" 2
-
-# Clean log files
-if [[ -n "${IS_VERY_VERBOSE}" ]]; then
-	[[ -n "${DEBUG}" ]] && cleanlog 1000
-else
-	[[ -n "${DEBUG}" ]] && cleanlog 1000 1
-fi
-
-finish "Dotfiles update successful!"
+exit $res

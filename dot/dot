@@ -46,7 +46,7 @@ function handle_args() {
 	# Especially useful when relaying script args with group quoted OPTARG
 	eval set -- "${@:-}"
 
-	local command="${1}"
+	local command="${1:-}"
 	strip_extra_whitespace command
 	shift 1
 

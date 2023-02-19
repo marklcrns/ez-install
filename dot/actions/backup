@@ -31,9 +31,9 @@ readonly SCRIPT_ARGS=("${@}")
 
 include "${EZ_INSTALL_HOME}/common/common.sh"
 include "${EZ_INSTALL_HOME}/common/colors.sh"
-include "${EZ_INSTALL_HOME}/common/const.sh"
 include "${EZ_INSTALL_HOME}/man/print.sh"
 include "${EZ_INSTALL_HOME}/actions.sh"
+include "${EZ_INSTALL_HOME}/const.sh"
 
 ############################################################### FLAG OPTIONS ###
 
@@ -59,6 +59,7 @@ function handle_args() {
 	# Especially useful when relaying script args with group quoted OPTARG
 	eval set -- "${@:-}"
 
+	# FIX: Long options cli args
 	local -A long_opts_map
 	long_opts_map=(
 		['auto-clean']=a

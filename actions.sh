@@ -56,7 +56,7 @@ function _action() {
 		e) exit_code=${OPTARG} ;;
 		l) log="${OPTARG}" ;;
 		*)
-			error "Invalid flag option(s)"
+			log "error" "$(basename -- "${BASH_SOURCE[2]}").${FUNCNAME[${depth}]}():${BASH_LINENO[1]} Invalid flag option(s)"
 			exit $BASH_SYS_EX_USAGE
 			;;
 		esac
@@ -64,13 +64,13 @@ function _action() {
 	shift "$((OPTIND - 1))"
 
 	if [[ -z "${1+x}" ]]; then
-		error "${BASH_SYS_MSG_USAGE_MISSARG}"
-		return $BASH_SYS_EX_USAGE
+		log "error" "$(basename -- "${BASH_SOURCE[2]}").${FUNCNAME[${depth}]}():${BASH_LINENO[1]} ${BASH_SYS_MSG_USAGE_MISSARG}"
+		exit "$BASH_SYS_EX_USAGE"
 	fi
 
 	local message="${1}"
 	[[ -n "${2+x}" ]] && exit_code=${2}
-	depth=$(($depth + 1)) # offset wrapper functions
+	depth=$((depth + 1)) # offset wrapper function
 
 	if ${DEBUG}; then
 		log "${log}" "$(basename -- "${BASH_SOURCE[${depth}]}").${FUNCNAME[${depth}]}():${BASH_LINENO[${depth} - 1]} ${message}"

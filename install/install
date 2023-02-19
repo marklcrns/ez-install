@@ -263,6 +263,7 @@ function _main() {
 
 	# Validate and configure packages
 	# TODO: Fully support json configs
+	# FIX: Issue with not being able to interupt (ctrl-c/d) input
 	if ! $JSON; then
 		# Do NOT double quote $CONFIG. Need word splitting, else will take as one argument
 		validate_packages "${PACKAGE_CONFIGS[@]}" -- "${packages[@]}"
