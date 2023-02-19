@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ################################################################################
 # Detection functions for detecting changes or deletion between files or
@@ -25,6 +25,7 @@ source "${EZ_INSTALL_HOME}/common/include.sh"
 
 include "${EZ_INSTALL_HOME}/common/string.sh"
 include "${EZ_INSTALL_HOME}/common/colors.sh"
+include "${EZ_INSTALL_HOME}/const.sh"
 include "${EZ_INSTALL_HOME}/man/print.sh"
 include "${EZ_INSTALL_HOME}/actions.sh"
 
@@ -47,17 +48,20 @@ include "${EZ_INSTALL_HOME}/actions.sh"
 #
 # Returns $3, $4, $5 variable args with new values from execution.
 function detect_change() {
-	local __source=$1
-	local __target=$2
-	local __changes_list=$3
-	local __changes_count=$4
-	local __total_files_count=$5
-	local silent=$6
+	if [[ -z "${*+x}" ]]; then
+		error "${BASH_SYS_MSG_USAGE_MISSARG}" "$BASH_SYS_EX_USAGE"
+	fi
+
+	local __source="${1}"
+	local __target="${2}"
+	local __changes_list="${3}"
+	local __changes_count="${4}"
+	local __total_files_count="${5}"
+	local silent="${6:-0}"
 
 	# Check args count
 	if [[ $# -lt 3 ]]; then
-		warning "${RED}${FUNCNAME[0]}: Invalid number of arguments${NC}"
-		return 1
+		error "${BASH_SYS_MSG_USAGE_INVARG}" "$BASH_EX_GENERAL"
 	fi
 
 	# Exit if invalid path
@@ -66,9 +70,9 @@ function detect_change() {
 		return 2
 	fi
 
-	local __tmp_changes_list
-	local __tmp_changes_count
-	local __tmp_total_files_count
+	local __tmp_changes_list=""
+	local __tmp_changes_count=0
+	local __tmp_total_files_count=0
 
 	strip_trailing_forwardslash __source
 	strip_trailing_forwardslash __target
@@ -101,16 +105,16 @@ function detect_change() {
 				fi
 			else
 				if [[ -e "${__target_file}" ]]; then
-					warning "${YELLOW}Changes detected:${NC}" "${silent}"
-					warning "${BLUE}SOURCE ${__source_file}${NC}" "${silent}"
-					warning "${BLUE}TARGET ${__target_file}${NC}" "${silent}"
+					printf "${COLOR_YELLOW}Changes detected:${COLOR_NC}"
+					printf "${COLOR_BLUE}SOURCE ${__source_file}${COLOR_NC}"
+					printf "${COLOR_BLUE}TARGET ${__target_file}${COLOR_NC}"
 				else
-					warning "${YELLOW}Missing file:${NC}" "${silent}"
-					warning "${BLUE}SOURCE ${__source_file}${NC}" "${silent}"
-					warning "${RED}TARGET ${__target_file}${NC}" "${silent}"
+					printf "${COLOR_YELLOW}Missing file:${COLOR_NC}"
+					printf "${COLOR_BLUE}SOURCE ${__source_file}${COLOR_NC}"
+					printf "${COLOR_RED}TARGET ${__target_file}${COLOR_NC}"
 				fi
 				# Record changes
-				__tmp_changes_count=$(expr "${__tmp_changes_count}" + 1)
+				__tmp_changes_count=$((__tmp_changes_count + 1))
 				if [[ -z "${__tmp_changes_list}" ]]; then
 					__tmp_changes_list="${__source_file};${__target_file}"
 				else
@@ -118,7 +122,7 @@ function detect_change() {
 				fi
 			fi
 			# Increment total files compared
-			__tmp_total_files_count=$(expr "${__tmp_total_files_count}" + 1)
+			__tmp_total_files_count=$((__tmp_total_files_count + 1))
 		done < <(find "${__source}" -not -path "*/.git/*" -type f -print0) # Process substitution for outside variables
 	else                                                                # Non-directory dotfile
 		# Compare dotfiles in target dir with local copy in source dir
@@ -126,20 +130,20 @@ function detect_change() {
 			if [[ ${silent} -ne 1 ]]; then
 				warning "No changes detected in ${__source}"
 			else
-				log "No changes detected in ${__source}"
+				info "No changes detected in ${__source}"
 			fi
 		else
 			if [[ -e "${__target}" ]]; then
-				warning "${YELLOW}Changes detected:${NC}" "${silent}"
-				warning "${BLUE}SOURCE ${__source}${NC}" "${silent}"
-				warning "${BLUE}TARGET ${__target}${NC}" "${silent}"
+				warning "${COLOR_YELLOW}Changes detected:${COLOR_NC}" "${silent}"
+				warning "${COLOR_BLUE}SOURCE ${__source}${COLOR_NC}" "${silent}"
+				warning "${COLOR_BLUE}TARGET ${__target}${COLOR_NC}" "${silent}"
 			else
-				warning "${YELLOW}Missing file:${NC}" "${silent}"
-				warning "${BLUE}SOURCE ${__source}${NC}" "${silent}"
-				warning "${RED}TARGET ${__target}${NC}" "${silent}"
+				warning "${COLOR_YELLOW}Missing file:${COLOR_NC}" "${silent}"
+				warning "${COLOR_BLUE}SOURCE ${__source}${COLOR_NC}" "${silent}"
+				warning "${COLOR_RED}TARGET ${__target}${COLOR_NC}" "${silent}"
 			fi
 			# Record changes
-			__tmp_changes_count=$(expr "${__tmp_changes_count}" + 1)
+			__tmp_changes_count=$((__tmp_changes_count + 1))
 			if [[ -z "${__tmp_changes_list}" ]]; then
 				__tmp_changes_list="${__source};${__target}"
 			else
@@ -147,7 +151,7 @@ function detect_change() {
 			fi
 		fi
 		# Increment total files compared
-		__tmp_total_files_count=$(expr "${__tmp_total_files_count}" + 1)
+		__tmp_total_files_count=$((__tmp_total_files_count + 1))
 	fi
 	# Return variables
 	[[ -n "${__changes_list}" ]] && eval $__changes_list="'$__tmp_changes_list'"
@@ -169,22 +173,22 @@ function detect_change() {
 #
 # Returns $3, $4, $5 variable args with new values from execution.
 function detect_delete() {
-	local __source=$1
-	local __target=$2
-	local __deletion_list=$3
-	local __deletion_count=$4
-	local __total_files_count=$5
-	local silent=$6
+	local __source="${1}"
+	local __target="${2}"
+	local __deletion_list="${3}"
+	local __deletion_count="${4}"
+	local __total_files_count="${5}"
+	local silent="${6:-0}"
 
 	# Check args count
 	if [[ $# -lt 3 ]]; then
-		warning "${RED}${FUNCNAME[0]}: Invalid number of arguments${NC}"
+		warning "${COLOR_RED}${FUNCNAME[0]}: Invalid number of arguments${COLOR_NC}"
 		return 1
 	fi
 
-	local __tmp_deletion_list
-	local __tmp_deletion_count
-	local __tmp_total_files_count
+	local __tmp_deletion_list=""
+	local __tmp_deletion_count=0
+	local __tmp_total_files_count=0
 
 	strip_trailing_forwardslash __source
 	strip_trailing_forwardslash __target
@@ -212,10 +216,11 @@ function detect_delete() {
 			if [[ ! -e "${__target_file}" ]]; then
 				# Record deletion if not NO_DELETE
 				if [[ -z "${NO_DELETE}" ]]; then
-					warning "${RED}File to be deleted ${__source_file}${NC}" "${silent}"
-					__tmp_deletion_count=$(expr "${__tmp_deletion_count}" + 1)
+					warning "${COLOR_RED}File to be deleted ${__source_file}${COLOR_NC}" "${silent}"
+
+					__tmp_deletion_count=$((__tmp_deletion_count + 1))
 				else
-					warning "${RED}File to be deleted ${__source_file} ${YELLOW}SKIPPED${NC}" "${silent}"
+					warning "${COLOR_RED}File to be deleted ${__source_file} ${COLOR_YELLOW}SKIPPED${COLOR_NC}" "${silent}"
 				fi
 				# Append to changes list
 				if [[ -z ${__tmp_deletion_list} ]]; then
@@ -225,14 +230,14 @@ function detect_delete() {
 				fi
 			fi
 			# Increment total files compared
-			__tmp_total_files_count=$(expr "${__tmp_total_files_count}" + 1)
+			__tmp_total_files_count=$((__tmp_total_files_count + 1))
 		done < <(find "${__source}" -not -path "*/.git/*" -type f -print0) # Process substitution for outside variables
 	else                                                                # Non-directory dotfile
 		# Check deleted files
 		if [[ ! -e "${__target}" ]]; then
-			warning "${RED}File does not exist ${__source}${NC}" "${silent}"
+			warning "${COLOR_RED}File does not exist ${__source}${COLOR_NC}" "${silent}"
 			# Record changes
-			__tmp_deletion_count=$(expr "${__tmp_deletion_count}" + 1)
+			__tmp_deletion_count=$((__tmp_deletion_count + 1))
 			if [[ -z ${__tmp_deletion_list} ]]; then
 				__tmp_deletion_list="${__source}"
 			else
@@ -240,7 +245,7 @@ function detect_delete() {
 			fi
 		fi
 		# Increment total files compared
-		__tmp_total_files_count=$(expr "${__tmp_total_files_count}" + 1)
+		__tmp_total_files_count=$((__tmp_total_files_count + 1))
 	fi
 
 	# Return variables
