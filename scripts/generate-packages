@@ -59,7 +59,8 @@ function _main() {
 	)
 
 	local -a _package_manager=(
-		"-s yarn"
+		"-s -c yarn yarn"
+		"-m npm -d nodejs -c yarn yarn"
 		"-m npm -d nodejs -c browser-sync browser-sync"
 		"-m npm -d nodejs -c gulp gulp-cli"
 		"-m curl -n nvm -e -o '~/.nvm' -c nvm -- https://raw.githubusercontent.com/creationix/nvm/master/install.sh"
@@ -202,6 +203,7 @@ function _main() {
 		"-s -c pandoc pandoc"
 		"-s -c exa exa"
 		"-s -c ctags universal-ctags"
+		"-s -c wslu wslu"
 	)
 
 	local -a _custom_install=(
@@ -275,6 +277,7 @@ function _main() {
 
 	local -a packages=(
 		"${_essentials[@]}"
+		"${_desktop_environment[@]}"
 		"${_languages[@]}"
 		"${_package_manager[@]}"
 		"${_shell[@]}"
