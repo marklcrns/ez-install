@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 
-mkdir -p /usr/local/bin/ && sudo ln -sf ~/.ez-install/ez /usr/local/bin/
+LOCAL_BIN_DIR="/usr/local/bin"
+
+# Check if already has symlink
+if ! [[ -L "${LOCAL_BIN_DIR}/ez" ]]; then
+	echo "Creating symlink to ${LOCAL_BIN_DIR}/ez..."
+	mkdir -p "${LOCAL_BIN_DIR}" && sudo ln -sf ~/.ez-install/ez "${LOCAL_BIN_DIR}"
+fi
 
 unameOut="$(uname -s)"
 case "${unameOut}" in
