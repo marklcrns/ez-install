@@ -24,6 +24,7 @@ source "$(dirname -- "$(realpath -- "${BASH_SOURCE[0]}")")/../../.ez-installrc"
 source "${EZ_INSTALL_HOME}/common/include.sh"
 
 include "${EZ_INSTALL_HOME}/common/string.sh"
+include "${EZ_INSTALL_HOME}/common/array.sh"
 include "${EZ_INSTALL_HOME}/common/colors.sh"
 include "${EZ_INSTALL_HOME}/const.sh"
 include "${EZ_INSTALL_HOME}/man/print.sh"
@@ -88,30 +89,26 @@ function detect_change() {
 
 			# Ignore if in DOTFILES_IGNORE_LIST
 			if array_has_element "${__source_file}" "${DOTFILES_IGNORE_LIST[@]}"; then
-				printf "${FG_LT_BLACK}Changes ignored ${__source_file}${ANSI_OFF}\n"
+				echo -e "${FG_LT_BLACK}Changes ignored ${__source_file}${ANSI_OFF}\n"
 				continue
 			fi
 			if array_has_element "${__target_file}" "${DOTFILES_IGNORE_LIST[@]}"; then
-				printf "${FG_LT_BLACK}Changes ignored ${__target_file}${ANSI_OFF}\n"
+				echo -e "${FG_LT_BLACK}Changes ignored ${__target_file}${ANSI_OFF}\n"
 				continue
 			fi
 
 			# Compare dotfiles in target dir with local copy in source dir
 			if cmp "${__source_file}" "${__target_file}" &>/dev/null; then
-				if [[ ${silent} -ne 1 ]]; then
-					warning "No changes detected in ${__source_file}"
-				else
-					warning "No changes detected in ${__source_file}"
-				fi
+				info "No changes detected in ${__source_file}"
 			else
 				if [[ -e "${__target_file}" ]]; then
-					printf "${COLOR_YELLOW}Changes detected:${COLOR_NC}"
-					printf "${COLOR_BLUE}SOURCE ${__source_file}${COLOR_NC}"
-					printf "${COLOR_BLUE}TARGET ${__target_file}${COLOR_NC}"
+					echo -e "${COLOR_YELLOW}Changes detected:${COLOR_NC}"
+					echo -e "${COLOR_BLUE}SOURCE ${__source_file}${COLOR_NC}"
+					echo -e "${COLOR_BLUE}TARGET ${__target_file}${COLOR_NC}"
 				else
-					printf "${COLOR_YELLOW}Missing file:${COLOR_NC}"
-					printf "${COLOR_BLUE}SOURCE ${__source_file}${COLOR_NC}"
-					printf "${COLOR_RED}TARGET ${__target_file}${COLOR_NC}"
+					echo -e "${COLOR_YELLOW}Missing file:${COLOR_NC}"
+					echo -e "${COLOR_BLUE}SOURCE ${__source_file}${COLOR_NC}"
+					echo -e "${COLOR_RED}TARGET ${__target_file}${COLOR_NC}"
 				fi
 				# Record changes
 				__tmp_changes_count=$((__tmp_changes_count + 1))
@@ -127,20 +124,16 @@ function detect_change() {
 	else                                                                # Non-directory dotfile
 		# Compare dotfiles in target dir with local copy in source dir
 		if cmp -s "${__source}" "${__target}" &>/dev/null; then
-			if [[ ${silent} -ne 1 ]]; then
-				warning "No changes detected in ${__source}"
-			else
-				info "No changes detected in ${__source}"
-			fi
+			info "No changes detected in ${__source}"
 		else
 			if [[ -e "${__target}" ]]; then
-				warning "${COLOR_YELLOW}Changes detected:${COLOR_NC}" "${silent}"
-				warning "${COLOR_BLUE}SOURCE ${__source}${COLOR_NC}" "${silent}"
-				warning "${COLOR_BLUE}TARGET ${__target}${COLOR_NC}" "${silent}"
+				echo -e "${COLOR_YELLOW}Changes detected:${COLOR_NC}"
+				echo -e "${COLOR_BLUE}SOURCE ${__source}${COLOR_NC}"
+				echo -e "${COLOR_BLUE}TARGET ${__target}${COLOR_NC}"
 			else
-				warning "${COLOR_YELLOW}Missing file:${COLOR_NC}" "${silent}"
-				warning "${COLOR_BLUE}SOURCE ${__source}${COLOR_NC}" "${silent}"
-				warning "${COLOR_RED}TARGET ${__target}${COLOR_NC}" "${silent}"
+				echo -e "${COLOR_YELLOW}Missing file:${COLOR_NC}"
+				echo -e "${COLOR_BLUE}SOURCE ${__source}${COLOR_NC}"
+				echo -e "${COLOR_RED}TARGET ${__target}${COLOR_NC}"
 			fi
 			# Record changes
 			__tmp_changes_count=$((__tmp_changes_count + 1))
@@ -204,11 +197,11 @@ function detect_delete() {
 
 			# Ignore if in DOTFILES_IGNORE_LIST
 			if array_has_element "${__source_file}" "${DOTFILES_IGNORE_LIST[@]}"; then
-				printf "${FG_LT_BLACK}Deletion ignored ${__source_file}${ANSI_OFF}\n"
+				echo -e "${FG_LT_BLACK}Deletion ignored ${__source_file}${ANSI_OFF}\n"
 				continue
 			fi
 			if array_has_element "${__target_file}" "${DOTFILES_IGNORE_LIST[@]}"; then
-				printf "${FG_LT_BLACK}Deletion ignored ${__target_file}${ANSI_OFF}\n"
+				echo -e "${FG_LT_BLACK}Deletion ignored ${__target_file}${ANSI_OFF}\n"
 				continue
 			fi
 
@@ -216,11 +209,11 @@ function detect_delete() {
 			if [[ ! -e "${__target_file}" ]]; then
 				# Record deletion if not NO_DELETE
 				if [[ -z "${NO_DELETE}" ]]; then
-					warning "${COLOR_RED}File to be deleted ${__source_file}${COLOR_NC}" "${silent}"
+					warning "${COLOR_RED}File to be deleted ${__source_file}${COLOR_NC}"
 
 					__tmp_deletion_count=$((__tmp_deletion_count + 1))
 				else
-					warning "${COLOR_RED}File to be deleted ${__source_file} ${COLOR_YELLOW}SKIPPED${COLOR_NC}" "${silent}"
+					warning "${COLOR_RED}File to be deleted ${__source_file} ${COLOR_YELLOW}SKIPPED${COLOR_NC}"
 				fi
 				# Append to changes list
 				if [[ -z ${__tmp_deletion_list} ]]; then
@@ -235,7 +228,7 @@ function detect_delete() {
 	else                                                                # Non-directory dotfile
 		# Check deleted files
 		if [[ ! -e "${__target}" ]]; then
-			warning "${COLOR_RED}File does not exist ${__source}${COLOR_NC}" "${silent}"
+			warning "${COLOR_RED}File does not exist ${__source}${COLOR_NC}"
 			# Record changes
 			__tmp_deletion_count=$((__tmp_deletion_count + 1))
 			if [[ -z ${__tmp_deletion_list} ]]; then

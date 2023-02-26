@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 set -o pipefail
 set -o nounset
@@ -219,15 +219,11 @@ while getopts "bdDqr:vVyh" opt; do
 		[[ -n "$HAS_TMP_RC_FILE" ]] && unset HAS_TMP_RC_FILE || HAS_TMP_RC_FILE=true
 		tmp_rc_file_path="${OPTARG}"
 		;;
-	v) [[ -n "$IS_VERBOSE" ]] && unset IS_VERBOSE || IS_VERBOSE=true ;;
-	V)
-		[[ -n "$IS_VERY_VERBOSE" ]] && unset IS_VERBOSE IS_VERY_VERBOSE || IS_VERBOSE=true
-		IS_VERY_VERBOSE=true
-		;;
+	v) [[ -n "$VERBOSE" ]] && unset VERBOSE || VERBOSE=true ;;
 	y) [[ -n "$SKIP_CONFIRM" ]] && unset SKIP_CONFIRM || SKIP_CONFIRM=true ;;
 	h) usage && exit 0 ;;
 	*)
-		usage && echo -e "${SCRIPT_PATH}:\n${RED}ERROR: Invalid flag.${NC}"
+		usage && echo -e "${SCRIPT_PATH}:\n${RED}ERROR: Invalid flag.${COLOR_NC}"
 		exit 1
 		;;
 	esac
@@ -252,10 +248,11 @@ function _main() {
 	local total_changes_count=0
 	local total_deleted_count=0
 	local total_files_count=0
+	local changes_list=
 
 	local -a dotfiles=("${DOTFILES_LIST[@]}")
 
-	info "Detecting dotfiles changes...\n"
+	echo -e "Detecting dotfiles changes...\n"
 	for dotfile in "${dotfiles[@]}"; do
 		# Strip source directory from path
 		source_stripped=$(echo "${dotfile}" | sed "s,${DOT_LOCAL_DIR}/,,")
@@ -300,13 +297,16 @@ function _main() {
 	[[ ${total_changes_count} -eq 0 ]] && [[ ${total_deleted_count} -eq 0 ]] &&
 		abort "\nAborting... No dotfiles to distribute."
 
-	info "\n${ULINE}Files with changes:${NC}\n"
+	echo -e "${COLOR_UL}Files with changes:${COLOR_NC}"
 
 	local modified_files_count=0
 	local new_files_count=0
 
+	# TODO: BRB - Continue from here
+	# Use array instead for $changes_list
 	# Loop over changes list and diff if IS_VERY_VERBOSE, else echolog source file
 	while IFS= read -r file_tuple; do
+		echo "${file_tuple}"
 		# Split file_tuple
 		IFS=';' read -r -a file_arr <<<"${file_tuple}"
 		source_file="${file_arr[0]}"
@@ -314,75 +314,65 @@ function _main() {
 		# Copy source to target file
 		if [[ -z "${target_file}" ]]; then # check if target_file is missing
 			if [[ -z "${NO_DELETE}" ]]; then
-				info "${RED}-${source_file}${NC}"
+				echo -e "${COLOR_RED}-${source_file}${COLOR_NC}"
 			else
-				info "${RED}-${source_file} ${YELLOW}SKIPPED${NC}"
+				echo -e "${COLOR_RED}-${source_file} ${COLOR_YELLOW}SKIPPED${COLOR_NC}"
 			fi
 		elif [[ -e "${target_file}" ]]; then # check if target_file not existing
 			# Diff source and target file
-			if [[ -n "${IS_VERY_VERBOSE}" ]] && [[ -z "${IS_QUITE}" ]]; then
+			if [[ -n "${VERBOSE}" ]]; then
 				if command -v colordiff &>/dev/null; then
 					diff -c "${target_file}" "${source_file}" | colordiff
-					log "${source_file}" 1
 				else
 					diff -c "${target_file}" "${source_file}" --color
-					log "${source_file}" 1
 				fi
 			else
 				# echolog source file if not very verbose
-				info "${YELLOW}${source_file}${NC}"
+				echo -e "${COLOR_YELLOW}${source_file}${COLOR_NC}"
 			fi
 			modified_files_count=$((modified_files_count + 1))
 		else
-			info "${GREEN}+${target_file}${NC}"
+			echo -e "${COLOR_GREEN}+${target_file}${COLOR_NC}"
 			new_files_count=$((new_files_count + 1))
 		fi
 	done < <(echo -e "${changes_list}") # Process substitution for outside variables
 
 	# Changes and deletes tally
-	info "\nTotal files to update: \t\t${total_files_count}"
+	echo -e "\nTotal files to update: \t\t${total_files_count}"
 	if [[ ${modified_files_count} -gt 0 ]]; then
-		info "${YELLOW}Total changed files: \t\t${modified_files_count}${NC}"
+		echo -e "${COLOR_YELLOW}Total changed files: \t\t${modified_files_count}${COLOR_NC}"
 	fi
 	if [[ ${new_files_count} -gt 0 ]]; then
-		info "${GREEN}Total new files: \t\t${new_files_count}${NC}"
+		echo -e "${COLOR_GREEN}Total new files: \t\t${new_files_count}${COLOR_NC}"
 	fi
 	if [[ -z ${NO_DELETE} ]]; then
 		if [[ ${total_deleted_count} -gt 0 ]]; then
-			info "${RED}Total delete files: \t\t${total_deleted_count}${NC}"
+			echo -e "${COLOR_RED}Total delete files: \t\t${total_deleted_count}${COLOR_NC}"
 		fi
 	else
 		if [[ ${total_deleted_count} -gt 0 ]]; then
-			info "${RED}Total delete files: \t\t${YELLOW}SKIPPED${NC}"
+			echo -e "${COLOR_RED}Total delete files: \t\t${COLOR_YELLOW}SKIPPED${COLOR_NC}"
 		fi
 	fi
 
 	# Confirmation
-	if [[ -z "${SKIP_CONFIRM}" ]]; then
-		log "Do you wish to continue? (Y/y): \n" 1
-		${SCRIPT_DIR}/../../scripting-utils/confirm "Do you wish to continue? (Y/y): "
-		if [[ "${?}" -eq 1 ]]; then
-			abort "Update aborted."
-		elif [[ "${?}" -eq 2 ]]; then
-			error "Unsupported shell"
-		fi
-	fi
+	confirm "Do you wish to continue? (Y/y): "
 
 	if [[ -n "${IS_BACKUP}" ]]; then
-		info "Backing up dotfiles...\n"
-		if [[ -n "${IS_VERY_VERBOSE}" ]]; then
-			${SCRIPT_DIR}/dotbackup -Vya
+		echo -e "Backing up dotfiles...\n"
+		if [[ -n "${VERBOSE}" ]]; then
+			${EZ_COMMAND_DOT_BACKUP} -Vya
 		elif [[ -n "${IS_VERBOSE}" ]]; then
-			${SCRIPT_DIR}/dotbackup -vya
+			${EZ_COMMAND_DOT_BACKUP} -vya
 		else
-			${SCRIPT_DIR}/dotbackup -ya
+			${EZ_COMMAND_DOT_BACKUP} -ya
 		fi
 	fi
 
 	# Catch if dotbackup failed
 	[[ $? -ne 0 ]] && error "Failed to backup files" $?
 
-	info "\nDistributing dotfiles...\n"
+	echo -e "\nDistributing dotfiles...\n"
 
 	# Copy changes to target directory and delete missing files
 	echo -e "${changes_list}" | while IFS= read -r file_tuple; do
@@ -437,10 +427,10 @@ function _main() {
 		error "Dotupdate failed. Changes persists" 2
 
 	# Clean log files
-	if [[ -n "${IS_VERY_VERBOSE}" ]]; then
-		[[ -n "${DEBUG}" ]] && cleanlog 1000
+	if [[ -n "${VERBOSE}" ]]; then
+		[[ -n "${DEBUG}" ]] && ${EZ_COMMAND_DOT_CLEAR_BACKUP} 1000
 	else
-		[[ -n "${DEBUG}" ]] && cleanlog 1000 1
+		[[ -n "${DEBUG}" ]] && ${EZ_COMMAND_DOT_CLEAR_BACKUP} 1000 1
 	fi
 
 	finish "Dotfiles update successful!"

@@ -35,6 +35,7 @@ include "${EZ_INSTALL_HOME}/common/log.sh"
 include "${EZ_INSTALL_HOME}/common/string.sh"
 include "${EZ_INSTALL_HOME}/const.sh"
 
+# FIXME: Message with `-` were treated as flags
 function info() { _action -l 'info' "${@}"; }
 function ok() { _action -l 'notice' "${@}"; }
 function skip() { _action -l 'notice' "${@}"; }
