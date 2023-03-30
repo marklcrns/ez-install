@@ -111,6 +111,8 @@ function _main() {
 		"-m npm -d nodejs prettier"
 		"-m npm -d nodejs staticrypt"
 		"-m git -d 'cargo,gnupg,ca-certificates,git,curl,gcc-multilib,g++-multilib,cmake,libssl-dev,pkg-config,libfreetype6-dev,libasound2-dev,libexpat1-dev,libxcb-composite0-dev,libbz2-dev,libsndio-dev,freeglut3-dev,libxmu-dev,libxi-dev,libfontconfig1-dev' -n neovide -c neovide  -- 'https://github.com/neovide/neovide'"
+		"-s -m apt-add -n alacritty ppa:aslatter/ppa"
+		"-s -m apt -d alacritty.apt-add -c alacritty alacritty"
 	)
 
 	local -a _tools=(
