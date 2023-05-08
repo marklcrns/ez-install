@@ -52,6 +52,7 @@ function handle_args() {
 	AS_ROOT=false
 	ALLOW_DEP_FAIL=false
 	SKIP_EDIT=false
+	# TODO: Support for OPTARG for EXECUTE for (curl and wget, etc.)
 	EXECUTE=false
 	FORCE=false
 	GLOBAL=false

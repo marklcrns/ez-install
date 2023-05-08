@@ -191,6 +191,8 @@ function _main() {
 		"-s -d pandoc pandoc-data"
 		"-s -d pandoc texlive"
 		"-s -d texlive texlive-xetex"
+		"-s -d texlive texlive-luatex"
+		"-s -d texlive texlive-full"
 		"-s -c colordiff colordiff"
 		"-s -c cmatrix cmatrix"
 		"-s -c cowsay cowsay"
@@ -205,6 +207,7 @@ function _main() {
 		"-s -c bat bat"
 		"-s -c pandoc pandoc"
 		"-s -c exa exa"
+		"-s -c chafa chafa"
 		"-s -c ctags universal-ctags"
 		"-s -c wslu wslu"
 	)
