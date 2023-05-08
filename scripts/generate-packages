@@ -133,6 +133,7 @@ function _main() {
 		"-s -c trash-put trash-cli"
 		"-s -c task taskwarrior"
 		"-s -c timew timewarrior"
+		"-s -c syncthing syncthing"
 		"-m git -a '--recursive' -n 'timewarrior' -c timew -- 'https://github.com/GothenburgBitFactory/timewarrior'"
 		"-m git -a '--recursive -b stable' -n 'taskwarrior' -c task -- 'https://github.com/GothenburgBitFactory/taskwarrior'"
 		"-m git -a '--depth=1' -n fzf -o '~/.fzf' -c fzf -- 'https://github.com/junegunn/fzf.git'"
