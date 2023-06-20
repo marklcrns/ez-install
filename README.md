@@ -10,9 +10,9 @@ Fear not! ez-install is here to help your lazy ass do the dirty work for you, so
 you can focus on the things that matters the most: Perpetuate indolence.
 
 Ez-install is a [make](https://linux.die.net/man/1/make)-like system package
-installer, purely written in bash for portability, that tries to install
-dependencies first before the target package. Dependency failure may halt the
-target package installation.
+installer, purely written in bash, that tries to install dependencies first
+before the target package. Dependency failure may halt the target package
+installation.
 
 With ez-install, you can install a wide range of Linux packages and its
 dependencies with just one command.
@@ -56,24 +56,24 @@ find time to help this repo grow by contributing. Thanks!
 
 <!-- TOC GFM -->
 
-* [Getting Started](#getting-started)
-* [Usage](#usage)
-    * [In-line Options](#in-line-options)
-    * [Reporting](#reporting)
-* [Config](#config)
-* [Pre- and Post-Installation Hooks](#pre--and-post-installation-hooks)
-* [Package Generator](#package-generator)
-    * [Simple Package Generator Usage](#simple-package-generator-usage)
-    * [Advanced Package Generator Usage](#advanced-package-generator-usage)
-    * [Sample Package Generator Usage For `git`, `curl`, and `wget`](#sample-package-generator-usage-for-git-curl-and-wget)
-    * [More Advanced Package Generator Usage](#more-advanced-package-generator-usage)
-    * [Interactive Package Generator](#interactive-package-generator)
-* [Built-in Install Functions](#built-in-install-functions)
-    * [Package Manager Specific Functions](#package-manager-specific-functions)
-* [Supported Package Managers](#supported-package-managers)
-* [Tested Distributions](#tested-distributions)
-* [Contributing](#contributing)
-* [TODO](#todo)
+- [Getting Started](#getting-started)
+- [Usage](#usage)
+  - [In-line Options](#in-line-options)
+  - [Reporting](#reporting)
+- [Config](#config)
+- [Pre- and Post-Installation Hooks](#pre--and-post-installation-hooks)
+- [Package Generator](#package-generator)
+  - [Simple Package Generator Usage](#simple-package-generator-usage)
+  - [Advanced Package Generator Usage](#advanced-package-generator-usage)
+  - [Sample Package Generator Usage For `git`, `curl`, and `wget`](#sample-package-generator-usage-for-git-curl-and-wget)
+  - [More Advanced Package Generator Usage](#more-advanced-package-generator-usage)
+  - [Interactive Package Generator](#interactive-package-generator)
+- [Built-in Install Functions](#built-in-install-functions)
+  - [Package Manager Specific Functions](#package-manager-specific-functions)
+- [Supported Package Managers](#supported-package-managers)
+- [Tested Distributions](#tested-distributions)
+- [Contributing](#contributing)
+- [TODO](#todo)
 
 <!-- /TOC -->
 
