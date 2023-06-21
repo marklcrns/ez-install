@@ -1,0 +1,25 @@
+services:
+  # bats_ubuntu1604:
+  #   build:
+  #     context: ./
+  #     dockerfile: Dockerfile.ubuntu16.04.bats
+  #   volumes:
+  #     - ./:/usr/local/src/ez-install
+  #   working_dir: /usr/local/src/ez-install
+  #   command: bats test
+  # bats_ubuntu1804:
+  #   build:
+  #     context: ./
+  #     dockerfile: Dockerfile.ubuntu18.04.bats
+  #   volumes:
+  #     - ./:/usr/local/src/ez-install
+  #   working_dir: /usr/local/src/ez-install
+  #   command: bats test
+  bats_ubuntu2004:
+    build:
+      context: ./
+      dockerfile: Dockerfile.ubuntu20.04.bats
+    volumes:
+      - ./:/usr/local/src/ez-install
+    working_dir: /usr/local/src/ez-install
+    command: bats test
