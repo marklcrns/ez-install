@@ -22,4 +22,4 @@ services:
     volumes:
       - ./:/usr/local/src/ez-install
     working_dir: /usr/local/src/ez-install
-    command: bats test
+    command: bats --formatter tap test
