@@ -44,6 +44,10 @@ include "${EZ_INSTALL_HOME}/install/install-utils/install.sh"
 #   OS_DISTRIB_RELEASE
 #   PACKAGE_DIR
 #   PACKAGE_ROOT_DIR
+# Arguments:
+#   None
+# Returns:
+#   None
 #######################################
 function resolve_package_dir() {
 	# TODO: If Linux distro is not found, resolve to the most similar distro if
@@ -67,6 +71,22 @@ function resolve_package_dir() {
 	LOCAL_PACKAGE_DIR="${LOCAL_PACKAGE_ROOT_DIR}/${distrib_id}/${distrib_release}"
 }
 
+#######################################
+# Fetches the package path from the global or local package directory.
+# Globals:
+#   PACKAGE_DIR
+#   LOCAL_PACKAGE_DIR
+# Arguments:
+#   package_var_name   Variable containing the package name. Also the variable
+#                      that will be set to the package path.
+#                      e.g., package_var_name="test-package". Then after calling
+#                      this function, package_var_name will be set to
+#                      package_var_name="/path/to/test-package".
+# Returns:
+#   BASH_EX_OK                If the package is found.
+#   BASH_EZ_EX_PAC_NOTFOUND   If the package is not found.
+#   BASH_SYS_EX_USAGE         If the package variable is not set.
+#######################################
 function fetch_package() {
 	if [[ -z "${1+x}" ]]; then
 		error "${BASH_SYS_MSG_USAGE_MISSARG}"
@@ -80,6 +100,10 @@ function fetch_package() {
 		error "${BASH_SYS_MSG_USAGE_INVREFVAR}"
 		return $BASH_SYS_EX_USAGE
 	fi
+
+	# Strip trailing '/' in DIR paths
+	PACKAGE_DIR=$(echo ${PACKAGE_DIR} | sed 's,/*$,,')
+	LOCAL_PACKAGE_DIR=$(echo ${LOCAL_PACKAGE_DIR} | sed 's,/*$,,')
 
 	if [[ -e "${LOCAL_PACKAGE_DIR}/${package}" ]]; then
 		info "Package '${package}' found in '${LOCAL_PACKAGE_DIR}'"
@@ -95,6 +119,17 @@ function fetch_package() {
 	fi
 }
 
+#######################################
+# Checks if the package exists in the global or local package directory.
+# Globals:
+#   LOCAL_PACKAGE_DIR
+#   PACKAGE_DIR
+# Arguments:
+#   package   The package name.
+# Returns:
+#   BASH_EX_OK                If the package is found.
+#   BASH_EZ_EX_PAC_NOTFOUND   If the package is not found.
+#######################################
 function has_package() {
 	if [[ ! -e "${LOCAL_PACKAGE_DIR}/${1:?}" ]] && [[ ! -e "${PACKAGE_DIR}/${1}" ]]; then
 		return $BASH_EZ_EX_PAC_NOTFOUND || return $BASH_EX_OK
