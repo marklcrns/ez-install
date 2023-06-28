@@ -40,8 +40,6 @@ load "../install/common.sh"
   assert_equal "$PACKAGE_DIR" "/path/to/packages/${OS_DISTRIB_ID}/${OS_DISTRIB_RELEASE}"
 }
 
-# TODO: Test fetch_package
-
 @test "install.common.fetch_package() test no argument" {
   run fetch_package
   assert_failure
@@ -50,6 +48,8 @@ load "../install/common.sh"
 
 # FIXME: Test fail probably because common/string.sh:143 returns an error that
 # bats catches
+# TODO: Require a second argument to store the package path. Follow
+# select_package.
 @test "install.common.fetch_package() test local package in path" {
   unset PACKAGE_DIR
 
@@ -72,6 +72,8 @@ load "../install/common.sh"
 
 # FIXME: Test fail probably because common/string.sh:143 returns an error that
 # bats catches
+# TODO: Require a second argument to store the package path. Follow
+# select_package.
 @test "install.common.fetch_package() test global package in path" {
   unset LOCAL_PACKAGE_DIR
 
@@ -156,8 +158,17 @@ load "../install/common.sh"
   rm -rf "${EZ_TMP_DIR}"
 }
 
+@test "install.common.select_package() test no required arguments" {
+  run select_package
+  assert_failure
+  assert_equal "$status" $BASH_SYS_EX_USAGE
+}
 
-# TODO: Test select_package
+@test "install.common.select_package() test missing second argument" {
+  run select_package
+  assert_failure
+  assert_equal "$status" $BASH_SYS_EX_USAGE
+}
 
 # TODO: Test has_alternate_package
 

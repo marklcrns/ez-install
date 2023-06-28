@@ -40,6 +40,11 @@ include "${EZ_INSTALL_HOME}/common/sys.sh"
 #                      hooks.
 #   -s <true/false>    Run package installation with root (sudo) privileges
 #                      (default=inherit).
+# Returns:
+#   None
+# Usage:
+#   handle_package_args -o "/path/to"
+#   handle_package_args -o "/path/to" -e "true" -f "false" -s "true"
 #######################################
 function handle_package_args() {
 	OPTIND=1

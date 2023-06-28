@@ -48,6 +48,8 @@ include "${EZ_INSTALL_HOME}/install/install-utils/install.sh"
 #   None
 # Returns:
 #   None
+# Usage:
+#   resolve_package_dir
 #######################################
 function resolve_package_dir() {
 	# TODO: If Linux distro is not found, resolve to the most similar distro if
@@ -86,6 +88,8 @@ function resolve_package_dir() {
 #   BASH_EX_OK                If the package is found.
 #   BASH_EZ_EX_PAC_NOTFOUND   If the package is not found.
 #   BASH_SYS_EX_USAGE         If the package variable is not set.
+# Usage:
+#   fetch_package package_var_name
 #######################################
 function fetch_package() {
 	if [[ -z "${1+x}" ]]; then
@@ -129,6 +133,8 @@ function fetch_package() {
 # Returns:
 #   BASH_EX_OK                If the package is found.
 #   BASH_EZ_EX_PAC_NOTFOUND   If the package is not found.
+# Usage:
+#   has_package "$package"
 #######################################
 function has_package() {
 	if [[ ! -e "${LOCAL_PACKAGE_DIR}/${1:?}" ]] && [[ ! -e "${PACKAGE_DIR}/${1}" ]]; then
@@ -137,6 +143,21 @@ function has_package() {
 }
 
 # TODO: Search as executable name instead if package not found using grep
+#######################################
+# Selects a package from the global or local package directory interactively.
+# Globals:
+#   PACKAGE_DIR
+#   LOCAL_PACKAGE_DIR
+# Arguments:
+#   package             The package name to search for.
+#   selected_var_name   Variable that will be set to the selected package path.
+# Returns:
+#   BASH_EX_OK                If the package is found.
+#   BASH_EZ_EX_PAC_NOTFOUND   If the package is not found.
+#   BASH_SYS_EX_USAGE         If the package variable is not set.
+# Usage:
+#   select_package "$package" selected_var_name
+#######################################
 function select_package() {
 	if [[ -z "${1+x}" ]]; then
 		error "${BASH_SYS_MSG_USAGE_MISSARG}"
