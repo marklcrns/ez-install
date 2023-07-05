@@ -1,35 +1,40 @@
 #!/usr/bin/env bash
 
-# Source install utility functions
-source "${BASH_SOURCE%/*}/install/install-utils/install.sh"
-source "${BASH_SOURCE%/*}/install/pac-logger.sh"
+source "${BASH_SOURCE%/*}/../install/common.sh"
 
 VERBOSE=true
 
-myfunc() {
-  # Pkg test
-  pkg_install 'yarn'
+# test() {
+# 	while true; do
+# 		i=0
+# 		for pathname; do
+# 			i=$((i + 1))
+# 			printf '%d) %s\n' "$i" "$pathname" >&2
+# 		done
+#
+# 		printf 'Select file to upload, or 0 to exit: ' >&2
+# 		read -r reply
+#
+# 		number=$(printf '%s\n' "$reply" | tr -dc '[:digit:]')
+#
+# 		if [ "$number" = "0" ]; then
+# 			echo 'Bye!' >&2
+# 			exit
+# 		elif [ "$number" -gt "$#" ]; then
+# 			echo 'Invalid choice, try again' >&2
+# 		else
+# 			break
+# 		fi
+# 	done
+# }
+#
+# test "test"
 
-  # Apt test
-  add_apt_repo 'bashtop-monitor/bashtop'
-  apt_install -u 'bashtop'
-
-  # Curl test
-  curl_install -o "${HOME}/tmp" "https://raw.githubusercontent.com/agarrharr/awesome-cli-apps/master/readme.md"
-
-  # Wget test
-  wget_install -O "${HOME}/tmp" "https://raw.githubusercontent.com/agarrharr/awesome-cli-apps/master/readme.md"
-
-  # Git test
-  git_clone -f "https://github.com/marklcrns/tmp-ez-install" "${HOME}/tmp/tmp-ez-install"
-
-  # Npm test
-  npm_install -g 'glances'
-
-  # Pip test
-  pip_install 'glances'
-
-  pac_report
+main() {
+	local selected
+	local list=("123" "321" "4321")
+	list_selector -t 1 selected "${list[@]}"
+	printf "Selected item: ${selected}\n"
 }
 
-myfunc
+main

@@ -158,6 +158,40 @@ load "../install/common.sh"
   rm -rf "${EZ_TMP_DIR}"
 }
 
+@test "install.common.list_selector() test selected item exist" {
+  local selected
+  local list=("item1" "item2" "item3")
+
+  run list_selector selected "${list[@]}" <<< "1"
+  assert_success
+}
+
+@test "install.common.list_selector() test selected item returned accurately" {
+  local selected
+  local list=("item1" "item2" "item3")
+
+  list_selector selected "${list[@]}" <<< "1"
+  assert_equal "$selected" "item1"
+}
+
+@test "install.common.list_selector() test selected item does not exist" {
+  local selected
+  local list=("item1" "item2" "item3")
+
+  run list_selector -t 0.5 selected "${list[@]}" <<< "4"
+  assert_failure
+}
+
+@test "install.common.list_selector() test skip to select an item" {
+  local selected
+  local list=("item1" "item2" "item3")
+
+  run list_selector selected "${list[@]}" <<< "0"
+  assert_success
+}
+
+# TODO: Test select_package
+
 @test "install.common.select_package() test no required arguments" {
   run select_package
   assert_failure

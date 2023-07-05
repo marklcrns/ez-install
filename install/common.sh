@@ -94,7 +94,7 @@ function resolve_package_dir() {
 function fetch_package() {
 	if [[ -z "${1+x}" ]]; then
 		error "${BASH_SYS_MSG_USAGE_MISSARG}"
-		return $BASH_SYS_EX_USAGE
+		return "$BASH_SYS_EX_USAGE"
 	fi
 
 	local package_var_name="${1:-}"
@@ -102,24 +102,24 @@ function fetch_package() {
 
 	if [[ -z "${package+x}" ]]; then
 		error "${BASH_SYS_MSG_USAGE_INVREFVAR}"
-		return $BASH_SYS_EX_USAGE
+		return "$BASH_SYS_EX_USAGE"
 	fi
 
 	# Strip trailing '/' in DIR paths
-	PACKAGE_DIR=$(echo ${PACKAGE_DIR} | sed 's,/*$,,')
-	LOCAL_PACKAGE_DIR=$(echo ${LOCAL_PACKAGE_DIR} | sed 's,/*$,,')
+	PACKAGE_DIR="${PACKAGE_DIR%/}"
+	LOCAL_PACKAGE_DIR="${LOCAL_PACKAGE_DIR%/}"
 
 	if [[ -e "${LOCAL_PACKAGE_DIR}/${package}" ]]; then
 		info "Package '${package}' found in '${LOCAL_PACKAGE_DIR}'"
 		eval "${package_var_name}='${LOCAL_PACKAGE_DIR}/${package}'"
-		return $BASH_EX_OK
+		return "$BASH_EX_OK"
 	elif [[ -e "${PACKAGE_DIR}/${package}" ]]; then
 		info "Package '${package}' found in '${PACKAGE_DIR}'"
 		eval "${package_var_name}='${PACKAGE_DIR}/${package}'"
-		return $BASH_EX_OK
+		return "$BASH_EX_OK"
 	else
 		skip "Package '${package}' not found"
-		return $BASH_EZ_EX_PAC_NOTFOUND
+		return "$BASH_EZ_EX_PAC_NOTFOUND"
 	fi
 }
 
@@ -138,8 +138,105 @@ function fetch_package() {
 #######################################
 function has_package() {
 	if [[ ! -e "${LOCAL_PACKAGE_DIR}/${1:?}" ]] && [[ ! -e "${PACKAGE_DIR}/${1}" ]]; then
-		return $BASH_EZ_EX_PAC_NOTFOUND || return $BASH_EX_OK
+		return "$BASH_EZ_EX_PAC_NOTFOUND" || return "$BASH_EX_OK"
 	fi
+}
+
+#######################################
+# Selects an item from a list.
+# Globals:
+#   None
+# Arguments:
+#   $1   The variable name to store the selected item.
+#   $@   The list of items to select from.
+# Returns:
+#  BASH_SYS_EX_USAGE         If the variable name or list of items is not set.
+#  BASH_EX_OK                If an item is selected.
+#  BASH_EX_GENERAL           If no item is selected.
+# Usage:
+#      list_selector selected_var_name "item1" "item2" "item3"
+#######################################
+function list_selector() {
+	local _timeout=
+	local _prompt=
+
+	OPTIND=1
+	while getopts "t:p:" opt; do
+		case ${opt} in
+		t)
+			_timeout=${OPTARG}
+			;;
+		p)
+			_prompt=${OPTARG}
+			;;
+		*)
+			error "Invalid flag option(s)"
+			exit $BASH_SYS_EX_USAGE
+			;;
+		esac
+	done
+	shift "$((OPTIND - 1))"
+
+	if [[ -z "${1+x}" ]]; then
+		error "${BASH_SYS_MSG_USAGE_MISSARG}"
+		return "$BASH_SYS_EX_USAGE"
+	fi
+
+	local selected_var_name="${1}"
+	shift
+
+	if [[ -z "${*}" ]]; then
+		error "${BASH_SYS_MSG_USAGE_MISSARG}"
+		return "$BASH_SYS_EX_USAGE"
+	fi
+
+	local list=("$@")
+	local select=""
+
+	if [[ -z "${_prompt}" ]]; then
+		_prompt="Select an item (1-${#list[@]}) from list, or 0 to skip: "
+	fi
+
+	if [[ -n "${list[*]}" ]]; then
+		if [[ "${#list[@]}" -eq 1 ]]; then
+			select="${list[0]}"
+			info "Defaulting to '${select}'"
+		else
+			local i=
+			while true; do
+				# List items
+				for i in "${!list[@]}"; do
+					printf "$((i + 1))) ${list[$i]}\n"
+				done
+				printf "\n"
+				# Read input
+				if [[ -z "${_timeout}" ]]; then
+					read -p "${_prompt}"
+				else
+					read -t "${_timeout}" -p "${_prompt}"
+					# Catch possible errors, mainly timeouts
+					if [[ $? -ne 0 ]]; then
+						printf "Timeout!\n"
+						return $BASH_EX_TIMEOUT
+					fi
+				fi
+				# Check input
+				if [[ "${REPLY}" =~ ^-?[0-9]+$ ]]; then
+					if [[ "${REPLY}" -le "${#list[@]}" ]]; then
+						[[ "${REPLY}" -eq 0 ]] && return $BASH_EX_OK # Skip
+						select="${list[$((REPLY - 1))]}"
+						break
+					fi
+				fi
+			done
+		fi
+	fi
+
+	if [[ -n "${select}" ]]; then
+		eval "${selected_var_name}=${select}"
+		return $BASH_EX_OK
+	fi
+	return $BASH_EX_GENERAL
 }
 
 # TODO: Search as executable name instead if package not found using grep
@@ -161,15 +258,16 @@ function has_package() {
 function select_package() {
 	if [[ -z "${1+x}" ]]; then
 		error "${BASH_SYS_MSG_USAGE_MISSARG}"
-		return $BASH_SYS_EX_USAGE
+		return "$BASH_SYS_EX_USAGE"
 	fi
 	if [[ -z "${2+x}" ]]; then
 		error "${BASH_SYS_MSG_USAGE_MISSARG}"
-		return $BASH_SYS_EX_USAGE
+		return "$BASH_SYS_EX_USAGE"
 	fi
 
-	local package="${1%.*}"
-	local package_ext="$([[ "${1##*.}" != "${package}" ]] && echo "${1##*.}")"
+	local package="${1%.*}"      # Strip extension
+	local package_ext="${1##*.}" # Get extension
+	[[ "${package_ext}" == "${package}" ]] && package_ext=""
 	local selected_var_name="${2}"
 	local excluded=${3:-}
 
