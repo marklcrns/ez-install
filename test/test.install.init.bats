@@ -13,53 +13,53 @@ load "../install/init.sh"
 # See https://github.com/bats-core/bats-core/blob/master/docs/source/gotchas.rst#why-cant-my-function-return-results-via-a-variable-when-using-run
 
 
-@test "install.init.handle_package_args() test -o output_path correct usage" {
+@test "install.init.handle_package_args() test -o output_path flag correct usage" {
   local test_path="/path/to/"
   assert_equal "$output_path" ""
   handle_package_args -o "$test_path"
   assert_equal "$output_path" "$test_path"
 }
 
-@test "install.init.handle_package_args() test -o output_path missing OPTARG" {
+@test "install.init.handle_package_args() test -o output_path flag missing OPTARG" {
   assert_equal "$output_path" ""
   run handle_package_args -o
   assert_failure
 }
 
-@test "install.init.handle_package_args() test -e execute correct usage" {
+@test "install.init.handle_package_args() test -e execute flag correct usage" {
   local test_execute="true"
   assert_equal "$execute" ""
   handle_package_args -e "$test_execute"
   assert_equal "$execute" "$test_execute"
 }
 
-@test "install.init.handle_package_args() test -e execute missing OPTARG" {
+@test "install.init.handle_package_args() test -e execute flag missing OPTARG" {
   assert_equal "$execute" ""
   run handle_package_args -e
   assert_failure
 }
 
-@test "install.init.handle_package_args() test -f force correct usage" {
+@test "install.init.handle_package_args() test -f force flag correct usage" {
   local test_force="true"
   assert_equal "$force" ""
   handle_package_args -f "$test_force"
   assert_equal "$force" "$test_force"
 }
 
-@test "install.init.handle_package_args() test -f force missing OPTARG" {
+@test "install.init.handle_package_args() test -f force flag missing OPTARG" {
   assert_equal "$force" ""
   run handle_package_args -f
   assert_failure
 }
 
-@test "install.init.handle_package_args() test -f as_root correct usage" {
+@test "install.init.handle_package_args() test -s as_root flag correct usage" {
   local test_as_root="true"
   assert_equal "$as_root" ""
   handle_package_args -s "$test_as_root"
   assert_equal "$as_root" "$test_as_root"
 }
 
-@test "install.init.handle_package_args() test -f as_root missing OPTARG" {
+@test "install.init.handle_package_args() test -s as_root flag missing OPTARG" {
   assert_equal "$as_root" ""
   run handle_package_args -s
   assert_failure

@@ -158,6 +158,27 @@ load "../install/common.sh"
   rm -rf "${EZ_TMP_DIR}"
 }
 
+@test "install.common.list_selector() test -t timeout flag correct usage" {
+  local selected
+  local list=("item1" "item2" "item3")
+
+  run list_selector -t 0.5 selected "${list[@]}"
+  assert_failure
+}
+
+# FIXME: Bats does not wait for timeout. read `prompt` cannot be captured by
+# bats output ${lines[@]}.
+#
+# @test "install.common.list_selector() test -p prompt flag correct usage" {
+#   local selected
+#   local list=("item1" "item2" "item3")
+#   local prompt="Sample prompt message: "
+#
+#   # output all to stdout
+#   run list_selector -t 0.5 -p "Sample prompt message: " selected "${list[@]}" 2>&1 | grep -q "${prompt}"
+#   assert_success
+# }
+
 @test "install.common.list_selector() test selected item exist" {
   local selected
   local list=("item1" "item2" "item3")
@@ -190,8 +211,6 @@ load "../install/common.sh"
   assert_success
 }
 
-# TODO: Test select_package
-
 @test "install.common.select_package() test no required arguments" {
   run select_package
   assert_failure
@@ -199,10 +218,34 @@ load "../install/common.sh"
 }
 
 @test "install.common.select_package() test missing second argument" {
-  run select_package
+  run select_package "test-package"
   assert_failure
   assert_equal "$status" $BASH_SYS_EX_USAGE
 }
+
+@test "install.common.select_package() test selected package exist" {
+  EZ_TMP_DIR="${HOME}/ez-tmp-dir"
+  LOCAL_PACKAGE_DIR="${EZ_TMP_DIR}/local"
+  PACKAGE_DIR="${EZ_TMP_DIR}/global"
+  local package="test"
+  mkdir -p "${LOCAL_PACKAGE_DIR}"
+  mkdir -p "${PACKAGE_DIR}"
+  touch "${PACKAGE_DIR}/${package}1-global"
+  touch "${PACKAGE_DIR}/${package}2-global"
+  touch "${LOCAL_PACKAGE_DIR}/${package}1-local"
+  touch "${LOCAL_PACKAGE_DIR}/${package}2-local"
+
+  local selected
+
+  select_package "test" selected <<< "1"
+  assert_equal "$selected" "${PACKAGE_DIR}/${package}1-global"
+
+  rm -rf "${EZ_TMP_DIR}"
+}
+
+# TODO: Test select_package even more
+
+
 
 # TODO: Test has_alternate_package
 

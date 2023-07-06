@@ -144,6 +144,8 @@ function has_package() {
 
 #######################################
 # Selects an item from a list.
+# Warning, This function uses `eval` to set the selected item to the variable
+# name. Make sure the variable name is not named '_selected_item'
 # Globals:
 #   None
 # Arguments:
@@ -154,20 +156,20 @@ function has_package() {
 #  BASH_EX_OK                If an item is selected.
 #  BASH_EX_GENERAL           If no item is selected.
 # Usage:
-#      list_selector selected_var_name "item1" "item2" "item3"
+#      list_selector var_name "item1" "item2" "item3"
 #######################################
 function list_selector() {
-	local _timeout=
-	local _prompt=
+	local timeout=
+	local prompt=
 
 	OPTIND=1
 	while getopts "t:p:" opt; do
 		case ${opt} in
 		t)
-			_timeout=${OPTARG}
+			timeout=${OPTARG}
 			;;
 		p)
-			_prompt=${OPTARG}
+			prompt=${OPTARG}
 			;;
 		*)
 			error "Invalid flag option(s)"
@@ -191,16 +193,16 @@ function list_selector() {
 	fi
 
 	local list=("$@")
-	local select=""
+	local _selected_item=""
 
-	if [[ -z "${_prompt}" ]]; then
-		_prompt="Select an item (1-${#list[@]}) from list, or 0 to skip: "
+	if [[ -z "${prompt}" ]]; then
+		prompt="Select an item (1-${#list[@]}) from list, or 0 to skip: "
 	fi
 
 	if [[ -n "${list[*]}" ]]; then
 		if [[ "${#list[@]}" -eq 1 ]]; then
-			select="${list[0]}"
-			info "Defaulting to '${select}'"
+			_selected_item="${list[0]}"
+			info "Defaulting to '${_selected_item}'"
 		else
 			local i=
 			while true; do
@@ -210,13 +212,13 @@ function list_selector() {
 				done
 				printf "\n"
 				# Read input
-				if [[ -z "${_timeout}" ]]; then
-					read -p "${_prompt}"
+				if [[ -z "${timeout}" ]]; then
+					read -p "${prompt}"
 				else
-					read -t "${_timeout}" -p "${_prompt}"
+					read -t "${timeout}" -p "${prompt}"
 					# Catch possible errors, mainly timeouts
 					if [[ $? -ne 0 ]]; then
-						printf "Timeout!\n"
+						printf "Aborted!\n"
 						return $BASH_EX_TIMEOUT
 					fi
 				fi
@@ -224,7 +226,7 @@ function list_selector() {
 				if [[ "${REPLY}" =~ ^-?[0-9]+$ ]]; then
 					if [[ "${REPLY}" -le "${#list[@]}" ]]; then
 						[[ "${REPLY}" -eq 0 ]] && return $BASH_EX_OK # Skip
-						select="${list[$((REPLY - 1))]}"
+						_selected_item="${list[$((REPLY - 1))]}"
 						break
 					fi
 				fi
@@ -232,8 +234,8 @@ function list_selector() {
 		fi
 	fi
 
-	if [[ -n "${select}" ]]; then
-		eval "${selected_var_name}=${select}"
+	if [[ -n "${_selected_item}" ]]; then
+		eval "${selected_var_name}=${_selected_item}"
 		return $BASH_EX_OK
 	fi
 	return $BASH_EX_GENERAL
@@ -242,6 +244,8 @@ function list_selector() {
 # TODO: Search as executable name instead if package not found using grep
 #######################################
 # Selects a package from the global or local package directory interactively.
+# Warning, This function uses `eval` to set the selected package to the variable
+# name. Make sure the variable name is not named '_selected_package'
 # Globals:
 #   PACKAGE_DIR
 #   LOCAL_PACKAGE_DIR
@@ -271,51 +275,36 @@ function select_package() {
 	local selected_var_name="${2}"
 	local excluded=${3:-}
 
-	local package_dirs=
-	[[ -d "${PACKAGE_DIR}" ]] && package_dirs=(${package_dirs} "${PACKAGE_DIR}")
-	[[ -d "${LOCAL_PACKAGE_DIR}" ]] && package_dirs=(${package_dirs} "${LOCAL_PACKAGE_DIR}")
+	local package_dirs=()
+	[[ -d "${PACKAGE_DIR}" ]] && package_dirs=("${package_dirs[@]}" "${PACKAGE_DIR}")
+	[[ -d "${LOCAL_PACKAGE_DIR}" ]] && package_dirs=("${package_dirs[@]}" "${LOCAL_PACKAGE_DIR}")
 
 	local matches=(
 		$(
-			find ${package_dirs[@]} -type f \
+			find "${package_dirs[@]}" -type f \
 				! -name "${excluded}" \
 				! -name "*${package}*.pre" \
 				! -name "*${package}*.post" \
 				! -name "*${package}.${package_ext}.*" \
-				-name "*${package}*"
+				-name "*${package}*" |
+				sort
 		)
 	)
 
-	local select=""
+	local _selected_package=""
 
-	if [[ -n "${matches[@]}" ]]; then
+	if [[ -n "${matches[*]}" ]]; then
 		if [[ "${#matches[@]}" -eq 1 ]]; then
-			select="${matches[0]}"
-			warning "Defaulting: ${package} -> $(basename -- "${select}")"
+			_selected_package="${matches[0]}"
+			warning "Defaulting: ${package} -> $(basename -- "${_selected_package}")"
 		else
 			printf "\nMultiple '${package}' package detected\n\n"
-			local i=
-			while true; do
-				printf "0) SKIP INSTALL\n"
-				for i in "${!matches[@]}"; do
-					printf "$(($i + 1))) ${matches[$i]}\n"
-				done
-				printf "\n"
-				read -p "Please select from the matches (1-${#matches[@]}): "
-				printf "\n"
-				if [[ "${REPLY}" =~ ^-?[0-9]+$ ]]; then
-					if [[ "${REPLY}" -le "${#matches[@]}" ]]; then
-						[[ "${REPLY}" -eq 0 ]] && return $BASH_EX_OK # Skip
-						select="${matches[$(($REPLY - 1))]}"
-						break
-					fi
-				fi
-			done
+			list_selector _selected_package "${matches[@]}"
 		fi
 	fi
 
-	if [[ -n "${select}" ]]; then
-		eval "${selected_var_name}=${select}"
+	if [[ -n "${_selected_package}" ]]; then
+		eval "${selected_var_name}=${_selected_package}"
 		return $BASH_EX_OK
 	else
 		skip "No matching package for '${package}'"
@@ -332,17 +321,19 @@ function has_alternate_package() {
 	local package="${1%.*}"
 	local package_ext="$([[ "${1##*.}" != "${package}" ]] && echo "${1##*.}")"
 
-	local package_dirs=
-	[[ -d "${PACKAGE_DIR}" ]] && package_dirs=(${package_dirs} "${PACKAGE_DIR}")
-	[[ -d "${LOCAL_PACKAGE_DIR}" ]] && package_dirs=(${package_dirs} "${LOCAL_PACKAGE_DIR}")
+	local package_dirs=()
+	[[ -d "${PACKAGE_DIR}" ]] && package_dirs=("${package_dirs[@]}" "${PACKAGE_DIR}")
+	[[ -d "${LOCAL_PACKAGE_DIR}" ]] && package_dirs=("${package_dirs[@]}" "${LOCAL_PACKAGE_DIR}")
 
 	local matches=(
 		$(
-			find ${package_dirs[@]} -type f \
+			find "${package_dirs[@]}" -type f \
+				! -name "${excluded}" \
 				! -name "*${package}*.pre" \
 				! -name "*${package}*.post" \
 				! -name "*${package}.${package_ext}.*" \
-				-name "*${package}*"
+				-name "*${package}*" |
+				sort
 		)
 	)
 
