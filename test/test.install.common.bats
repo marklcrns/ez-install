@@ -8,6 +8,13 @@ load "../install/common.sh"
 
 @test "install.common.resolve_package_dir() test non-empty PACKAGE_ROOT_DIR" {
   unset PACKAGE_ROOT_DIR
+  PACKAGE_ROOT_DIR="/path/to/packages"
+  resolve_package_dir
+  assert_equal "$PACKAGE_ROOT_DIR" "/path/to/packages"
+}
+
+@test "install.common.resolve_package_dir() test non-empty package dir trailing slash stripped" {
+  unset PACKAGE_ROOT_DIR
   PACKAGE_ROOT_DIR="/path/to/packages/"
   resolve_package_dir
   assert_equal "$PACKAGE_ROOT_DIR" "/path/to/packages"
@@ -214,16 +221,49 @@ load "../install/common.sh"
 @test "install.common.select_package() test no required arguments" {
   run select_package
   assert_failure
-  assert_equal "$status" $BASH_SYS_EX_USAGE
+  assert_equal "$status" "$BASH_SYS_EX_USAGE"
 }
 
 @test "install.common.select_package() test missing second argument" {
   run select_package "test-package"
   assert_failure
-  assert_equal "$status" $BASH_SYS_EX_USAGE
+  assert_equal "$status" "$BASH_SYS_EX_USAGE"
 }
 
-@test "install.common.select_package() test selected package exist" {
+@test "install.common.select_package() test selected package does not exist" {
+  EZ_TMP_DIR="${HOME}/ez-tmp-dir"
+  LOCAL_PACKAGE_DIR="${EZ_TMP_DIR}/local"
+  PACKAGE_DIR="${EZ_TMP_DIR}/global"
+  local package="test"
+  mkdir -p "${LOCAL_PACKAGE_DIR}"
+  mkdir -p "${PACKAGE_DIR}"
+
+  local selected
+
+  run select_package "${package}" selected
+  assert_failure
+  assert_equal "$status" "$BASH_EZ_EX_PAC_NOTFOUND"
+
+  rm -rf "${EZ_TMP_DIR}"
+}
+
+@test "install.common.select_package() test selected package exist and defaulted from selection" {
+  EZ_TMP_DIR="${HOME}/ez-tmp-dir"
+  PACKAGE_DIR="${EZ_TMP_DIR}/global"
+  local package="test"
+  mkdir -p "${PACKAGE_DIR}"
+  touch "${PACKAGE_DIR}/${package}1-global"
+
+  local selected
+
+  select_package "${package}" selected
+  assert_success
+  assert_equal "$selected" "${PACKAGE_DIR}/${package}1-global"
+
+  rm -rf "${EZ_TMP_DIR}"
+}
+
+@test "install.common.select_package() test selected package exist from sorted list" {
   EZ_TMP_DIR="${HOME}/ez-tmp-dir"
   LOCAL_PACKAGE_DIR="${EZ_TMP_DIR}/local"
   PACKAGE_DIR="${EZ_TMP_DIR}/global"
@@ -237,15 +277,12 @@ load "../install/common.sh"
 
   local selected
 
-  select_package "test" selected <<< "1"
+  select_package "${package}" selected <<< "1"
+  assert_success
   assert_equal "$selected" "${PACKAGE_DIR}/${package}1-global"
 
   rm -rf "${EZ_TMP_DIR}"
 }
-
-# TODO: Test select_package even more
-
-
 
 # TODO: Test has_alternate_package
 

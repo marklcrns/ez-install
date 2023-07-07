@@ -66,8 +66,8 @@ function resolve_package_dir() {
 		LOCAL_PACKAGE_ROOT_DIR="${HOME}/.ez-install.d/packages"
 	fi
 	# Strip trailing '/' in DIR paths
-	PACKAGE_ROOT_DIR=$(echo ${PACKAGE_ROOT_DIR} | sed 's,/*$,,')
-	LOCAL_PACKAGE_ROOT_DIR=$(echo ${LOCAL_PACKAGE_ROOT_DIR} | sed 's,/*$,,')
+	PACKAGE_ROOT_DIR=${PACKAGE_ROOT_DIR%/}
+	LOCAL_PACKAGE_ROOT_DIR=${LOCAL_PACKAGE_ROOT_DIR%/}
 
 	PACKAGE_DIR="${PACKAGE_ROOT_DIR}/${distrib_id}/${distrib_release}"
 	LOCAL_PACKAGE_DIR="${LOCAL_PACKAGE_ROOT_DIR}/${distrib_id}/${distrib_release}"
@@ -173,7 +173,7 @@ function list_selector() {
 			;;
 		*)
 			error "Invalid flag option(s)"
-			exit $BASH_SYS_EX_USAGE
+			exit "$BASH_SYS_EX_USAGE"
 			;;
 		esac
 	done
@@ -208,24 +208,23 @@ function list_selector() {
 			while true; do
 				# List items
 				for i in "${!list[@]}"; do
-					printf "$((i + 1))) ${list[$i]}\n"
+					printf "%d) %s\n" "$((i + 1))" "${list[$i]}"
 				done
 				printf "\n"
 				# Read input
 				if [[ -z "${timeout}" ]]; then
-					read -p "${prompt}"
+					read -r -p "${prompt}"
 				else
-					read -t "${timeout}" -p "${prompt}"
-					# Catch possible errors, mainly timeouts
-					if [[ $? -ne 0 ]]; then
+					if ! read -r -t "${timeout}" -p "${prompt}"; then
+						# Catch possible errors, mainly for timeouts
 						printf "Aborted!\n"
-						return $BASH_EX_TIMEOUT
+						return "$BASH_EX_TIMEOUT"
 					fi
 				fi
 				# Check input
 				if [[ "${REPLY}" =~ ^-?[0-9]+$ ]]; then
 					if [[ "${REPLY}" -le "${#list[@]}" ]]; then
-						[[ "${REPLY}" -eq 0 ]] && return $BASH_EX_OK # Skip
+						[[ "${REPLY}" -eq 0 ]] && return "$BASH_EX_OK" # Skip
 						_selected_item="${list[$((REPLY - 1))]}"
 						break
 					fi
@@ -236,9 +235,9 @@ function list_selector() {
 
 	if [[ -n "${_selected_item}" ]]; then
 		eval "${selected_var_name}=${_selected_item}"
-		return $BASH_EX_OK
+		return "$BASH_EX_OK"
 	fi
-	return $BASH_EX_GENERAL
+	return "$BASH_EX_GENERAL"
 }
 
 # TODO: Search as executable name instead if package not found using grep
@@ -269,9 +268,9 @@ function select_package() {
 		return "$BASH_SYS_EX_USAGE"
 	fi
 
-	local package="${1%.*}"      # Strip extension
-	local package_ext="${1##*.}" # Get extension
-	[[ "${package_ext}" == "${package}" ]] && package_ext=""
+	local package="${1%.*}"                                  # Strip extension
+	local package_ext="${1##*.}"                             # Get extension
+	[[ "${package_ext}" == "${package}" ]] && package_ext="" # No extension
 	local selected_var_name="${2}"
 	local excluded=${3:-}
 
@@ -279,16 +278,16 @@ function select_package() {
 	[[ -d "${PACKAGE_DIR}" ]] && package_dirs=("${package_dirs[@]}" "${PACKAGE_DIR}")
 	[[ -d "${LOCAL_PACKAGE_DIR}" ]] && package_dirs=("${package_dirs[@]}" "${LOCAL_PACKAGE_DIR}")
 
-	local matches=(
-		$(
-			find "${package_dirs[@]}" -type f \
-				! -name "${excluded}" \
-				! -name "*${package}*.pre" \
-				! -name "*${package}*.post" \
-				! -name "*${package}.${package_ext}.*" \
-				-name "*${package}*" |
-				sort
-		)
+	local matches=()
+
+	readarray -t matches < <(
+		find "${package_dirs[@]}" -type f \
+			! -name "${excluded}" \
+			! -name "*${package}*.pre" \
+			! -name "*${package}*.post" \
+			! -name "*${package}.${package_ext}.*" \
+			-name "*${package}*" |
+			sort
 	)
 
 	local _selected_package=""
@@ -298,68 +297,69 @@ function select_package() {
 			_selected_package="${matches[0]}"
 			warning "Defaulting: ${package} -> $(basename -- "${_selected_package}")"
 		else
-			printf "\nMultiple '${package}' package detected\n\n"
+			printf "\nMultiple '%s' package detected\n\n" "${package}"
 			list_selector _selected_package "${matches[@]}"
 		fi
 	fi
 
 	if [[ -n "${_selected_package}" ]]; then
 		eval "${selected_var_name}=${_selected_package}"
-		return $BASH_EX_OK
+		return "$BASH_EX_OK"
 	else
 		skip "No matching package for '${package}'"
-		return $BASH_EZ_EX_PAC_NOTFOUND
+		return "$BASH_EZ_EX_PAC_NOTFOUND"
 	fi
 }
 
 function has_alternate_package() {
 	if [[ -z "${1+x}" ]]; then
 		error "${BASH_SYS_MSG_USAGE_MISSARG}"
-		return $BASH_SYS_EX_USAGE
+		return "$BASH_SYS_EX_USAGE"
 	fi
 
-	local package="${1%.*}"
-	local package_ext="$([[ "${1##*.}" != "${package}" ]] && echo "${1##*.}")"
+	local package="${1%.*}"                                  # Strip extension
+	local package_ext="${1##*.}"                             # Get extension
+	[[ "${package_ext}" == "${package}" ]] && package_ext="" # No extension
 
 	local package_dirs=()
 	[[ -d "${PACKAGE_DIR}" ]] && package_dirs=("${package_dirs[@]}" "${PACKAGE_DIR}")
 	[[ -d "${LOCAL_PACKAGE_DIR}" ]] && package_dirs=("${package_dirs[@]}" "${LOCAL_PACKAGE_DIR}")
 
-	local matches=(
-		$(
-			find "${package_dirs[@]}" -type f \
-				! -name "${excluded}" \
-				! -name "*${package}*.pre" \
-				! -name "*${package}*.post" \
-				! -name "*${package}.${package_ext}.*" \
-				-name "*${package}*" |
-				sort
-		)
+	local matches=()
+
+	readarray -t matches < <(
+		find "${package_dirs[@]}" -type f \
+			! -name "${excluded}" \
+			! -name "*${package}*.pre" \
+			! -name "*${package}*.post" \
+			! -name "*${package}.${package_ext}.*" \
+			-name "*${package}*" |
+			sort
 	)
 
-	if [[ -n "${matches[@]}" ]]; then
+	if [[ -n "${matches[*]}" ]]; then
 		info "Alternate package found for '${package}'"
-		return $BASH_EX_OK
+		return "$BASH_EX_OK"
 	fi
 
 	local res=0
 	if ! $INSTALL_SKIP_GENERATE; then
 		! $DEBUG && printf "\n"
 		warning "Generating ${package}"
-		${EZ_COMMAND_GEN} -i ${package}
+		${EZ_COMMAND_GEN} -i "${package}"
 		res=$?
-		[[ $res -eq $BASH_EX_OK ]] && return $BASH_EZ_EX_PAC_GENERATED || return $res
+		[[ $res -eq $BASH_EX_OK ]] && return "$BASH_EZ_EX_PAC_GENERATED" || return $res
 	fi
 
 	info "Alternate package NOT found for '${package}'"
-	return $BASH_EZ_EX_PAC_NOTFOUND
+	return "$BASH_EZ_EX_PAC_NOTFOUND"
 }
 
 # Requires $recursive and $as_root to be defined outside of function
 function parse_inline_opts() {
 	if [[ -z "${1+x}" ]]; then
 		error "${BASH_SYS_MSG_USAGE_MISSARG}"
-		return $BASH_SYS_EX_USAGE
+		return "$BASH_SYS_EX_USAGE"
 	fi
 
 	local __package="${1%#*}" # Strip #opts
@@ -418,22 +418,22 @@ function parse_inline_opts() {
 function get_user_input() {
 	if [[ -z "${1+x}" ]]; then
 		error "${BASH_SYS_MSG_USAGE_MISSARG}"
-		return $BASH_SYS_EX_USAGE
+		return "$BASH_SYS_EX_USAGE"
 	fi
 
 	if [[ -z "${2+x}" ]]; then
 		error "${BASH_SYS_MSG_USAGE_MISSARG}"
-		return $BASH_SYS_EX_USAGE
+		return "$BASH_SYS_EX_USAGE"
 	fi
 
 	echo -ne "${2}"
-	read ${1}
+	read -r "${1}"
 }
 
 function get_sys_package_manager() {
 	if [[ -z "${1+x}" ]]; then
 		error "${BASH_SYS_MSG_USAGE_MISSARG}"
-		return $BASH_SYS_EX_USAGE
+		return "$BASH_SYS_EX_USAGE"
 	fi
 
 	local manager=""
@@ -456,7 +456,7 @@ function get_sys_package_manager() {
 		fi
 	else
 		error "${BASH_EZ_MSG_PACMAN_NOTFOUND}"
-		return $BASH_EZ_EX_PACMAN_NOTFOUND
+		return "$BASH_EZ_EX_PACMAN_NOTFOUND"
 	fi
 
 	eval "${1}='${manager}'"

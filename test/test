@@ -37,7 +37,7 @@ main() {
 
 	# list_selector -p "${prompt}" selected "${list[@]}" 2>&1
 	select_package "test" selected
-	echo ${selected}
+  echo ${selected}
 }
 
 main

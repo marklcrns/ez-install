@@ -32,7 +32,6 @@ source "$(dirname -- $(realpath -- "${BASH_SOURCE[0]}"))/.ez-installrc"
 source "${EZ_INSTALL_HOME}/common/include.sh"
 
 include "${EZ_INSTALL_HOME}/common/log.sh"
-include "${EZ_INSTALL_HOME}/common/string.sh"
 include "${EZ_INSTALL_HOME}/const.sh"
 
 # FIXME: Message with `-` were treated as flags
@@ -48,13 +47,11 @@ function crit() { _action -l 'crit' -e "${BASH_EX_GENERAL}" "${@}"; }
 function _action() {
 	local depth=1
 	local log="info"
-	local exit_code=
 
 	OPTIND=1
-	while getopts "d:e:l:" opt; do
+	while getopts "d:l:" opt; do
 		case ${opt} in
 		d) depth=${OPTARG} ;;
-		e) exit_code=${OPTARG} ;;
 		l) log="${OPTARG}" ;;
 		*)
 			log "error" "$(basename -- "${BASH_SOURCE[2]}").${FUNCNAME[${depth}]}():${BASH_LINENO[1]} Invalid flag option(s)"
@@ -69,8 +66,7 @@ function _action() {
 		exit "$BASH_SYS_EX_USAGE"
 	fi
 
-	local message="${1}"
-	[[ -n "${2+x}" ]] && exit_code=${2}
+	local message="${*}"
 	depth=$((depth + 1)) # offset wrapper function
 
 	if ${DEBUG}; then
@@ -78,8 +74,6 @@ function _action() {
 	else
 		log "${log}" "${message}"
 	fi
-
-	is_integer "$exit_code" && exit "$exit_code"
 }
 
 # Execute message then log DEBUG on VERBOSE.
