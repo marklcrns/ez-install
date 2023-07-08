@@ -240,6 +240,21 @@ function list_selector() {
 	return "$BASH_EX_GENERAL"
 }
 
+#######################################
+# Print installer packages in the global or local package directory. Excludes
+# pre- and post- installer hooks.
+# Globals:
+#   PACKAGE_DIR
+#   LOCAL_PACKAGE_DIR
+# Arguments:
+#   $1              String to match in the package name
+#   $2 (optional)   String to exclude in the package name
+# Returns:
+#   BASH_SYS_EX_USAGE   If the string to match is not set.
+# Usage:
+#   print_packages "$package" "$exclude"
+#   print_packages "python" "dev"
+#######################################
 function print_packages() {
 	if [[ -z "${1+x}" ]]; then
 		error "${BASH_SYS_MSG_USAGE_MISSARG}"
@@ -281,8 +296,9 @@ function print_packages() {
 #   PACKAGE_DIR
 #   LOCAL_PACKAGE_DIR
 # Arguments:
-#   package             The package name to search for.
-#   selected_var_name   Variable that will be set to the selected package path.
+#   $1              Variable to set the selected package path to.
+#   $2              String to match in the package name
+#   $3 (optional)   String to exclude in the package name.
 # Returns:
 #   BASH_EX_OK                If the package is found.
 #   BASH_EZ_EX_PAC_NOTFOUND   If the package is not found.
@@ -300,9 +316,9 @@ function select_package() {
 		return "$BASH_SYS_EX_USAGE"
 	fi
 
-	local package_file="${1}"
+	local selected_var_name="${1}"
+	local package_file="${2}"
 	local package="${package_file%.*}" # Strip extension
-	local selected_var_name="${2}"
 	local excluded=${3:-}
 
 	readarray -t matches < <(print_packages "${package_file}" "${excluded}")
