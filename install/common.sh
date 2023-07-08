@@ -240,7 +240,39 @@ function list_selector() {
 	return "$BASH_EX_GENERAL"
 }
 
-# TODO: Search as executable name instead if package not found using grep
+function print_packages() {
+	if [[ -z "${1+x}" ]]; then
+		error "${BASH_SYS_MSG_USAGE_MISSARG}"
+		return "$BASH_SYS_EX_USAGE"
+	fi
+
+	local package="${1%.*}"                                  # Strip extension
+	local package_ext="${1##*.}"                             # Get extension
+	[[ "${package_ext}" == "${package}" ]] && package_ext="" # No extension
+	local excluded=${2:-}
+
+	local package_dirs=()
+	[[ -d "${PACKAGE_DIR}" ]] && package_dirs=("${package_dirs[@]}" "${PACKAGE_DIR}")
+	[[ -d "${LOCAL_PACKAGE_DIR}" ]] && package_dirs=("${package_dirs[@]}" "${LOCAL_PACKAGE_DIR}")
+
+	if [[ -z "${excluded}" ]]; then
+		find "${package_dirs[@]}" -type f \
+			! -name "*${package}*.pre" \
+			! -name "*${package}*.post" \
+			! -name "*${package}.${package_ext}.*" \
+			-name "*${package}*" |
+			sort
+	else
+		find "${package_dirs[@]}" -type f \
+			! -name "*${excluded}*" \
+			! -name "*${package}*.pre" \
+			! -name "*${package}*.post" \
+			! -name "*${package}.${package_ext}.*" \
+			-name "*${package}*" |
+			sort
+	fi
+}
+
 #######################################
 # Selects a package from the global or local package directory interactively.
 # Warning, This function uses `eval` to set the selected package to the variable
@@ -268,27 +300,12 @@ function select_package() {
 		return "$BASH_SYS_EX_USAGE"
 	fi
 
-	local package="${1%.*}"                                  # Strip extension
-	local package_ext="${1##*.}"                             # Get extension
-	[[ "${package_ext}" == "${package}" ]] && package_ext="" # No extension
+	local package_file="${1}"
+	local package="${package_file%.*}" # Strip extension
 	local selected_var_name="${2}"
 	local excluded=${3:-}
 
-	local package_dirs=()
-	[[ -d "${PACKAGE_DIR}" ]] && package_dirs=("${package_dirs[@]}" "${PACKAGE_DIR}")
-	[[ -d "${LOCAL_PACKAGE_DIR}" ]] && package_dirs=("${package_dirs[@]}" "${LOCAL_PACKAGE_DIR}")
-
-	local matches=()
-
-	readarray -t matches < <(
-		find "${package_dirs[@]}" -type f \
-			! -name "${excluded}" \
-			! -name "*${package}*.pre" \
-			! -name "*${package}*.post" \
-			! -name "*${package}.${package_ext}.*" \
-			-name "*${package}*" |
-			sort
-	)
+	readarray -t matches < <(print_packages "${package_file}" "${excluded}")
 
 	local _selected_package=""
 
@@ -311,6 +328,21 @@ function select_package() {
 	fi
 }
 
+# WARN: Prepare to deprecate this function. Use print_packages instead.
+#######################################
+# Checks if a package exists in the global or local package directory.
+# Globals:
+#   PACKAGE_DIR
+#   LOCAL_PACKAGE_DIR
+# Arguments:
+#   package   The package name to search for.
+# Returns:
+#   BASH_EX_OK                If the package is found.
+#   BASH_EZ_EX_PAC_NOTFOUND   If the package is not found.
+#   BASH_SYS_EX_USAGE         If the package variable is not set.
+# Usage:
+#   select_package "$package" selected_var_name
+#######################################
 function has_alternate_package() {
 	if [[ -z "${1+x}" ]]; then
 		error "${BASH_SYS_MSG_USAGE_MISSARG}"

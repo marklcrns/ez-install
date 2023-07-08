@@ -36,8 +36,8 @@ main() {
 	local prompt="Sample prompt message: "
 
 	# list_selector -p "${prompt}" selected "${list[@]}" 2>&1
-	select_package "test" selected
-  echo ${selected}
+	# select_package "test" selected "test-common"
+	print_packages "test" "bats"
 }
 
 main

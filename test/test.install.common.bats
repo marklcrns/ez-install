@@ -218,6 +218,8 @@ load "../install/common.sh"
   assert_success
 }
 
+# TODO: Test print_packages
+
 @test "install.common.select_package() test no required arguments" {
   run select_package
   assert_failure
@@ -284,7 +286,28 @@ load "../install/common.sh"
   rm -rf "${EZ_TMP_DIR}"
 }
 
-# TODO: Test has_alternate_package
+@test "install.common.select_package() test selected package with exclusion" {
+  EZ_TMP_DIR="${HOME}/ez-tmp-dir"
+  LOCAL_PACKAGE_DIR="${EZ_TMP_DIR}/local"
+  PACKAGE_DIR="${EZ_TMP_DIR}/global"
+  local package="test"
+  mkdir -p "${LOCAL_PACKAGE_DIR}"
+  mkdir -p "${PACKAGE_DIR}"
+  touch "${PACKAGE_DIR}/${package}1-global"
+  touch "${PACKAGE_DIR}/${package}2-global"
+  touch "${LOCAL_PACKAGE_DIR}/${package}1-local"
+  touch "${LOCAL_PACKAGE_DIR}/${package}2-local"
+
+  local selected
+
+  select_package "${package}" selected "global" <<< "1"
+  assert_success
+  assert_equal "$selected" "${LOCAL_PACKAGE_DIR}/${package}1-local"
+
+  rm -rf "${EZ_TMP_DIR}"
+}
+
+# TODO: Test print_packages
 
 # TODO: Test parse_inline_opts
 
