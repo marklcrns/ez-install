@@ -46,6 +46,8 @@ include "${EZ_INSTALL_HOME}/install/install-utils/install.sh"
 #   PACKAGE_ROOT_DIR
 # Arguments:
 #   None
+# Outputs:
+#   Sets the global variables PACKAGE_DIR and LOCAL_PACKAGE_DIR.
 # Returns:
 #   None
 # Usage:
@@ -249,6 +251,9 @@ function list_selector() {
 # Arguments:
 #   $1              String to match in the package name
 #   $2 (optional)   String to exclude in the package name
+# Outputs:
+#   Writes to stdout the packages found in the global or local package directory
+#   delimited by newlines.
 # Returns:
 #   BASH_SYS_EX_USAGE   If the string to match is not set.
 # Usage:
@@ -299,6 +304,8 @@ function print_packages() {
 #   $1              Variable to set the selected package path to.
 #   $2              String to match in the package name
 #   $3 (optional)   String to exclude in the package name.
+# Outputs:
+#   Sets the variable parameter to the selected package path.
 # Returns:
 #   BASH_EX_OK                If the package is found.
 #   BASH_EZ_EX_PAC_NOTFOUND   If the package is not found.

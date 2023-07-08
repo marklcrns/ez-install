@@ -220,6 +220,138 @@ load "../install/common.sh"
 
 # TODO: Test print_packages
 
+@test "install.common.print_packages() test one package in local path" {
+  unset PACKAGE_DIR
+
+  EZ_TMP_DIR="${HOME}/ez-tmp-dir"
+  LOCAL_PACKAGE_DIR="${EZ_TMP_DIR}/local"
+  local package="test-local"
+  mkdir -p "${LOCAL_PACKAGE_DIR}"
+  touch "${LOCAL_PACKAGE_DIR}/${package}"
+
+  run print_packages "${package}"
+  assert_success
+
+  [[ "${lines[0]}" =~ "${LOCAL_PACKAGE_DIR}/${package}" ]]
+
+  rm -rf "${EZ_TMP_DIR}"
+}
+
+@test "install.common.print_packages() test one package in global path" {
+  unset LOCAL_PACKAGE_DIR
+
+  EZ_TMP_DIR="${HOME}/ez-tmp-dir"
+  PACKAGE_DIR="${EZ_TMP_DIR}/global"
+  local package="test-global"
+  mkdir -p "${PACKAGE_DIR}"
+  touch "${PACKAGE_DIR}/${package}"
+
+  run print_packages "${package}"
+  assert_success
+
+  [[ "${lines[0]}" =~ "${PACKAGE_DIR}/${package}" ]]
+
+  rm -rf "${EZ_TMP_DIR}"
+}
+
+@test "install.common.print_packages() test one package in both local and global path" {
+  EZ_TMP_DIR="${HOME}/ez-tmp-dir"
+  LOCAL_PACKAGE_DIR="${EZ_TMP_DIR}/local"
+  PACKAGE_DIR="${EZ_TMP_DIR}/global"
+  local package="test"
+  mkdir -p "${LOCAL_PACKAGE_DIR}"
+  mkdir -p "${PACKAGE_DIR}"
+  touch "${LOCAL_PACKAGE_DIR}/${package}-local"
+  touch "${PACKAGE_DIR}/${package}-global"
+
+  run print_packages "${package}"
+  assert_success
+
+  [[ "${lines[0]}" =~ "${PACKAGE_DIR}/${package}-global" ]]
+  [[ "${lines[1]}" =~ "${LOCAL_PACKAGE_DIR}/${package}-local" ]]
+
+  rm -rf "${EZ_TMP_DIR}"
+}
+
+@test "install.common.print_packages() test one identical package in both local and global path" {
+  EZ_TMP_DIR="${HOME}/ez-tmp-dir"
+  LOCAL_PACKAGE_DIR="${EZ_TMP_DIR}/local"
+  PACKAGE_DIR="${EZ_TMP_DIR}/global"
+  local package="test"
+  mkdir -p "${LOCAL_PACKAGE_DIR}"
+  mkdir -p "${PACKAGE_DIR}"
+  touch "${LOCAL_PACKAGE_DIR}/${package}"
+  touch "${PACKAGE_DIR}/${package}"
+
+  run print_packages "${package}"
+  assert_success
+
+  [[ "${lines[0]}" =~ "${PACKAGE_DIR}/${package}" ]]
+  [[ "${lines[1]}" =~ "${LOCAL_PACKAGE_DIR}/${package}" ]]
+
+  rm -rf "${EZ_TMP_DIR}"
+}
+
+@test "install.common.print_package() test similar package with multiple different file extension" {
+  EZ_TMP_DIR="${HOME}/ez-tmp-dir"
+  LOCAL_PACKAGE_DIR="${EZ_TMP_DIR}/local"
+  PACKAGE_DIR="${EZ_TMP_DIR}/global"
+  local package="test"
+  mkdir -p "${LOCAL_PACKAGE_DIR}"
+  mkdir -p "${PACKAGE_DIR}"
+  touch "${PACKAGE_DIR}/${package}.apt"
+  touch "${PACKAGE_DIR}/${package}.git"
+  touch "${PACKAGE_DIR}/${package}.npm"
+  touch "${LOCAL_PACKAGE_DIR}/${package}.apt"
+  touch "${LOCAL_PACKAGE_DIR}/${package}.git"
+  touch "${LOCAL_PACKAGE_DIR}/${package}.npm"
+
+  run print_packages "${package}"
+  assert_success
+
+  [[ "${lines[0]}" =~ "${PACKAGE_DIR}/${package}.apt" ]]
+  [[ "${lines[1]}" =~ "${PACKAGE_DIR}/${package}.git" ]]
+  [[ "${lines[2]}" =~ "${PACKAGE_DIR}/${package}.npm" ]]
+  [[ "${lines[3]}" =~ "${LOCAL_PACKAGE_DIR}/${package}.apt" ]]
+  [[ "${lines[4]}" =~ "${LOCAL_PACKAGE_DIR}/${package}.git" ]]
+  [[ "${lines[5]}" =~ "${LOCAL_PACKAGE_DIR}/${package}.npm" ]]
+
+  rm -rf "${EZ_TMP_DIR}"
+}
+
+@test "install.common.print_package() test specific package with multiple different file extension" {
+  EZ_TMP_DIR="${HOME}/ez-tmp-dir"
+  LOCAL_PACKAGE_DIR="${EZ_TMP_DIR}/local"
+  PACKAGE_DIR="${EZ_TMP_DIR}/global"
+  local package="test"
+  mkdir -p "${LOCAL_PACKAGE_DIR}"
+  mkdir -p "${PACKAGE_DIR}"
+  touch "${PACKAGE_DIR}/${package}.apt"
+  touch "${PACKAGE_DIR}/${package}.git"
+  touch "${PACKAGE_DIR}/${package}.npm"
+  touch "${LOCAL_PACKAGE_DIR}/${package}.apt"
+  touch "${LOCAL_PACKAGE_DIR}/${package}.git"
+  touch "${LOCAL_PACKAGE_DIR}/${package}.npm"
+
+  run print_packages "${package}.apt"
+  assert_success
+
+  [[ "${lines[0]}" =~ "${PACKAGE_DIR}/${package}.apt" ]]
+  [[ "${lines[3]}" =~ "${LOCAL_PACKAGE_DIR}/${package}.apt" ]]
+
+  rm -rf "${EZ_TMP_DIR}"
+}
+
+@test "install.common.print_packages() test no package in both local and global path" {
+  unset PACKAGE_DIR
+  unset LOCAL_PACKAGE_DIR
+
+  run print_packages "${package}"
+  assert_success
+
+  [[ "${lines[0]}" =~ "" ]]
+}
+
 @test "install.common.select_package() test no required arguments" {
   run select_package
   assert_failure
@@ -227,7 +359,7 @@ load "../install/common.sh"
 }
 
 @test "install.common.select_package() test missing second argument" {
-  run select_package "test-package"
+  run select_package selected
   assert_failure
   assert_equal "$status" "$BASH_SYS_EX_USAGE"
 }
@@ -242,7 +374,7 @@ load "../install/common.sh"
 
   local selected
 
-  run select_package "${package}" selected
+  run select_package selected "${package}"
   assert_failure
   assert_equal "$status" "$BASH_EZ_EX_PAC_NOTFOUND"
 
@@ -258,7 +390,7 @@ load "../install/common.sh"
 
   local selected
 
-  select_package "${package}" selected
+  select_package selected "${package}"
   assert_success
   assert_equal "$selected" "${PACKAGE_DIR}/${package}1-global"
 
@@ -279,7 +411,7 @@ load "../install/common.sh"
 
   local selected
 
-  select_package "${package}" selected <<< "1"
+  select_package selected "${package}" <<< "1"
   assert_success
   assert_equal "$selected" "${PACKAGE_DIR}/${package}1-global"
 
@@ -300,14 +432,12 @@ load "../install/common.sh"
 
   local selected
 
-  select_package "${package}" selected "global" <<< "1"
+  select_package selected "${package}" "global" <<< "1"
   assert_success
   assert_equal "$selected" "${LOCAL_PACKAGE_DIR}/${package}1-local"
 
   rm -rf "${EZ_TMP_DIR}"
 }
-
-# TODO: Test print_packages
 
 # TODO: Test parse_inline_opts
 
