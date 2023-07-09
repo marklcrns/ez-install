@@ -14,5 +14,8 @@ ${INSTALL_DIR}:
 test:
 	docker-compose up --build
 
+test-wipe:
+	docker-compose down --rmi all --volumes --remove-orphans
+
 clean:
 	sudo rm -f $(INSTALL_DIR)/ez $(INSTALL_DIR)/ez-gen

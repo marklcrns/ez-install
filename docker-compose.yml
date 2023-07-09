@@ -2,7 +2,7 @@ services:
   # bats_ubuntu1604:
   #   build:
   #     context: ./
-  #     dockerfile: Dockerfile.ubuntu16.04.bats
+  #     dockerfile: Dockerfile.ubuntu.1604.bats
   #   volumes:
   #     - ./:/usr/local/src/ez-install
   #   working_dir: /usr/local/src/ez-install
@@ -10,7 +10,7 @@ services:
   # bats_ubuntu1604_sudo:
   #   build:
   #     context: ./
-  #     dockerfile: Dockerfile.ubuntu16.04.sudo.bats
+  #     dockerfile: Dockerfile.ubuntu.1604.sudo.bats
   #   volumes:
   #     - ./:/usr/local/src/ez-install
   #   working_dir: /usr/local/src/ez-install
@@ -18,7 +18,7 @@ services:
   # bats_ubuntu1804:
   #   build:
   #     context: ./
-  #     dockerfile: Dockerfile.ubuntu18.04.bats
+  #     dockerfile: Dockerfile.ubuntu.1804.bats
   #   volumes:
   #     - ./:/usr/local/src/ez-install
   #   working_dir: /usr/local/src/ez-install
@@ -26,7 +26,7 @@ services:
   # bats_ubuntu1804_sudo:
   #   build:
   #     context: ./
-  #     dockerfile: Dockerfile.ubuntu18.04.sudo.bats
+  #     dockerfile: Dockerfile.ubuntu.1804.sudo.bats
   #   volumes:
   #     - ./:/usr/local/src/ez-install
   #   working_dir: /usr/local/src/ez-install
@@ -34,7 +34,7 @@ services:
   bats_ubuntu2004:
     build:
       context: ./
-      dockerfile: Dockerfile.ubuntu20.04.bats
+      dockerfile: Dockerfile.ubuntu.2004.bats
     volumes:
       - ./:/usr/local/src/ez-install
     working_dir: /usr/local/src/ez-install
@@ -42,7 +42,15 @@ services:
   bats_ubuntu2004_sudo:
     build:
       context: ./
-      dockerfile: Dockerfile.ubuntu20.04.sudo.bats
+      dockerfile: Dockerfile.ubuntu.2004.sudo.bats
+    volumes:
+      - ./:/usr/local/src/ez-install
+    working_dir: /usr/local/src/ez-install
+    command: bats --formatter tap test
+  bats_archlinux_base-devel:
+    build:
+      context: ./
+      dockerfile: Dockerfile.archlinux.base-devel.bats
     volumes:
       - ./:/usr/local/src/ez-install
     working_dir: /usr/local/src/ez-install

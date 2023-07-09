@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM ubuntu:16.04
 
 # Install dependencies
 RUN apt-get update && apt-get install -y \
@@ -27,7 +27,6 @@ RUN git clone https://github.com/ztombol/bats-assert /opt/bats-test-helpers/bats
 RUN git clone https://github.com/lox/bats-mock /opt/bats-test-helpers/bats-mock
 
 # Add docker user to sudoers
-
 RUN useradd -m docker && echo "docker:docker" | chpasswd && adduser docker sudo
 
 USER docker
