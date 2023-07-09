@@ -47,7 +47,7 @@ load "../install/common.sh"
   assert_equal "$PACKAGE_DIR" "/path/to/packages/${OS_DISTRIB_ID}/${OS_DISTRIB_RELEASE}"
 }
 
-@test "install.common.fetch_package() test no argument" {
+@test "install.common.fetch_package() test missing argument" {
   run fetch_package
   assert_failure
   assert_equal "$status" $BASH_SYS_EX_USAGE
@@ -218,8 +218,6 @@ load "../install/common.sh"
   assert_success
 }
 
-# TODO: Test print_packages
-
 @test "install.common.print_packages() test one package in local path" {
   unset PACKAGE_DIR
 
@@ -342,6 +340,45 @@ load "../install/common.sh"
   rm -rf "${EZ_TMP_DIR}"
 }
 
+@test "install.common.print_package() test existing package ignore existing pre and post hook installer" {
+  EZ_TMP_DIR="${HOME}/ez-tmp-dir"
+  LOCAL_PACKAGE_DIR="${EZ_TMP_DIR}/local"
+  PACKAGE_DIR="${EZ_TMP_DIR}/global"
+  local package="test"
+  mkdir -p "${LOCAL_PACKAGE_DIR}"
+  mkdir -p "${PACKAGE_DIR}"
+  touch "${PACKAGE_DIR}/${package}.apt"
+  touch "${PACKAGE_DIR}/${package}.pre"
+  touch "${LOCAL_PACKAGE_DIR}/${package}.apt"
+  touch "${LOCAL_PACKAGE_DIR}/${package}.post"
+
+  run print_packages "${package}"
+  assert_success
+
+  [[ "${lines[0]}" =~ "${PACKAGE_DIR}/${package}.apt" ]]
+  [[ "${lines[1]}" =~ "${LOCAL_PACKAGE_DIR}/${package}.apt" ]]
+
+  rm -rf "${EZ_TMP_DIR}"
+}
+
+@test "install.common.print_package() test non-existing package ignore existing pre and post hook installer" {
+  EZ_TMP_DIR="${HOME}/ez-tmp-dir"
+  LOCAL_PACKAGE_DIR="${EZ_TMP_DIR}/local"
+  PACKAGE_DIR="${EZ_TMP_DIR}/global"
+  local package="test"
+  mkdir -p "${LOCAL_PACKAGE_DIR}"
+  mkdir -p "${PACKAGE_DIR}"
+  touch "${PACKAGE_DIR}/${package}.pre"
+  touch "${LOCAL_PACKAGE_DIR}/${package}.post"
+
+  run print_packages "${package}"
+  assert_success
+
+  [[ "${lines[0]}" =~ "" ]]
+
+  rm -rf "${EZ_TMP_DIR}"
+}
+
 @test "install.common.print_packages() test no package in both local and global path" {
   unset PACKAGE_DIR
   unset LOCAL_PACKAGE_DIR
@@ -352,7 +389,7 @@ load "../install/common.sh"
   [[ "${lines[0]}" =~ "" ]]
 }
 
-@test "install.common.select_package() test no required arguments" {
+@test "install.common.select_package() test missing first argument" {
   run select_package
   assert_failure
   assert_equal "$status" "$BASH_SYS_EX_USAGE"
@@ -440,6 +477,12 @@ load "../install/common.sh"
 }
 
 # TODO: Test parse_inline_opts
+
+@test "install.common.parse_inline-opts() test no required arguments" {
+  run parse_inline_opts
+  assert_failure
+  assert_equal "$status" "$BASH_SYS_EX_USAGE"
+}
 
 # TODO: Test get_user_input
 
