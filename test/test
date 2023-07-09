@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 
-source "${BASH_SOURCE%/*}/../install/common.sh"
-
 VERBOSE=true
+
+source "${BASH_SOURCE%/*}/../install/common.sh"
+source "${BASH_SOURCE%/*}/../install/install-utils/install-apt.sh"
 
 # test() {
 # 	while true; do
@@ -31,13 +32,8 @@ VERBOSE=true
 # test "test"
 
 main() {
-	local selected
-	local list=("item1" "item2" "item3")
-	local prompt="Sample prompt message: "
-
-	# list_selector -p "${prompt}" selected "${list[@]}" 2>&1
-	select_package selected "test"
-	print_packages "test" "bats"
+	local update+=("$(apt_add_repo -u true -s true "ppa:git-core/ppa")")
+	printf '%s\n' "${update[@]}"
 }
 
 main

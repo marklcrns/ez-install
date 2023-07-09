@@ -173,6 +173,15 @@ load "../install/common.sh"
   assert_failure
 }
 
+@test "install.common.list_selector() test invalid -x flag" {
+  local selected
+  local list=("item1" "item2" "item3")
+
+  run list_selector -x selected "${list[@]}"
+  assert_failure
+  assert_equal "$status" "$BASH_SYS_EX_USAGE"
+}
+
 # FIXME: Bats does not wait for timeout. read `prompt` cannot be captured by
 # bats output ${lines[@]}.
 #
@@ -488,3 +497,9 @@ load "../install/common.sh"
 
 # TODO: Test get_sys_package_manager
 
+# TODO: Test parse_yaml
+
+@test "install.common.parse_yaml test sample yaml parse" {
+  run parse_yaml
+  assert_success
+}

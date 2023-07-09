@@ -516,3 +516,8 @@ function get_sys_package_manager() {
 
 	eval "${1}='${manager}'"
 }
+
+# TODO: Finish parser
+function parse_yaml() {
+	${EZ_DEP_YAML_PARSER} --version
+}

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 if [ "${0##*/}" == "${BASH_SOURCE[0]##*/}" ]; then
-	echo "WARNING: $(realpath -s $0) is not meant to be executed directly!" >&2
+	echo "WARNING: $(realpath -s "$0") is not meant to be executed directly!" >&2
 	echo "Use this script only by sourcing it." >&2
 	exit 1
 fi
@@ -9,8 +9,9 @@ fi
 # Header guard
 [[ -z "${INSTALL_UTILS_INSTALL_APT_SH_INCLUDED+x}" ]] &&
 	readonly INSTALL_UTILS_INSTALL_APT_SH_INCLUDED=1 ||
-	return $BASH_EX_OK
+	return "$BASH_EX_OK"
 
+source "$(dirname -- "$(realpath -- "${BASH_SOURCE[0]}")")/../../.ez-installrc"
 source "${EZ_INSTALL_HOME}/common/include.sh"
 
 include "${EZ_INSTALL_HOME}/common/string.sh"
@@ -20,11 +21,12 @@ include "${EZ_INSTALL_HOME}/actions.sh"
 include "${EZ_INSTALL_HOME}/install/utils/pac-logger.sh"
 
 function apt_add_repo() {
+	local base_command="add-apt-repository -y"
+	local _commands=()
+
 	local forced=false
 	local as_root=false
 	local is_update=false
-	local args=""
-	local command_name=""
 	local package_name=""
 
 	OPTIND=1
@@ -32,9 +34,6 @@ function apt_add_repo() {
 		case ${opt} in
 		a)
 			args="${OPTARG}"
-			;;
-		c)
-			command_name="${OPTARG}"
 			;;
 		n)
 			package_name="${OPTARG}"
@@ -50,79 +49,96 @@ function apt_add_repo() {
 			;;
 		*)
 			error "Invalid flag option(s)"
-			exit $BASH_SYS_EX_USAGE
+			exit "$BASH_SYS_EX_USAGE"
 			;;
 		esac
 	done
 	shift "$((OPTIND - 1))"
 
-	if [[ -z "${@+x}" ]]; then
+	if [[ -z "${*+x}" ]]; then
 		error "${BASH_SYS_MSG_USAGE_MISSARG}"
-		return $BASH_SYS_EX_USAGE
+		return "$BASH_SYS_EX_USAGE"
 	fi
 
-	local repo="${@}"
+	local repo="${*}"
 	local apt_repo_dir='/etc/apt/'
-	local sudo=""
 	local redirect=""
 
+	# Redirect output to /dev/null if not verbose
+	if ! ${VERBOSE:-false}; then
+		redirect=' &> /dev/null'
+	fi
+
+	# Reinstall if forced
 	$forced && args+=' --reinstall'
-	! ${VERBOSE:-false} && redirect=' &> /dev/null'
-	[[ -z "${package_name}" ]] && package_name="${repo}"
+
+	# If no package name is provided with flags, use the repo name argument
+	if [[ -z "${package_name}" ]]; then
+		package_name="${repo}"
+	fi
 
 	# strip_substr 'ppa:' repo
 
 	if $as_root; then
 		if command -v sudo &>/dev/null; then
-			sudo="sudo "
+			base_command="sudo ${base_command}"
 		else
-			pac_log_failed $BASH_EX_MISUSE 'Apt-add' "${package_name}" "Apt-add '${package_name}' installation failed. 'sudo' not installed"
-			return $BASH_EX_MISUSE
+			pac_log_failed "$BASH_EX_MISUSE" 'Apt-add' "${package_name}" "Apt-add '${package_name}' installation failed. 'sudo' not installed"
+			return "$BASH_EX_MISUSE"
 		fi
 	fi
 
 	local res=0
 
-	is_apt_installed
-	res=$?
-	if [[ $res -ne $BASH_EX_OK ]]; then
-		pac_log_failed $res 'Apt-add' "${package_name}" "Apt-add '${package_name}' installation failed. apt not installed"
-		return $res
-	fi
+	# TODO: Check if apt install before executing array of apt commands
+	# is_apt_installed
+	# res=$?
+	# if [[ $res -ne $BASH_EX_OK ]]; then
+	# 	pac_log_failed $res 'Apt-add' "${package_name}" "Apt-add '${package_name}' installation failed. apt not installed"
+	# 	return $res
+	# fi
 
-	if ! $forced; then
-		if find ${apt_repo_dir} -name "*.list" | xargs cat | grep -h "^[[:space:]]*deb.*${repo//ppa:/}" &>/dev/null; then
-			pac_log_skip 'Apt-add' "${package_name}"
-			return $BASH_EX_OK
-		fi
-	fi
+	# if ! $forced; then
+	# 	if find ${apt_repo_dir} -name "*.list" | xargs cat | grep -h "^[[:space:]]*deb.*${repo//ppa:/}" &>/dev/null; then
+	# 		pac_log_skip 'Apt-add' "${package_name}"
+	# 		return "$BASH_EX_OK"
+	# 	fi
+	# fi
 
 	if $is_update; then
-		apt_update -s $as_root
+		_commands+=("$(apt_update -s $as_root)")
 		res=$?
 		[[ $res -ne $BASH_EX_OK ]] && return $res
 	fi
 
-	pac_pre_install -f $forced -s $as_root -- "${package_name}" 'apt-add'
-	res=$?
-	[[ $res -ne $BASH_EX_OK ]] && return $res
+	local _cmd="${base_command} ${args} -- '${repo}'${redirect}"
+	strip_extra_whitespace _cmd
 
-	# Execute installation
-	is_wsl && set_nameserver "8.8.8.8"
-	if execlog "${sudo}apt-add-repository -y ${args} -- '${repo}'${redirect}"; then
-		pac_log_success 'Apt-add' "${package_name}"
-		return $BASH_EX_OK
-	else
-		res=$?
-		pac_log_failed $res 'Apt-add' "${package_name}"
-		execlog "${sudo}apt-add-repository -ry -- '${repo}'${redirect}"
-		return $res
-	fi
-	is_wsl && restore_nameserver
+	_commands+=("${_cmd}")
 
-	pac_post_install -f $forced -s $as_root -- "${package_name}" 'apt-add'
-	res=$?
-	return $res
+	# pac_pre_install -f $forced -s $as_root -- "${package_name}" 'apt-add'
+	# res=$?
+	# [[ $res -ne $BASH_EX_OK ]] && return $res
+	#
+	# # Execute installation
+	# is_wsl && set_nameserver "8.8.8.8"
+	# if execlog "${sudo}apt-add-repository -y ${args} -- '${repo}'${redirect}"; then
+	# 	pac_log_success 'Apt-add' "${package_name}"
+	# 	return $BASH_EX_OK
+	# else
+	# 	res=$?
+	# 	pac_log_failed $res 'Apt-add' "${package_name}"
+	# 	execlog "${sudo}apt-add-repository -ry -- '${repo}'${redirect}"
+	# 	return $res
+	# fi
+	# is_wsl && restore_nameserver
+	#
+	# pac_post_install -f $forced -s $as_root -- "${package_name}" 'apt-add'
+	# res=$?
+	# return $res
+
+	printf "%s\n" "${_commands[@]}"
+	return "$BASH_EX_OK"
 }
 
 # Will `apt update` first before installation if $2 -eq 1
@@ -237,6 +253,9 @@ function apt_install() {
 }
 
 function apt_update() {
+	local base_command="apt update -y"
+	local _commands=()
+
 	local as_root=false
 
 	OPTIND=1
@@ -253,36 +272,54 @@ function apt_update() {
 	done
 	shift "$((OPTIND - 1))"
 
-	local sudo=""
+	local redirect=""
+
+	# Redirect output to /dev/null if not verbose
+	if ! ${VERBOSE:-false}; then
+		redirect=' &> /dev/null'
+	fi
 
 	if $as_root; then
 		if command -v "sudo" &>/dev/null; then
-			sudo="sudo "
+			base_command="sudo ${base_command}"
 		else
-			return $BASH_EX_MISUSE
+			pac_log_failed "$BASH_EX_MISUSE" 'Apt-update' "Apt update failed. 'sudo' not installed"
+			return "$BASH_EX_MISUSE"
 		fi
 	fi
 
-	local res=
+	local _cmd="${base_command}${redirect}"
+	strip_extra_whitespace _cmd
 
-	is_wsl && set_nameserver '8.8.8.8'
-	if execlog "${sudo}apt update -y"; then
-		ok 'Apt update successful!'
-	else
-		res=$?
-		error 'Apt update failed'
-	fi
-	is_wsl && restore_nameserver
+	_commands+=("${_cmd}")
 
-	return $res
+	# NOTE: DEPRECATED: Moved to command executor
+	# local res=
+	#
+	# is_wsl && set_nameserver '8.8.8.8'
+	# if execlog "${sudo}apt update -y"; then
+	# 	ok 'Apt update successful!'
+	# else
+	# 	res=$?
+	# 	error 'Apt update failed'
+	# fi
+	# is_wsl && restore_nameserver
+	#
+	# return $res
+
+	printf "%s\n" "${_commands[@]}"
+	return $BASH_EX_OK
 }
 
 function apt_upgrade() {
+	local base_command="apt upgrade -y"
+	local _commands=()
+
 	local as_root=false
 	local args=""
 
 	OPTIND=1
-	while getopts "s:" opt; do
+	while getopts "a:s:" opt; do
 		case ${opt} in
 		a)
 			args="${OPTARG}"
@@ -298,31 +335,46 @@ function apt_upgrade() {
 	done
 	shift "$((OPTIND - 1))"
 
-	local sudo=""
+	local redirect=""
+
+	# Redirect output to /dev/null if not verbose
+	if ! ${VERBOSE:-false}; then
+		redirect=' &> /dev/null'
+	fi
 
 	if $as_root; then
 		if command -v "sudo" &>/dev/null; then
-			sudo="sudo "
+			base_command="sudo ${base_command}"
 		else
+			pac_log_failed "$BASH_EX_MISUSE" 'Apt-upgrade' "Apt upgrade failed. 'sudo' not installed"
 			return $BASH_EX_MISUSE
 		fi
 	fi
 
-	local res=0
+	local _cmd="${base_command} ${args}${redirect}"
+	strip_extra_whitespace _cmd
 
-	is_wsl && set_nameserver '8.8.8.8'
-	if execlog "${sudo}apt update -y ${args} && apt upgrade -y ${args}"; then
-		ok 'Apt upgrade successful!'
-	else
-		res=$?
-		error 'Apt upgrade failed'
-	fi
-	is_wsl && restore_nameserver
+	_commands+=("${_cmd}")
 
-	return $res
+	# NOTE: DEPRECATED: Moved to command executor
+	# local res=0
+	#
+	# is_wsl && set_nameserver '8.8.8.8'
+	# if execlog "${sudo}apt update -y ${args} && apt upgrade -y ${args}"; then
+	# 	ok 'Apt upgrade successful!'
+	# else
+	# 	res=$?
+	# 	error 'Apt upgrade failed'
+	# fi
+	# is_wsl && restore_nameserver
+	#
+	# return $res
+
+	printf "%s\n" "${_commands[@]}"
+	return $BASH_EX_OK
 }
 
-function apt_purge() {
+function apt_uninstall() {
 	local as_root=false
 	local args=""
 	local command_name=""

@@ -12,7 +12,7 @@ ${INSTALL_DIR}:
 
 .PHONY: test
 test:
-	docker-compose up --build --abort-on-container-exit
+	docker-compose up --build
 
 clean:
 	sudo rm -f $(INSTALL_DIR)/ez $(INSTALL_DIR)/ez-gen

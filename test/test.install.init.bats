@@ -65,3 +65,9 @@ load "../install/init.sh"
   assert_failure
 }
 
+@test "install.init.handle_package_args() test invalid -x flag" {
+  run handle_package_args -x
+  assert_failure
+  assert_equal "$status" "$BASH_SYS_EX_USAGE"
+}
+

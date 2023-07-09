@@ -49,11 +49,30 @@ readonly EZ_COMMAND_INSTALL="${EZ_INSTALL_HOME}/install/install"
 readonly EZ_INSTALL_METADATA_PARSER="${EZ_INSTALL_HOME}/install/utils/metadata-parser"
 
 # Dependencies
+# TODO: Check for dependency version
+
+# JSON Parser
+# LINUX: wget https://github.com/jqlang/jq/releases/download/jq-1.6/jq-linux64 -O ./jq && chmod +x ./jq
 if [[ -e "${EZ_INSTALL_HOME}/lib/parser/jq" ]]; then
 	readonly EZ_DEP_JQ="${EZ_INSTALL_HOME}/lib/parser/jq"
+	readonly EZ_DEP_JSON_PARSER="${EZ_INSTALL_HOME}/lib/parser/jq"
 elif command -v jq &>/dev/null; then
 	readonly EZ_DEP_JQ="jq"
+	readonly EZ_DEP_JSON_PARSER="jq"
 else
-	error "Missing 'jq' dependency"
+	error "Missing 'jq' JSON parser dependency"
+	exit $BASH_EZ_EX_DEP_NOTFOUND
+fi
+
+# YAML Parser
+# LINUX: wget https://github.com/mikefarah/yq/releases/download/v4.34.1/yq_linux_amd64 -O ./yq && chmod +x ./yq
+if [[ -e "${EZ_INSTALL_HOME}/lib/parser/yq" ]]; then
+	readonly EZ_DEP_YQ="${EZ_INSTALL_HOME}/lib/parser/yq"
+	readonly EZ_DEP_YAML_PARSER="${EZ_INSTALL_HOME}/lib/parser/yq"
+elif command -v yq &>/dev/null; then
+	readonly EZ_DEP_YQ="yq"
+	readonly EZ_DEP_YAML_PARSER="yq"
+else
+	error "Missing 'yq' YAML parser dependency"
 	exit $BASH_EZ_EX_DEP_NOTFOUND
 fi
