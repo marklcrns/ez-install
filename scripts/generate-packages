@@ -170,6 +170,7 @@ function _main() {
 
 	local -a _virtualization=(
 		"-s containerd.io"
+		"-s docker.io"
 		"-s -c docker docker"
 	)
 
