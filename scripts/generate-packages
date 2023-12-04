@@ -116,6 +116,7 @@ function _main() {
 	)
 
 	local -a _tools=(
+		"-s -c gh gh"
 		"-s -c font-manager font-manager"
 		"-s -c fontforge fontforge"
 		"-s -c tree tree"
