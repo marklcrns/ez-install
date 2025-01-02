@@ -17,9 +17,25 @@ MINGW*) machine=MinGw ;;
 *) machine="UNKNOWN:${unameOut}" ;;
 esac
 
+# If MacOS, ensure bash is up-to-date
+if [ "$machine" == "Mac" ]; then
+	# Ensure brew is installed
+	if ! command -v brew &>/dev/null; then
+		/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+		brew update
+		brew upgrade
+	fi
+
+	# Ensure bash is installed by brew
+	if [ "$(brew ls --versions bash)" == "" ]; then
+		brew install bash
+	fi
+fi
+
 # Install JQ if not existing
 if ! command -v jq &>/dev/null; then
 	if [ "$machine" == "Mac" ]; then
+		# Install jq
 		brew install jq
 	elif [ "$machine" == "Linux" ]; then
 		if command -v apk &>/dev/null; then
