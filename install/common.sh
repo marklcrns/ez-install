@@ -60,6 +60,7 @@ function resolve_package_dir() {
 	local distrib_release="${OS_DISTRIB_RELEASE}"
 
 	if [[ -z "${PACKAGE_ROOT_DIR+x}" ]]; then
+		mkdir -p "${EZ_INSTALL_HOME}/generate/packages"
 		PACKAGE_ROOT_DIR="$(realpath "${EZ_INSTALL_HOME}/generate/packages")"
 	fi
 	if [[ -z "${LOCAL_PACKAGE_ROOT_DIR+x}" ]]; then

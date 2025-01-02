@@ -39,7 +39,7 @@
 [[ -z "${AS_ROOT+x}" ]] && AS_ROOT=false
 
 [[ ! -d "${EZ_INSTALL_HOME:-}" ]] && EZ_INSTALL_HOME="$(realpath "${BASH_SOURCE%/*}")" && export EZ_INSTALL_HOME
-[[ ! -d "${PACKAGE_ROOT_DIR:-}" ]] && PACKAGE_ROOT_DIR="$(realpath "${BASH_SOURCE%/*}/generate/packages")"
+[[ ! -d "${PACKAGE_ROOT_DIR:-}" ]] && PACKAGE_ROOT_DIR="${EZ_INSTALL_HOME}/generate/packages"
 [[ ! -d "${LOCAL_PACKAGE_ROOT_DIR:-}" ]] && LOCAL_PACKAGE_ROOT_DIR="${HOME}/.ez-install.d/packages"
 
 # Source local .ez-installrc

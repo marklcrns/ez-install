@@ -304,9 +304,6 @@ function _main() {
 	#   "${_test[@]}"
 	# )
 
-	# Ensure generate/packages directory exist
-	mkdir -p "$(realpath -- "${BASH_SOURCE[0]%/*}/generate/packages")"
-
 	for package in "${packages[@]}"; do
 		ez gen --global --skip-confirm --skip-edit ${package}
 	done
