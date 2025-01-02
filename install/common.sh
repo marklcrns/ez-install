@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 if [ "${0##*/}" == "${BASH_SOURCE[0]##*/}" ]; then
-	echo "WARNING: $(realpath -s "$0") is not meant to be executed directly!" >&2
+	echo "WARNING: $(realpath "$0") is not meant to be executed directly!" >&2
 	echo "Use this script only by sourcing it." >&2
 	exit 1
 fi
@@ -60,7 +60,7 @@ function resolve_package_dir() {
 	local distrib_release="${OS_DISTRIB_RELEASE}"
 
 	if [[ -z "${PACKAGE_ROOT_DIR+x}" ]]; then
-		PACKAGE_ROOT_DIR="$(realpath -s "${EZ_INSTALL_HOME}/generate/packages")"
+		PACKAGE_ROOT_DIR="$(realpath "${EZ_INSTALL_HOME}/generate/packages")"
 	fi
 	if [[ -z "${LOCAL_PACKAGE_ROOT_DIR+x}" ]]; then
 		LOCAL_PACKAGE_ROOT_DIR="${HOME}/.ez-install.d/packages"

@@ -4,7 +4,7 @@
 # sourced by the generated package install scripts during package installation.
 
 if [ "${0##*/}" == "${BASH_SOURCE[0]##*/}" ]; then
-	echo "WARNING: $(realpath -s "$0") is not meant to be executed directly!" >&2
+	echo "WARNING: $(realpath "$0") is not meant to be executed directly!" >&2
 	echo "Use this script only by sourcing it." >&2
 	exit 1
 fi

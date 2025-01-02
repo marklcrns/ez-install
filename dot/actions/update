@@ -46,7 +46,7 @@ DOTFILES_REPO="${HOME}/.dotfiles"
 LOG_FILE_DIR="${HOME}/log"
 LOG_FILE="$(date +"%Y-%m-%dT%H:%M:%S")_$(basename -- $0).log"
 
-SCRIPTPATH="$(realpath -s $0)"
+SCRIPTPATH="$(realpath $0)"
 SCRIPTDIR=$(dirname ${SCRIPTPATH})
 
 ############################################## EXTERNAL DEPENDENCIES SCRIPTS ###

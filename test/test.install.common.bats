@@ -16,7 +16,7 @@ load "../install/common.sh"
 @test "install.common.resolve_package_dir() test empty PACKAGE_ROOT_DIR" {
   unset PACKAGE_ROOT_DIR
   resolve_package_dir
-  assert_equal "$PACKAGE_ROOT_DIR" "$(realpath -s "${EZ_INSTALL_HOME}/generate/packages")"
+  assert_equal "$PACKAGE_ROOT_DIR" "$(realpath "${EZ_INSTALL_HOME}/generate/packages")"
 }
 
 @test "install.common.resolve_package_dir() test non-empty LOCAL_PACKAGE_ROOT_DIR" {
