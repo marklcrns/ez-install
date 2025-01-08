@@ -1,3 +1,32 @@
+<p align="center">
+  <img src="./assets/logo.png" alt="ez-install" width="200" height="200">
+</p>
+
+<!-- TOC GFM -->
+
+- [Introduction](#introduction)
+  - [Disclaimer](#disclaimer)
+  - [Getting Started](#getting-started)
+  - [Usage](#usage)
+    - [In-line Options](#in-line-options)
+    - [Reporting](#reporting)
+  - [Config](#config)
+  - [Pre- and Post-Installation Hooks](#pre--and-post-installation-hooks)
+  - [Package Generator](#package-generator)
+    - [Simple Package Generator Usage](#simple-package-generator-usage)
+    - [Advanced Package Generator Usage](#advanced-package-generator-usage)
+    - [Sample Package Generator Usage For `git`, `curl`, and `wget`](#sample-package-generator-usage-for-git-curl-and-wget)
+    - [More Advanced Package Generator Usage](#more-advanced-package-generator-usage)
+    - [Interactive Package Generator](#interactive-package-generator)
+  - [Built-in Install Functions](#built-in-install-functions)
+    - [Package Manager Specific Functions](#package-manager-specific-functions)
+  - [Supported Package Managers](#supported-package-managers)
+  - [Tested Distributions](#tested-distributions)
+  - [Contributing](#contributing)
+  - [TODO](#todo)
+
+<!-- /TOC -->
+
 # Introduction
 
 **Have you ever found yourself confused and helpless trying to install Linux
@@ -51,31 +80,6 @@ only if you give it an earnest try.
 
 That said, I hope you find this project helpful to your development needs and
 find time to help this repo grow by contributing. Thanks!
-
-## Table of Contents
-
-<!-- TOC GFM -->
-
-- [Getting Started](#getting-started)
-- [Usage](#usage)
-  - [In-line Options](#in-line-options)
-  - [Reporting](#reporting)
-- [Config](#config)
-- [Pre- and Post-Installation Hooks](#pre--and-post-installation-hooks)
-- [Package Generator](#package-generator)
-  - [Simple Package Generator Usage](#simple-package-generator-usage)
-  - [Advanced Package Generator Usage](#advanced-package-generator-usage)
-  - [Sample Package Generator Usage For `git`, `curl`, and `wget`](#sample-package-generator-usage-for-git-curl-and-wget)
-  - [More Advanced Package Generator Usage](#more-advanced-package-generator-usage)
-  - [Interactive Package Generator](#interactive-package-generator)
-- [Built-in Install Functions](#built-in-install-functions)
-  - [Package Manager Specific Functions](#package-manager-specific-functions)
-- [Supported Package Managers](#supported-package-managers)
-- [Tested Distributions](#tested-distributions)
-- [Contributing](#contributing)
-- [TODO](#todo)
-
-<!-- /TOC -->
 
 ## Getting Started
 
